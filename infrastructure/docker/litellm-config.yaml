@@ -1,0 +1,155 @@
+model_list:
+  # OpenAI Models
+  - model_name: gpt-4.1
+    litellm_params:
+      model: openai/gpt-4.1
+      api_key: ${OPENAI_API_KEY}  # Set in environment variable
+      
+  - model_name: gpt-4.1-mini
+    litellm_params:
+      model: openai/gpt-4.1-mini
+      api_key: ${OPENAI_API_KEY}
+      
+  - model_name: gpt-4o
+    litellm_params:
+      model: openai/gpt-4o
+      api_key: ${OPENAI_API_KEY}
+      
+  - model_name: gpt-3.5-turbo
+    litellm_params:
+      model: openai/gpt-3.5-turbo
+      api_key: ${OPENAI_API_KEY}
+      
+  - model_name: o3-mini
+    litellm_params:
+      model: openai/o3-mini
+      api_key: ${OPENAI_API_KEY}
+
+  # Anthropic Models
+  - model_name: claude-4-opus
+    litellm_params:
+      model: anthropic/claude-4-opus
+      api_key: ${ANTHROPIC_API_KEY}  # Set in environment variable
+      
+  - model_name: claude-4-sonnet
+    litellm_params:
+      model: anthropic/claude-4-sonnet
+      api_key: ${ANTHROPIC_API_KEY}
+      
+  - model_name: claude-3.5-sonnet
+    litellm_params:
+      model: anthropic/claude-3-5-sonnet-20241022
+      api_key: ${ANTHROPIC_API_KEY}
+      
+  - model_name: claude-3.5-haiku
+    litellm_params:
+      model: anthropic/claude-3-5-haiku-20241022
+      api_key: ${ANTHROPIC_API_KEY}
+
+  # Groq Models
+  - model_name: gemma2-9b-it
+    litellm_params:
+      model: groq/gemma2-9b-it
+      api_key: ${GROQ_API_KEY}
+      
+  - model_name: llama-3.1-8b-instant
+    litellm_params:
+      model: groq/llama-3.1-8b-instant
+      api_key: ${GROQ_API_KEY}
+      
+  - model_name: llama-3.3-70b-versatile
+    litellm_params:
+      model: groq/llama-3.3-70b-versatile
+      api_key: ${GROQ_API_KEY}
+      
+  - model_name: llama-guard-4-12b
+    litellm_params:
+      model: groq/meta-llama/llama-guard-4-12b
+      api_key: ${GROQ_API_KEY}
+      
+  - model_name: whisper-large-v3
+    litellm_params:
+      model: groq/whisper-large-v3
+      api_key: ${GROQ_API_KEY}
+      
+  - model_name: whisper-large-v3-turbo
+    litellm_params:
+      model: groq/whisper-large-v3-turbo
+      api_key: ${GROQ_API_KEY}
+
+  # DeepSeek Models
+  - model_name: deepseek-chat
+    litellm_params:
+      model: deepseek/deepseek-chat
+      api_key: ${DEEPSEEK_API_KEY}
+      api_base: https://api.deepseek.com/v1
+      
+  - model_name: deepseek-reasoner
+    litellm_params:
+      model: deepseek/deepseek-reasoner
+      api_key: ${DEEPSEEK_API_KEY}
+      api_base: https://api.deepseek.com/v1
+
+  # Example: Azure OpenAI
+  # - model_name: azure-gpt-4
+  #   litellm_params:
+  #     model: azure/gpt-4
+  #     api_base: https://your-resource.openai.azure.com/
+  #     api_key: ${AZURE_API_KEY}
+  #     api_version: "2024-02-15-preview"
+
+  # Example: Local Models (Ollama)
+  # - model_name: llama2
+  #   litellm_params:
+  #     model: ollama/llama2
+  #     api_base: http://localhost:11434
+
+# General Settings
+litellm_settings:
+  drop_params: true
+  max_tokens: 4096
+  request_timeout: 600
+  telemetry: false
+  success_callback: ["langfuse"]  # Send telemetry to Langfuse
+
+# Environment Variables for Langfuse Integration
+environment_variables:
+  LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY}  # From Langfuse project settings
+  LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY}  # From Langfuse project settings
+  LANGFUSE_HOST: "http://langfuse-web:3000"  # Internal Docker network URL
+
+# Router Settings (Optional)
+router_settings:
+  routing_strategy: "simple-shuffle"  # Options: simple-shuffle, least-busy, usage-based-routing
+  # model_group_alias: {"gpt-4": ["gpt-4", "gpt-4-turbo"]}  # Group models together
+  
+# Database Configuration (Optional - for persistent key management)
+database_type: "postgres"
+database_args:
+  host: "postgres"
+  port: 5432
+  user: "postgres"
+  password: ${POSTGRES_PASSWORD}
+  database: "litellm"
+
+# Caching (Optional)
+cache:
+  type: "redis"
+  host: "redis"
+  port: 6379
+  ttl: 3600  # 1 hour
+
+# Rate Limiting (Optional)
+# rate_limit:
+#   - model: "gpt-4"
+#     max_calls: 100
+#     time_window: 3600  # 1 hour
+#   - model: "claude-3-opus"
+#     max_calls: 50
+#     time_window: 3600
+
+# Budget/Cost Tracking (Optional)
+# budget_limits:
+#   - user: "default"
+#     max_budget: 100  # $100
+#     duration: "monthly"
