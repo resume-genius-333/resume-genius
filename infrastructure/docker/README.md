@@ -1,154 +1,169 @@
-# Langfuse + LiteLLM Docker Setup
+# LiteLLM Proxy Docker Setup
 
-This directory contains Docker Compose configuration for running Langfuse (LLM observability platform) and LiteLLM (LLM proxy) together.
+This directory contains the Docker Compose configuration for running LiteLLM proxy with PostgreSQL database support.
 
-## Services
+## Overview
 
-- **Langfuse** (port 3000): LLM observability platform for monitoring, debugging, and analyzing LLM applications
-- **LiteLLM** (port 4000): Universal LLM proxy supporting 100+ LLM providers with unified API
-- **PostgreSQL**: Database for both Langfuse and LiteLLM
-- **ClickHouse**: Analytics database for Langfuse
-- **Redis**: Cache for both services
-- **MinIO**: S3-compatible object storage for Langfuse media uploads
+LiteLLM is a unified API proxy that allows you to call 100+ LLM APIs using the same format. This setup provides:
+
+- **LiteLLM Proxy**: Unified interface for multiple LLM providers
+- **PostgreSQL**: Persistent storage for API keys and usage tracking
+- **Multi-provider support**: OpenAI, Anthropic, Groq, DeepSeek, and more
 
 ## Prerequisites
 
 - Docker and Docker Compose installed
-- At least 4 CPU cores and 16GB RAM
-- 100GB available disk space (recommended)
+- API keys for the LLM providers you want to use
 
 ## Quick Start
 
-1. **Clone and navigate to the directory:**
-   ```bash
-   cd infrastructure/docker
-   ```
-
-2. **Create environment file:**
+1. **Copy and configure environment variables:**
    ```bash
    cp .env.example .env
    ```
+   Edit `.env` and add your API keys and configure passwords.
 
-3. **Generate secure keys:**
-   ```bash
-   # Generate SALT
-   openssl rand -base64 32
-   
-   # Generate ENCRYPTION_KEY
-   openssl rand -hex 32
-   
-   # Generate NEXTAUTH_SECRET
-   openssl rand -base64 32
-   ```
-
-4. **Update `.env` file:**
-   - Replace all placeholder passwords with secure values
-   - Add your LLM provider API keys (OpenAI, Anthropic, etc.)
-   - Update the generated security keys
-
-5. **Start the services:**
+2. **Start the services:**
    ```bash
    docker compose up -d
    ```
 
-6. **Access the services:**
-   - Langfuse: http://localhost:3000
-   - LiteLLM: http://localhost:4000
-   - MinIO Console: http://localhost:9001 (login: minio / your-password)
+3. **Access the LiteLLM proxy:**
+   - API Endpoint: `http://localhost:4000`
+   - Health Check: `http://localhost:4000/health`
+   - Available Models: `http://localhost:4000/models`
 
 ## Configuration
 
-### LiteLLM Configuration
+### Environment Variables
 
-Edit `litellm-config.yaml` to:
-- Add/remove LLM providers
-- Configure model aliases
-- Set up rate limiting
-- Configure caching
+Key environment variables in `.env`:
 
-### Langfuse Integration
+- `LITELLM_MASTER_KEY`: Master API key for LiteLLM admin access
+- `POSTGRES_PASSWORD`: PostgreSQL password
+- `OPENAI_API_KEY`: OpenAI API key
+- `ANTHROPIC_API_KEY`: Anthropic API key
+- `GROQ_API_KEY`: Groq API key
+- `DEEPSEEK_API_KEY`: DeepSeek API key
 
-After first login to Langfuse:
-1. Create a new project
-2. Copy the public and secret keys from project settings
-3. Update these keys in your `.env` file:
-   - `LANGFUSE_PUBLIC_KEY`
-   - `LANGFUSE_SECRET_KEY`
-4. Restart the LiteLLM container: `docker compose restart litellm`
+### Model Configuration
 
-## Using LiteLLM with Langfuse
+Models are configured in `litellm-config.yaml`. The configuration includes:
 
-Once configured, LiteLLM will automatically send telemetry to Langfuse. Use the LiteLLM proxy endpoint in your applications:
+- **OpenAI**: GPT-4, GPT-3.5-turbo, O3-mini
+- **Anthropic**: Claude 4 Opus/Sonnet, Claude 3.5 Sonnet/Haiku
+- **Groq**: Llama 3.3, Gemma 2, Whisper
+- **DeepSeek**: DeepSeek Chat and Reasoner
 
-```python
-import openai
+To add or modify models, edit the `model_list` section in `litellm-config.yaml`.
 
-# Point to LiteLLM proxy
-openai.api_base = "http://localhost:4000"
-openai.api_key = "your-litellm-master-key"  # From .env
+## Usage Examples
 
-# Use any configured model
-response = openai.ChatCompletion.create(
-    model="gpt-4",  # or "claude-3-opus", etc.
-    messages=[{"role": "user", "content": "Hello!"}]
-)
-```
-
-## Managing Services
+### Using the Proxy with curl
 
 ```bash
-# Start all services
+# Set your API key
+export LITELLM_API_KEY="sk-1234"  # Use the LITELLM_MASTER_KEY from .env
+
+# Make a request
+curl -X POST http://localhost:4000/v1/chat/completions \
+  -H "Authorization: Bearer $LITELLM_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4",
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }'
+```
+
+### Using with OpenAI Python SDK
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="http://localhost:4000/v1",
+    api_key="sk-1234"  # Your LITELLM_MASTER_KEY
+)
+
+response = client.chat.completions.create(
+    model="claude-3.5-sonnet",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+print(response.choices[0].message.content)
+```
+
+## Managing the Services
+
+```bash
+# Start services
 docker compose up -d
 
-# Stop all services
+# Stop services
 docker compose down
 
 # View logs
-docker compose logs -f [service-name]
+docker compose logs -f litellm
 
-# Restart a specific service
-docker compose restart [service-name]
+# Restart services
+docker compose restart
 
-# Update to latest versions
-docker compose pull
-docker compose up -d
+# Check service status
+docker compose ps
 ```
 
-## Data Persistence
+## Database Access
 
-All data is persisted in Docker volumes:
-- `langfuse_postgres_data`: PostgreSQL data
-- `langfuse_clickhouse_data`: ClickHouse data
-- `langfuse_minio_data`: MinIO object storage
+PostgreSQL is exposed on `localhost:5440` for debugging:
 
-To backup, use Docker volume backup commands or database-specific backup tools.
-
-## Security Recommendations
-
-1. **Change all default passwords** in the `.env` file
-2. **Use strong, unique values** for all security keys
-3. **Restrict network access** - by default, services are bound to localhost
-4. **Enable HTTPS** in production using a reverse proxy
-5. **Regularly update** Docker images for security patches
+```bash
+# Connect to PostgreSQL
+psql -h localhost -p 5440 -U postgres -d litellm
+# Password: (from POSTGRES_PASSWORD in .env)
+```
 
 ## Troubleshooting
 
-### Services not starting
-- Check logs: `docker compose logs [service-name]`
-- Ensure all required environment variables are set
-- Verify port availability
+1. **Service won't start:**
+   - Check if ports 4000 and 5440 are available
+   - Verify Docker and Docker Compose are installed
+   - Check logs: `docker compose logs`
 
-### Connection issues between services
-- Services communicate via the `langfuse-network` Docker network
-- Use service names (not localhost) for inter-service communication
+2. **API calls failing:**
+   - Verify API keys are set correctly in `.env`
+   - Check model names match configuration
+   - Ensure LiteLLM service is running: `docker compose ps`
 
-### Performance issues
-- Increase Docker Desktop memory allocation
-- Check ClickHouse logs for query performance
-- Monitor PostgreSQL connection pool
+3. **Database connection issues:**
+   - Ensure PostgreSQL is healthy: `docker compose ps`
+   - Check PostgreSQL logs: `docker compose logs postgres`
+
+## Backup and Restore
+
+### Backup PostgreSQL data
+```bash
+docker exec litellm-postgres pg_dump -U postgres litellm > backup.sql
+```
+
+### Restore PostgreSQL data
+```bash
+docker exec -i litellm-postgres psql -U postgres litellm < backup.sql
+```
 
 ## Additional Resources
 
-- [Langfuse Documentation](https://langfuse.com/docs)
 - [LiteLLM Documentation](https://docs.litellm.ai/)
-- [Docker Compose Reference](https://docs.docker.com/compose/)
+- [Supported Models](https://docs.litellm.ai/docs/providers)
+- [API Reference](https://docs.litellm.ai/docs/proxy/user_keys)
+
+## Notes
+
+- The master key (`LITELLM_MASTER_KEY`) has full admin access
+- PostgreSQL data is persisted in a Docker volume
+- All services restart automatically unless stopped manually
+
+## Migration from Langfuse
+
+This setup previously included Langfuse for observability. If you need Langfuse, we recommend:
+1. Following the [official Langfuse Docker deployment guide](https://langfuse.com/self-hosting/docker-compose)
+2. Cloning the Langfuse repository directly for simpler setup
+3. Running Langfuse separately from your LiteLLM proxy
