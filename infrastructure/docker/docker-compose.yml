@@ -1,0 +1,48 @@
+# Docker Compose for LiteLLM Proxy
+# Simplified configuration without Langfuse
+
+services:
+  # LiteLLM Proxy Service
+  litellm:
+    image: ghcr.io/berriai/litellm:main-stable
+    container_name: litellm-proxy
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./litellm-config.yaml:/app/config.yaml
+    command: [ "--config", "/app/config.yaml", "--port", "4000", "--num_workers", "1" ]
+    environment:
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:-sk-1234}  # CHANGEME
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/litellm
+      # API Keys for providers
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # PostgreSQL Database for LiteLLM
+  postgres:
+    image: postgres:16-alpine
+    container_name: litellm-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}  # CHANGEME
+      POSTGRES_DB: litellm
+    volumes:
+      - litellm_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5440:5432"  # Exposed locally on port 5440 for debugging
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  litellm_postgres_data:
+    driver: local
