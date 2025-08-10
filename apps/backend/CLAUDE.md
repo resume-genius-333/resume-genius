@@ -1,0 +1,2 @@
+- When you install dependencies, use `uv add` instead of `pip install`.
+- When you run code, use `uv run python` instead of `python`.
