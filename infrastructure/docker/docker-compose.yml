@@ -19,6 +19,7 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - GROQ_API_KEY=${GROQ_API_KEY}
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     depends_on:
       postgres:
         condition: service_healthy
@@ -43,6 +44,27 @@ services:
       timeout: 5s
       retries: 5
 
+  # PostgreSQL Database for Resume Genius
+  resume-genius-postgres:
+    image: pgvector/pgvector:pg16
+    container_name: resume-genius-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${RESUME_GENIUS_POSTGRES_PASSWORD:-postgres}  # CHANGEME
+      POSTGRES_DB: resume_genius
+    volumes:
+      - resume_genius_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5441:5432"  # Exposed locally on port 5441
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   litellm_postgres_data:
+    driver: local
+  resume_genius_postgres_data:
     driver: local
