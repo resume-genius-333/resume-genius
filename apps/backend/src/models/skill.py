@@ -32,7 +32,7 @@ class UserSkill(Base):
 
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), primary_key=True)
     skill_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("skills.id"), primary_key=True)
-    proficiency_level: Mapped[ProficiencyLevel] = mapped_column(Enum(ProficiencyLevel), nullable=False)
+    proficiency_level: Mapped[Optional[ProficiencyLevel]] = mapped_column(Enum(ProficiencyLevel), nullable=True)
 
     # Relationships
     user: Mapped["User"] = relationship(back_populates="user_skills")
