@@ -8,6 +8,7 @@ dependencies = [
     "alembic>=1.16.4",
     "asyncpg>=0.30.0",
     "dependency-injector>=4.48.1",
+    "email-validator>=2.2.0",
     "instructor>=1.10.0",
     "openai>=1.98.0",
     "pgvector>=0.4.1",
