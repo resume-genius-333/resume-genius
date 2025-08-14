@@ -74,7 +74,7 @@ erDiagram
 	USER_SKILLS {
 		uuid user_id PK "NOT NULL"
 		uuid skill_id PK "NOT NULL"
-		enum proficiency_level  "NOT NULL"
+		enum proficiency_level  ""
 	}
 
 	TASK_SKILL_MAPPINGS {
