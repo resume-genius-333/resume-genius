@@ -153,6 +153,8 @@ litellm_settings:
   telemetry: false
   # success_callback: []  # Removed Langfuse callback
 
+
+
 # Router Settings (Optional)
 router_settings:
   routing_strategy: "simple-shuffle" # Options: simple-shuffle, least-busy, usage-based-routing
@@ -166,6 +168,17 @@ database_args:
   user: "postgres"
   password: os.environ/POSTGRES_PASSWORD
   database: "litellm"
+# File Upload Settings
+files_settings:
+  - custom_llm_provider: openai
+    api_key: os.environ/OPENAI_API_KEY
+  
+  - custom_llm_provider: gemini
+    api_key: os.environ/GEMINI_API_KEY
+  
+  - custom_llm_provider: anthropic
+    api_key: os.environ/ANTHROPIC_API_KEY
+
 # Caching (Optional)
 # cache:
 #   type: "redis"
