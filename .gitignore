@@ -1,2 +1,5 @@
 # Claude-specific configuration
 .claude/
+
+# macOS system files
+.DS_Store
