@@ -17,3 +17,21 @@ dependencies = [
     "python-dotenv>=1.1.1",
     "sqlalchemy>=2.0.42",
 ]
+
+[tool.pyright]
+include = ["src", "main.py"]
+typeCheckingMode = "standard"
+
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+
+[tool.uv.sources]
+openai = { git = "https://github.com/wxxedu/openai-python-resume-genius.git" }
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.403",
+]
