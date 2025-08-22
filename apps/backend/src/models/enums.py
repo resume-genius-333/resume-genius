@@ -10,6 +10,7 @@ class DegreeType(enum.Enum):
     PROFESSIONAL = "professional"
     CERTIFICATE = "certificate"
     DIPLOMA = "diploma"
+    EXCHANGE = "exchange"
     OTHER = "other"
 
 

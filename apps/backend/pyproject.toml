@@ -5,12 +5,14 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "aiofiles>=24.1.0",
     "alembic>=1.16.4",
     "asyncpg>=0.30.0",
     "dependency-injector>=4.48.1",
     "email-validator>=2.2.0",
     "instructor>=1.10.0",
     "openai>=1.98.0",
+    "pandas>=2.3.2",
     "pgvector>=0.4.1",
     "psycopg2-binary>=2.9.10",
     "pydantic>=2.11.7",
