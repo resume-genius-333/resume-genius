@@ -1,0 +1,88 @@
+# Docker Compose Production Override File
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
+
+services:
+  # Frontend Service (Production)
+  frontend:
+    build:
+      context: ../../apps/frontend
+      dockerfile: Dockerfile  # Use production Dockerfile
+    container_name: resume-genius-frontend-prod
+    ports:
+      - "3000:3000"
+    # No volumes in production
+    volumes: []
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+    depends_on:
+      - backend
+    restart: always
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Backend Service (Production)
+  backend:
+    build:
+      context: ../../apps/backend
+      dockerfile: Dockerfile  # Use production Dockerfile
+    container_name: resume-genius-backend-prod
+    ports:
+      - "8000:8000"
+    # No volumes in production
+    volumes: []
+    environment:
+      - LITELLM_API_KEY=${LITELLM_API_KEY:-sk-1234}
+      - LITELLM_BASE_URL=http://litellm:4000
+      - DATABASE_URL=postgresql+asyncpg://postgres:${RESUME_GENIUS_POSTGRES_PASSWORD:-postgres}@resume-genius-postgres:5432/resume_genius
+      - DATABASE_SYNC_URL=postgresql://postgres:${RESUME_GENIUS_POSTGRES_PASSWORD:-postgres}@resume-genius-postgres:5432/resume_genius
+      - DATABASE_ECHO=false
+      - PYTHONUNBUFFERED=1
+      # Production-specific settings
+      - LOG_LEVEL=warning
+    depends_on:
+      resume-genius-postgres:
+        condition: service_healthy
+      litellm:
+        condition: service_started
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Override LiteLLM for production (if needed)
+  litellm:
+    restart: always
+    environment:
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}  # Should use secure key in production
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/litellm
+      # API Keys for providers
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      # Production logging
+      - LOG_LEVEL=warning
+
+  # Override PostgreSQL for production settings
+  postgres:
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}  # Must use secure password in production
+      POSTGRES_DB: litellm
+
+  resume-genius-postgres:
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${RESUME_GENIUS_POSTGRES_PASSWORD}  # Must use secure password in production
+      POSTGRES_DB: resume_genius
