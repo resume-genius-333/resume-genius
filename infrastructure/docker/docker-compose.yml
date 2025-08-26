@@ -63,6 +63,55 @@ services:
       timeout: 5s
       retries: 5
 
+  # Frontend Service (Development with hot reload)
+  frontend:
+    build:
+      context: ../../apps/frontend
+      dockerfile: Dockerfile.dev
+    container_name: resume-genius-frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      # Mount source code for hot reload
+      - ../../apps/frontend:/app
+      # Anonymous volume for node_modules to avoid conflicts
+      - /app/node_modules
+      # Mount .next for faster rebuilds
+      - /app/.next
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # Backend Service (Development with hot reload)
+  backend:
+    build:
+      context: ../../apps/backend
+      dockerfile: Dockerfile.dev
+    container_name: resume-genius-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount source code for hot reload
+      - ../../apps/backend:/app
+      # Anonymous volume for .venv to avoid conflicts
+      - /app/.venv
+    environment:
+      - LITELLM_API_KEY=${LITELLM_API_KEY:-sk-1234}
+      - LITELLM_BASE_URL=http://litellm:4000
+      - DATABASE_URL=postgresql+asyncpg://postgres:${RESUME_GENIUS_POSTGRES_PASSWORD:-postgres}@resume-genius-postgres:5432/resume_genius
+      - DATABASE_SYNC_URL=postgresql://postgres:${RESUME_GENIUS_POSTGRES_PASSWORD:-postgres}@resume-genius-postgres:5432/resume_genius
+      - DATABASE_ECHO=${DATABASE_ECHO:-false}
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      resume-genius-postgres:
+        condition: service_healthy
+      litellm:
+        condition: service_started
+    restart: unless-stopped
+
 volumes:
   litellm_postgres_data:
     driver: local
