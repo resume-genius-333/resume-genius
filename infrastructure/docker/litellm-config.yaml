@@ -131,6 +131,48 @@ model_list:
       model: gemini/gemini-2.5-flash-lite
       api_key: os.environ/GEMINI_API_KEY
 
+  # Perplexity Models
+  - model_name: sonar-deep-research
+    litellm_params:
+      model: perplexity/sonar-deep-research
+      api_key: os.environ/PERPLEXITYAI_API_KEY
+
+  - model_name: sonar-reasoning-pro
+    litellm_params:
+      model: perplexity/sonar-reasoning-pro
+      api_key: os.environ/PERPLEXITYAI_API_KEY
+
+  - model_name: sonar-reasoning
+    litellm_params:
+      model: perplexity/sonar-reasoning
+      api_key: os.environ/PERPLEXITYAI_API_KEY
+
+  - model_name: sonar-pro
+    litellm_params:
+      model: perplexity/sonar-pro
+      api_key: os.environ/PERPLEXITYAI_API_KEY
+
+  - model_name: sonar
+    litellm_params:
+      model: perplexity/sonar
+      api_key: os.environ/PERPLEXITYAI_API_KEY
+
+  # xAI Models
+  - model_name: grok-4-0749
+    litellm_params:
+      model: xai/grok-4-0749
+      api_key: os.environ/XAI_API_KEY
+
+  - model_name: grok-3
+    litellm_params:
+      model: xai/grok-3
+      api_key: os.environ/XAI_API_KEY
+
+  - model_name: grok-3-mini
+    litellm_params:
+      model: xai/grok-3-mini
+      api_key: os.environ/XAI_API_KEY
+
   # Example: Azure OpenAI
   # - model_name: azure-gpt-4
   #   litellm_params:
@@ -178,6 +220,12 @@ files_settings:
   
   - custom_llm_provider: anthropic
     api_key: os.environ/ANTHROPIC_API_KEY
+  
+  - custom_llm_provider: perplexity
+    api_key: os.environ/PERPLEXITYAI_API_KEY
+  
+  - custom_llm_provider: xai
+    api_key: os.environ/XAI_API_KEY
 
 # Caching (Optional)
 # cache:
