@@ -15,6 +15,15 @@ from .auth import (
     EmailVerificationToken,
     APIKey,
 )
+from .resumes import (
+    Job,
+    Resume,
+    ResumeMetadata,
+    ResumeEducation,
+    ResumeWorkExperience,
+    ResumeProject,
+    ResumeSkill,
+)
 
 __all__ = [
     "Base",
@@ -41,4 +50,12 @@ __all__ = [
     "PasswordResetToken",
     "EmailVerificationToken",
     "APIKey",
+    # Output resume models
+    "Job",
+    "Resume",
+    "ResumeMetadata",
+    "ResumeEducation",
+    "ResumeWorkExperience",
+    "ResumeProject",
+    "ResumeSkill",
 ]

@@ -5,7 +5,6 @@ from sqlalchemy.orm import relationship, Mapped, mapped_column
 import uuid
 
 from ..base import Base
-from ..enums import SkillCategory, ProficiencyLevel
 
 if TYPE_CHECKING:
     from ..user import User
@@ -22,8 +21,8 @@ class ResumeSkill(Base):
         UUID(as_uuid=True), ForeignKey("resume_skills.id"), nullable=True
     )
     skill_name: Mapped[str] = mapped_column(String, nullable=False)
-    skill_category: Mapped[Optional[SkillCategory]] = mapped_column(Enum(SkillCategory), nullable=True)
-    proficiency_level: Mapped[Optional[ProficiencyLevel]] = mapped_column(Enum(ProficiencyLevel), nullable=True)
+    skill_category: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    proficiency_level: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     __table_args__ = (
         UniqueConstraint('user_id', 'job_id', name='uq_resume_skill_user_job'),

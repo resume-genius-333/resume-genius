@@ -30,7 +30,7 @@ class Resume(Base):
     # Relationships
     user: Mapped["User"] = relationship(foreign_keys=[user_id])
     job: Mapped["Job"] = relationship(back_populates="resumes")
-    metadata: Mapped["ResumeMetadata"] = relationship(back_populates="resumes")
+    resume_metadata: Mapped["ResumeMetadata"] = relationship(back_populates="resumes")
     parent: Mapped[Optional["Resume"]] = relationship(
         remote_side=[version, user_id, job_id],
         foreign_keys=[parent_version],
