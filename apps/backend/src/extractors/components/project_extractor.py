@@ -3,11 +3,12 @@
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
+from src.schemas.base import BaseLLMSchema
 from src.schemas.llm.project import ProjectLLMSchema
 from src.extractors.base_extractor import BaseExtractor
 
 
-class ProjectListSchema(BaseModel):
+class ProjectListSchema(BaseLLMSchema):
     """Schema for extracting multiple project entries."""
     
     project_entries: List[ProjectLLMSchema] = Field(

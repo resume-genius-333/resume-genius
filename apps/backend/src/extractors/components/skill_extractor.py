@@ -3,11 +3,12 @@
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
+from src.schemas.base import BaseLLMSchema
 from src.schemas.llm.skill import SkillLLMSchema
 from src.extractors.base_extractor import BaseExtractor
 
 
-class SkillListSchema(BaseModel):
+class SkillListSchema(BaseLLMSchema):
     """Schema for extracting multiple skill entries."""
     
     skill_entries: List[SkillLLMSchema] = Field(
