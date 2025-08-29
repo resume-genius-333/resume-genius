@@ -5,7 +5,6 @@ from sqlalchemy.orm import relationship, Mapped, mapped_column
 import uuid
 
 from ..base import Base
-from ..enums import EmploymentType
 
 if TYPE_CHECKING:
     from ..user import User
@@ -23,7 +22,7 @@ class ResumeWorkExperience(Base):
     )
     job_title: Mapped[str] = mapped_column(String, nullable=False)
     company_name: Mapped[str] = mapped_column(String, nullable=False)
-    employment_type: Mapped[Optional[EmploymentType]] = mapped_column(Enum(EmploymentType), nullable=True)
+    employment_type: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     start_date: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     end_date: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     location: Mapped[Optional[str]] = mapped_column(String, nullable=True)

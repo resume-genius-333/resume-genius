@@ -5,7 +5,6 @@ from sqlalchemy.orm import relationship, Mapped, mapped_column
 import uuid
 
 from ..base import Base
-from ..enums import DegreeType
 
 if TYPE_CHECKING:
     from ..user import User
@@ -22,7 +21,7 @@ class ResumeEducation(Base):
         UUID(as_uuid=True), ForeignKey("resume_educations.id"), nullable=True
     )
     institution_name: Mapped[str] = mapped_column(String, nullable=False)
-    degree: Mapped[DegreeType] = mapped_column(Enum(DegreeType), nullable=False)
+    degree: Mapped[str] = mapped_column(String, nullable=False)
     field_of_study: Mapped[str] = mapped_column(String, nullable=False)
     focus_area: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     start_date: Mapped[Optional[str]] = mapped_column(String, nullable=True)
