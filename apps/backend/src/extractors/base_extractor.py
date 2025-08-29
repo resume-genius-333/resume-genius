@@ -52,9 +52,6 @@ class BaseExtractor(ABC, Generic[T]):
                 "LITELLM_BASE_URL and LITELLM_API_KEY must be set in environment"
             )
         
-        if not base_url.endswith("/v1"):
-            base_url = f"{base_url}/v1"
-        
         return instructor.from_openai(
             AsyncOpenAI(
                 base_url=base_url,

@@ -3,11 +3,12 @@
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
+from src.schemas.base import BaseLLMSchema
 from src.schemas.llm.work import WorkExperienceLLMSchema
 from src.extractors.base_extractor import BaseExtractor
 
 
-class WorkListSchema(BaseModel):
+class WorkListSchema(BaseLLMSchema):
     """Schema for extracting multiple work experience entries."""
     
     work_entries: List[WorkExperienceLLMSchema] = Field(

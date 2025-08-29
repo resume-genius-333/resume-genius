@@ -3,10 +3,11 @@
 from typing import Optional
 from pydantic import BaseModel, Field, EmailStr, HttpUrl
 
+from src.schemas.base import BaseLLMSchema
 from src.extractors.base_extractor import BaseExtractor
 
 
-class ContactSchema(BaseModel):
+class ContactSchema(BaseLLMSchema):
     """Schema for extracting contact information."""
     
     first_name: Optional[str] = Field(
