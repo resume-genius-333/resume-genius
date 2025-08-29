@@ -13,6 +13,7 @@ from .auth import (
     BlacklistedToken,
     PasswordResetToken,
     EmailVerificationToken,
+    APIKey,
 )
 
 __all__ = [
@@ -39,4 +40,5 @@ __all__ = [
     "BlacklistedToken",
     "PasswordResetToken",
     "EmailVerificationToken",
+    "APIKey",
 ]
