@@ -38,10 +38,16 @@ class UserSkill(Base):
     user: Mapped["User"] = relationship(back_populates="user_skills")
     skill: Mapped["Skill"] = relationship(back_populates="user_skills")
     task_mappings: Mapped[List["TaskSkillMapping"]] = relationship(
-        back_populates="user_skill", cascade="all, delete-orphan"
+        primaryjoin="and_(UserSkill.user_id==foreign(TaskSkillMapping.user_id), UserSkill.skill_id==foreign(TaskSkillMapping.skill_id))",
+        back_populates="user_skill",
+        cascade="all, delete-orphan",
+        viewonly=True
     )
     responsibility_mappings: Mapped[List["ResponsibilitySkillMapping"]] = relationship(
-        back_populates="user_skill", cascade="all, delete-orphan"
+        primaryjoin="and_(UserSkill.user_id==foreign(ResponsibilitySkillMapping.user_id), UserSkill.skill_id==foreign(ResponsibilitySkillMapping.skill_id))",
+        back_populates="user_skill",
+        cascade="all, delete-orphan",
+        viewonly=True
     )
 
 
@@ -60,7 +66,8 @@ class TaskSkillMapping(Base):
     # Relationships
     user_skill: Mapped["UserSkill"] = relationship(
         foreign_keys=[user_id, skill_id], 
-        primaryjoin="and_(TaskSkillMapping.user_id==UserSkill.user_id, TaskSkillMapping.skill_id==UserSkill.skill_id)"
+        primaryjoin="and_(TaskSkillMapping.user_id==UserSkill.user_id, TaskSkillMapping.skill_id==UserSkill.skill_id)",
+        back_populates="task_mappings"
     )
     task: Mapped["ProjectTask"] = relationship(back_populates="skill_mappings")
 
@@ -82,6 +89,7 @@ class ResponsibilitySkillMapping(Base):
     # Relationships
     user_skill: Mapped["UserSkill"] = relationship(
         foreign_keys=[user_id, skill_id],
-        primaryjoin="and_(ResponsibilitySkillMapping.user_id==UserSkill.user_id, ResponsibilitySkillMapping.skill_id==UserSkill.skill_id)"
+        primaryjoin="and_(ResponsibilitySkillMapping.user_id==UserSkill.user_id, ResponsibilitySkillMapping.skill_id==UserSkill.skill_id)",
+        back_populates="responsibility_mappings"
     )
     responsibility: Mapped["WorkResponsibility"] = relationship(back_populates="skill_mappings")

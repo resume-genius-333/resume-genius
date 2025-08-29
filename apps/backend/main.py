@@ -41,9 +41,17 @@ if __name__ == "__main__":
     container.config.database.url.from_env("DATABASE_URL", required=True)
     container.config.database.sync_url.from_env("DATABASE_SYNC_URL", required=True)
     container.config.database.echo.from_value(os.getenv("DATABASE_ECHO", "false").lower() == "true")
+    
+    # Authentication configuration
+    container.config.auth.jwt_secret_key.from_env("AUTH_JWT_SECRET_KEY", required=True)
+    container.config.auth.jwt_algorithm.from_env("AUTH_JWT_ALGORITHM", default="HS256")
+    container.config.auth.access_token_expire_minutes.from_env("AUTH_ACCESS_TOKEN_EXPIRE_MINUTES", default="30")
+    container.config.auth.refresh_token_expire_days.from_env("AUTH_REFRESH_TOKEN_EXPIRE_DAYS", default="7")
+    container.config.auth.password_reset_token_expire_hours.from_env("AUTH_PASSWORD_RESET_TOKEN_EXPIRE_HOURS", default="24")
+    container.config.auth.email_verification_token_expire_hours.from_env("AUTH_EMAIL_VERIFICATION_TOKEN_EXPIRE_HOURS", default="48")
 
     # Wire dependencies
-    container.wire(modules=[__name__])
+    container.wire(modules=[__name__, "src.api.dependencies"])
 
     # Run FastAPI server
     asyncio.run(run_fastapi())

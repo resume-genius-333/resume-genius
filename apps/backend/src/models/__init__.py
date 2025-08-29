@@ -5,6 +5,16 @@ from .work import WorkExperience, WorkResponsibility
 from .project import Project, ProjectTask
 from .skill import Skill, UserSkill, TaskSkillMapping, ResponsibilitySkillMapping
 from .enums import DegreeType, ProficiencyLevel, EmploymentType, SkillCategory
+from .auth import (
+    ProviderType,
+    AuthProvider,
+    RefreshToken,
+    UserSession,
+    BlacklistedToken,
+    PasswordResetToken,
+    EmailVerificationToken,
+    APIKey,
+)
 
 __all__ = [
     "Base",
@@ -22,4 +32,13 @@ __all__ = [
     "ProficiencyLevel",
     "EmploymentType",
     "SkillCategory",
+    # Auth models
+    "ProviderType",
+    "AuthProvider",
+    "RefreshToken",
+    "UserSession",
+    "BlacklistedToken",
+    "PasswordResetToken",
+    "EmailVerificationToken",
+    "APIKey",
 ]
