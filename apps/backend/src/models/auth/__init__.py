@@ -5,6 +5,7 @@ from .user_session import UserSession
 from .blacklisted_token import BlacklistedToken
 from .password_reset_token import PasswordResetToken
 from .email_verification_token import EmailVerificationToken
+from .api_key import APIKey
 
 __all__ = [
     "ProviderType",
@@ -14,4 +15,5 @@ __all__ = [
     "BlacklistedToken",
     "PasswordResetToken",
     "EmailVerificationToken",
+    "APIKey",
 ]
