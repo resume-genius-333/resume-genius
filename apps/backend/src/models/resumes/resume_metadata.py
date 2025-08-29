@@ -41,4 +41,4 @@ class ResumeMetadata(Base):
         remote_side=[id],
         foreign_keys=[parent_id]
     )
-    resumes: Mapped[list["Resume"]] = relationship(back_populates="metadata")
+    resumes: Mapped[list["Resume"]] = relationship(back_populates="resume_metadata")
