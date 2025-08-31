@@ -12,6 +12,9 @@ compose_dir := "infrastructure/docker"
 compose_file := compose_dir + "/docker-compose.yml"
 compose_prod := compose_dir + "/docker-compose.prod.yml"
 
+# Docker compose command with proper env file loading
+docker_compose := "docker-compose -f " + compose_file + " --env-file .env"
+
 # Colors for output
 export BLUE := '\033[0;34m'
 export GREEN := '\033[0;32m'
@@ -36,7 +39,7 @@ alias r := restart
 # Start all services in development mode with hot reload
 up:
     @echo "{{GREEN}}Starting services in development mode...{{NC}}"
-    cd {{compose_dir}} && docker-compose up -d
+    {{docker_compose}} up -d
     @echo "{{GREEN}}Services started!{{NC}}"
     @echo "Frontend: http://localhost:3000"
     @echo "Backend:  http://localhost:8000/docs"
@@ -52,16 +55,16 @@ up-prod:
 # Stop all services
 down:
     @echo "{{YELLOW}}Stopping all services...{{NC}}"
-    cd {{compose_dir}} && docker-compose down
+    {{docker_compose}} down
     @echo "{{GREEN}}Services stopped!{{NC}}"
 
 # View logs for a specific service (or all if no service specified)
 logs service="":
     #!/usr/bin/env bash
     if [ -z "{{service}}" ]; then
-        cd {{compose_dir}} && docker-compose logs -f
+        {{docker_compose}} logs -f
     else
-        cd {{compose_dir}} && docker-compose logs -f {{service}}
+        {{docker_compose}} logs -f {{service}}
     fi
 
 # Restart a specific service (or all if no service specified)
@@ -69,10 +72,10 @@ restart service="":
     #!/usr/bin/env bash
     if [ -z "{{service}}" ]; then
         echo "{{YELLOW}}Restarting all services...{{NC}}"
-        cd {{compose_dir}} && docker-compose restart
+        {{docker_compose}} restart
     else
         echo "{{YELLOW}}Restarting {{service}}...{{NC}}"
-        cd {{compose_dir}} && docker-compose restart {{service}}
+        {{docker_compose}} restart {{service}}
     fi
     echo "{{GREEN}}Restart complete!{{NC}}"
 
@@ -81,19 +84,19 @@ build service="":
     #!/usr/bin/env bash
     if [ -z "{{service}}" ]; then
         echo "{{BLUE}}Building all services...{{NC}}"
-        cd {{compose_dir}} && docker-compose build
+        {{docker_compose}} build
     else
         echo "{{BLUE}}Building {{service}}...{{NC}}"
-        cd {{compose_dir}} && docker-compose build {{service}}
+        {{docker_compose}} build {{service}}
     fi
 
 # Show status of all services
 ps:
-    @cd {{compose_dir}} && docker-compose ps
+    @{{docker_compose}} ps
 
 # Execute command in a running container
 exec service command:
-    cd {{compose_dir}} && docker-compose exec {{service}} {{command}}
+    {{docker_compose}} exec {{service}} {{command}}
 
 # ============================================================================
 # Backend Commands
@@ -119,10 +122,31 @@ backend-shell:
     @echo "{{BLUE}}Opening Python shell...{{NC}}"
     cd apps/backend && uv run python -i -c "from src.containers import Container; container = Container()"
 
-# Run backend tests
+# Run backend integration tests (requires services to be running)
 backend-test:
-    @echo "{{BLUE}}Running backend tests...{{NC}}"
-    cd apps/backend && uv run pytest
+    @echo "{{BLUE}}Running backend integration tests...{{NC}}"
+    @echo "{{YELLOW}}Note: Backend must be running (use 'just up' first){{NC}}"
+    cd apps/backend && uv run pytest integration_tests/
+
+# Run specific backend test file
+backend-test-file file:
+    @echo "{{BLUE}}Running test file: {{file}}{{NC}}"
+    cd apps/backend && uv run pytest {{file}} -v
+
+# Test job streaming interactively (requires running backend)
+test-job-streaming:
+    @echo "{{BLUE}}Testing job creation and SSE streaming (interactive mode)...{{NC}}"
+    cd apps/backend && uv run python scripts/test_job_streaming.py
+
+# Test job streaming in automated mode (for CI/CD)
+test-job-streaming-automated:
+    @echo "{{BLUE}}Testing job creation and SSE streaming (automated mode)...{{NC}}"
+    cd apps/backend && uv run python scripts/test_job_streaming.py --automated --timeout 30
+
+# Test job flow with requests library (more reliable, handles proxy issues)
+test-job-flow:
+    @echo "{{BLUE}}Testing complete job flow with requests library...{{NC}}"
+    cd apps/backend && uv run python scripts/test_job_flow_requests.py
 
 # Format backend code
 backend-format:
@@ -229,6 +253,121 @@ db-reset:
     else \
         echo "{{YELLOW}}Cancelled{{NC}}"; \
     fi
+
+# ============================================================================
+# Database Volume Management
+# ============================================================================
+
+# Reset LiteLLM database volume (DANGEROUS - will delete all LiteLLM data!)
+db-volume-reset-litellm:
+    #!/usr/bin/env bash
+    echo -e "{{RED}}WARNING: This will delete all LiteLLM database data!{{NC}}"
+    echo -n "Type 'yes' to continue: "
+    read confirm
+    if [ "$confirm" = "yes" ]; then
+        echo -e "{{YELLOW}}Stopping containers...{{NC}}"
+        {{docker_compose}} stop litellm litellm-postgres
+        echo -e "{{YELLOW}}Removing LiteLLM postgres volume...{{NC}}"
+        docker volume rm -f docker_litellm_postgres_data 2>/dev/null || true
+        echo -e "{{YELLOW}}Starting LiteLLM postgres...{{NC}}"
+        {{docker_compose}} up -d litellm-postgres
+        sleep 5
+        echo -e "{{YELLOW}}Starting LiteLLM service...{{NC}}"
+        {{docker_compose}} up -d litellm
+        echo -e "{{GREEN}}LiteLLM database reset complete!{{NC}}"
+    else
+        echo -e "{{YELLOW}}Cancelled{{NC}}"
+    fi
+
+# Reset Backend database volume (DANGEROUS - will delete all backend data!)
+db-volume-reset-backend:
+    #!/usr/bin/env bash
+    echo -e "{{RED}}WARNING: This will delete all Resume Genius backend database data!{{NC}}"
+    echo -n "Type 'yes' to continue: "
+    read confirm
+    if [ "$confirm" = "yes" ]; then
+        echo -e "{{YELLOW}}Stopping containers...{{NC}}"
+        {{docker_compose}} stop backend frontend resume-genius-postgres
+        echo -e "{{YELLOW}}Removing backend postgres volume...{{NC}}"
+        docker volume rm -f docker_resume_genius_postgres_data 2>/dev/null || true
+        echo -e "{{YELLOW}}Starting backend postgres...{{NC}}"
+        {{docker_compose}} up -d resume-genius-postgres
+        sleep 5
+        echo -e "{{YELLOW}}Starting backend service...{{NC}}"
+        {{docker_compose}} up -d backend
+        sleep 5
+        echo -e "{{YELLOW}}Running migrations...{{NC}}"
+        docker exec resume-genius-backend uv run alembic upgrade head || echo "Migrations will run when backend starts"
+        echo -e "{{GREEN}}Backend database reset complete!{{NC}}"
+    else
+        echo -e "{{YELLOW}}Cancelled{{NC}}"
+    fi
+
+# Reset all database volumes (DANGEROUS - will delete ALL data!)
+db-volume-reset-all:
+    #!/usr/bin/env bash
+    echo -e "{{RED}}WARNING: This will delete ALL database data (LiteLLM and Backend)!{{NC}}"
+    echo -n "Type 'yes' to continue: "
+    read confirm
+    if [ "$confirm" = "yes" ]; then
+        echo -e "{{YELLOW}}Stopping all containers...{{NC}}"
+        {{docker_compose}} down
+        echo -e "{{YELLOW}}Removing all database volumes...{{NC}}"
+        docker volume rm -f docker_litellm_postgres_data docker_resume_genius_postgres_data 2>/dev/null || true
+        echo -e "{{YELLOW}}Starting services...{{NC}}"
+        {{docker_compose}} up -d
+        echo -e "{{YELLOW}}Waiting for services to be ready...{{NC}}"
+        sleep 10
+        echo -e "{{YELLOW}}Running migrations...{{NC}}"
+        docker exec resume-genius-backend uv run alembic upgrade head || echo "Run 'just migrate' manually if needed"
+        echo -e "{{GREEN}}All databases reset complete!{{NC}}"
+    else
+        echo -e "{{YELLOW}}Cancelled{{NC}}"
+    fi
+
+# List all volumes
+volumes:
+    @echo "{{BLUE}}Docker volumes:{{NC}}"
+    @docker volume ls | grep -E "(litellm|resume_genius)" || echo "No project volumes found"
+
+# ============================================================================
+# Environment Management
+# ============================================================================
+
+# Check environment configuration
+env-check:
+    @echo "{{BLUE}}Checking environment configuration...{{NC}}"
+    @echo ""
+    @echo "{{YELLOW}}Required Environment Variables:{{NC}}"
+    @echo ""
+    @echo "{{GREEN}}LiteLLM Configuration:{{NC}}"
+    @[ -n "${LITELLM_MASTER_KEY}" ] && echo "✓ LITELLM_MASTER_KEY is set" || echo "✗ LITELLM_MASTER_KEY is missing"
+    @[ -n "${LITELLM_API_KEY}" ] && echo "✓ LITELLM_API_KEY is set" || echo "✗ LITELLM_API_KEY is missing"
+    @[ -n "${LITELLM_POSTGRES_PASSWORD}" ] && echo "✓ LITELLM_POSTGRES_PASSWORD is set" || echo "✗ LITELLM_POSTGRES_PASSWORD is missing"
+    @echo ""
+    @echo "{{GREEN}}Backend Configuration:{{NC}}"
+    @[ -n "${BACKEND_POSTGRES_PASSWORD}" ] && echo "✓ BACKEND_POSTGRES_PASSWORD is set" || echo "✗ BACKEND_POSTGRES_PASSWORD is missing"
+    @[ -n "${BACKEND_JWT_SECRET_KEY}" ] && echo "✓ BACKEND_JWT_SECRET_KEY is set" || echo "✗ BACKEND_JWT_SECRET_KEY is missing"
+    @echo ""
+    @echo "{{GREEN}}LLM Provider API Keys:{{NC}}"
+    @[ -n "${OPENAI_API_KEY}" ] && echo "✓ OPENAI_API_KEY is set" || echo "○ OPENAI_API_KEY not set (optional)"
+    @[ -n "${ANTHROPIC_API_KEY}" ] && echo "✓ ANTHROPIC_API_KEY is set" || echo "○ ANTHROPIC_API_KEY not set (optional)"
+    @[ -n "${GROQ_API_KEY}" ] && echo "✓ GROQ_API_KEY is set" || echo "○ GROQ_API_KEY not set (optional)"
+    @[ -n "${DEEPSEEK_API_KEY}" ] && echo "✓ DEEPSEEK_API_KEY is set" || echo "○ DEEPSEEK_API_KEY not set (optional)"
+    @[ -n "${GEMINI_API_KEY}" ] && echo "✓ GEMINI_API_KEY is set" || echo "○ GEMINI_API_KEY not set (optional)"
+    @echo ""
+    @echo "{{BLUE}}Database URLs:{{NC}}"
+    @echo "LiteLLM DB (Docker): postgresql://${LITELLM_POSTGRES_USER}:***@${LITELLM_POSTGRES_HOST_DOCKER}:${LITELLM_POSTGRES_PORT_DOCKER}/${LITELLM_POSTGRES_DB}"
+    @echo "Backend DB (Docker): postgresql://${BACKEND_POSTGRES_USER}:***@${BACKEND_POSTGRES_HOST_DOCKER}:${BACKEND_POSTGRES_PORT_DOCKER}/${BACKEND_POSTGRES_DB}"
+    @echo "Backend DB (Local):  postgresql://${BACKEND_POSTGRES_USER}:***@${BACKEND_POSTGRES_HOST_LOCAL}:${BACKEND_POSTGRES_PORT_LOCAL}/${BACKEND_POSTGRES_DB}"
+    @echo ""
+    @echo "{{BLUE}}Service URLs:{{NC}}"
+    @echo "LiteLLM (Docker): ${LITELLM_BASE_URL_DOCKER}"
+    @echo "LiteLLM (Local):  ${LITELLM_BASE_URL_LOCAL}"
+    @echo "Backend Redis (Docker): ${BACKEND_REDIS_URL_DOCKER}"
+    @echo "Backend Redis (Local):  ${BACKEND_REDIS_URL_LOCAL}"
+    @echo ""
+    @[ -f .env ] && echo "{{GREEN}}✓ .env file exists{{NC}}" || echo "{{RED}}✗ .env file not found - copy .env.example to .env{{NC}}"
 
 # ============================================================================
 # Utility Commands
