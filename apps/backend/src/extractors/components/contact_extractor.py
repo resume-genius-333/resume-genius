@@ -1,7 +1,7 @@
 """Contact information extractor."""
 
 from typing import Optional
-from pydantic import BaseModel, Field, EmailStr, HttpUrl
+from pydantic import Field, EmailStr, HttpUrl
 
 from src.models.base import BaseLLMSchema
 from src.extractors.base_extractor import BaseExtractor

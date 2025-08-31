@@ -7,7 +7,6 @@ import logging
 from datetime import datetime
 import aiofiles
 import tempfile
-import shutil
 
 logger = logging.getLogger(__name__)
 
