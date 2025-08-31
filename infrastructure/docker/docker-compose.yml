@@ -13,7 +13,7 @@ services:
     command: [ "--config", "/app/config.yaml", "--port", "4000", "--num_workers", "1" ]
     environment:
       - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:-sk-1234}  # CHANGEME
-      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/litellm
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/litellm
       # API Keys for providers
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
@@ -34,7 +34,7 @@ services:
     restart: always
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}  # CHANGEME
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}  # CHANGEME
       POSTGRES_DB: litellm
     volumes:
       - litellm_postgres_data:/var/lib/postgresql/data
@@ -61,6 +61,22 @@ services:
       - "127.0.0.1:5441:5432"  # Exposed locally on port 5441
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Service for Pub/Sub messaging
+  resume-genius-redis:
+    image: redis:7-alpine
+    container_name: resume-genius-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6380:6379"  # Exposed locally on port 6380
+    volumes:
+      - resume_genius_redis_data:/data
+    command: redis-server --appendonly yes --appendfsync everysec
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -101,14 +117,17 @@ services:
       # Anonymous volume for .venv to avoid conflicts
       - /app/.venv
     environment:
-      - LITELLM_API_KEY=${LITELLM_API_KEY:-sk-1234}
+      - LITELLM_API_KEY=${LITELLM_MASTER_KEY}
       - LITELLM_BASE_URL=http://litellm:4000
       - DATABASE_URL=postgresql+asyncpg://postgres:${RESUME_GENIUS_POSTGRES_PASSWORD:-postgres}@resume-genius-postgres:5432/resume_genius
       - DATABASE_SYNC_URL=postgresql://postgres:${RESUME_GENIUS_POSTGRES_PASSWORD:-postgres}@resume-genius-postgres:5432/resume_genius
       - DATABASE_ECHO=${DATABASE_ECHO:-false}
       - PYTHONUNBUFFERED=1
+      - REDIS_URL=redis://resume-genius-redis:6379/0
     depends_on:
       resume-genius-postgres:
+        condition: service_healthy
+      resume-genius-redis:
         condition: service_healthy
       litellm:
         condition: service_started
@@ -118,4 +137,6 @@ volumes:
   litellm_postgres_data:
     driver: local
   resume_genius_postgres_data:
+    driver: local
+  resume_genius_redis_data:
     driver: local

@@ -3,6 +3,8 @@ from openai import OpenAI, AsyncOpenAI
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
+import redis.asyncio as redis
+from instructor import AsyncInstructor, Instructor, from_openai
 
 
 class Container(containers.DeclarativeContainer):
@@ -16,10 +18,18 @@ class Container(containers.DeclarativeContainer):
         base_url=config.litellm.base_url,
     )
 
+    instructor: providers.Singleton[Instructor] = providers.Singleton(
+        from_openai, openai
+    )
+
     async_openai = providers.Singleton(
         AsyncOpenAI,
         api_key=config.litellm.api_key,
         base_url=config.litellm.base_url,
+    )
+
+    async_instructor: providers.Singleton[AsyncInstructor] = providers.Singleton(
+        from_openai, async_openai
     )
 
     # Database engine (async)
@@ -56,4 +66,17 @@ class Container(containers.DeclarativeContainer):
         db_engine,
         class_=Session,
         expire_on_commit=False,
+    )
+
+    # Redis client (async)
+    redis_client = providers.Singleton(
+        redis.from_url,
+        config.redis.url,
+        encoding=config.redis.encoding,
+        decode_responses=config.redis.decode_responses,
+        max_connections=config.redis.max_connections,
+        socket_connect_timeout=config.redis.socket_connect_timeout,
+        socket_timeout=config.redis.socket_timeout,
+        retry_on_timeout=config.redis.retry_on_timeout,
+        health_check_interval=config.redis.health_check_interval,
     )
