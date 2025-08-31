@@ -1,5 +1,3 @@
-from typing import Optional
-from pydantic import Field
 from src.models.base import BaseLLMSchema
 
 
