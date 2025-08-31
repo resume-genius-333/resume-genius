@@ -1,34 +1,37 @@
 """Converters between Pydantic schemas and database models."""
+
 from typing import Any, Dict, List, Optional, Type
 from datetime import datetime
 import uuid
 
 from sqlalchemy.orm import Session
 
-from src.models.user import User
-from src.models.education import Education
-from src.models.work import WorkExperience, WorkResponsibility
-from src.models.project import Project, ProjectTask
-from src.models.enums import DegreeType, EmploymentType
+from src.models.db.user import User
+from src.models.db.education import Education
+from src.models.db.work import WorkExperience, WorkResponsibility
+from src.models.db.project import Project, ProjectTask
+from src.models.db.enums import DegreeType, EmploymentType
 
-from src.schemas.llm import (
+from src.models.llm import (
     UserLLMSchema,
     EducationLLMSchema,
     WorkExperienceLLMSchema,
     ProjectLLMSchema,
     SkillLLMSchema,
 )
-from src.schemas.frontend import (
+from src.models.frontend import (
     UserFrontendSchema,
 )
-from src.schemas.response import ValidationResponse, FieldInfo, ValidationStatus
+from src.models.response import ValidationResponse, FieldInfo, ValidationStatus
 
 
 class SchemaConverter:
     """Converter for transforming between different schema types."""
 
     @staticmethod
-    def llm_to_db_user(llm_data: UserLLMSchema, _session: Optional[Session] = None) -> User:
+    def llm_to_db_user(
+        llm_data: UserLLMSchema, _session: Optional[Session] = None
+    ) -> User:
         """Convert LLM User schema to database User model.
 
         Args:
@@ -46,19 +49,22 @@ class SchemaConverter:
             last_name=llm_data.last_name,
             name_prefix=llm_data.name_prefix,
             name_suffix=llm_data.name_suffix,
-            email=str(llm_data.email) if llm_data.email else f"placeholder_{uuid.uuid4().hex[:8]}@example.com",
+            email=str(llm_data.email)
+            if llm_data.email
+            else f"placeholder_{uuid.uuid4().hex[:8]}@example.com",
             phone=llm_data.phone,
             location=llm_data.location,
             linkedin_url=str(llm_data.linkedin_url) if llm_data.linkedin_url else None,
             github_url=str(llm_data.github_url) if llm_data.github_url else None,
-            portfolio_url=str(llm_data.portfolio_url) if llm_data.portfolio_url else None,
+            portfolio_url=str(llm_data.portfolio_url)
+            if llm_data.portfolio_url
+            else None,
         )
         return user
 
     @staticmethod
     def llm_to_db_education(
-        llm_data: EducationLLMSchema,
-        user_id: uuid.UUID
+        llm_data: EducationLLMSchema, user_id: uuid.UUID
     ) -> Education:
         """Convert LLM Education schema to database Education model.
 
@@ -86,7 +92,7 @@ class SchemaConverter:
     def llm_to_db_work_experience(
         llm_data: WorkExperienceLLMSchema,
         user_id: uuid.UUID,
-        _session: Optional[Session] = None
+        _session: Optional[Session] = None,
     ) -> WorkExperience:
         """Convert LLM WorkExperience schema to database WorkExperience model.
 
@@ -116,7 +122,7 @@ class SchemaConverter:
                     id=uuid.uuid4(),
                     work_id=work_exp.id,
                     user_id=user_id,
-                    description=resp.description or ""
+                    description=resp.description or "",
                 )
                 for resp in llm_data.responsibilities
             ]
@@ -127,7 +133,7 @@ class SchemaConverter:
     def llm_to_db_project(
         llm_data: ProjectLLMSchema,
         user_id: uuid.UUID,
-        _session: Optional[Session] = None
+        _session: Optional[Session] = None,
     ) -> Project:
         """Convert LLM Project schema to database Project model.
 
@@ -147,7 +153,9 @@ class SchemaConverter:
             start_date=llm_data.start_date,
             end_date=llm_data.end_date,
             project_url=str(llm_data.project_url) if llm_data.project_url else None,
-            repository_url=str(llm_data.repository_url) if llm_data.repository_url else None,
+            repository_url=str(llm_data.repository_url)
+            if llm_data.repository_url
+            else None,
         )
 
         # Convert tasks
@@ -157,7 +165,7 @@ class SchemaConverter:
                     id=uuid.uuid4(),
                     project_id=project.id,
                     user_id=user_id,
-                    description=task.description or ""
+                    description=task.description or "",
                 )
                 for task in llm_data.tasks
             ]
@@ -185,9 +193,13 @@ class SchemaConverter:
             email=db_user.email,
             phone=db_user.phone,
             location=db_user.location,
-            linkedin_url=HttpUrl(db_user.linkedin_url) if db_user.linkedin_url else None,
+            linkedin_url=HttpUrl(db_user.linkedin_url)
+            if db_user.linkedin_url
+            else None,
             github_url=HttpUrl(db_user.github_url) if db_user.github_url else None,
-            portfolio_url=HttpUrl(db_user.portfolio_url) if db_user.portfolio_url else None,
+            portfolio_url=HttpUrl(db_user.portfolio_url)
+            if db_user.portfolio_url
+            else None,
             summary=None,  # Database doesn't have summary field yet
             educations=[
                 EducationLLMSchema(
@@ -201,7 +213,9 @@ class SchemaConverter:
                     max_gpa=edu.max_gpa,
                 )
                 for edu in db_user.educations
-            ] if hasattr(db_user, 'educations') else [],
+            ]
+            if hasattr(db_user, "educations")
+            else [],
             work_experiences=[
                 WorkExperienceLLMSchema(
                     company_name=work.company_name,
@@ -212,7 +226,9 @@ class SchemaConverter:
                     end_date=work.end_date,
                 )
                 for work in db_user.work_experiences
-            ] if hasattr(db_user, 'work_experiences') else [],
+            ]
+            if hasattr(db_user, "work_experiences")
+            else [],
             projects=[
                 ProjectLLMSchema(
                     project_name=proj.project_name,
@@ -220,10 +236,14 @@ class SchemaConverter:
                     start_date=proj.start_date,
                     end_date=proj.end_date,
                     project_url=HttpUrl(proj.project_url) if proj.project_url else None,
-                    repository_url=HttpUrl(proj.repository_url) if proj.repository_url else None,
+                    repository_url=HttpUrl(proj.repository_url)
+                    if proj.repository_url
+                    else None,
                 )
                 for proj in db_user.projects
-            ] if hasattr(db_user, 'projects') else [],
+            ]
+            if hasattr(db_user, "projects")
+            else [],
             skills=[
                 SkillLLMSchema(
                     skill_name=user_skill.skill.skill_name,
@@ -231,7 +251,9 @@ class SchemaConverter:
                     proficiency_level=user_skill.proficiency_level,
                 )
                 for user_skill in db_user.user_skills
-            ] if hasattr(db_user, 'user_skills') and db_user.user_skills else [],
+            ]
+            if hasattr(db_user, "user_skills") and db_user.user_skills
+            else [],
         )
 
 
@@ -268,7 +290,7 @@ class ValidationService:
     @staticmethod
     def validate_user(
         llm_data: UserLLMSchema,
-        frontend_schema: Type[UserFrontendSchema] = UserFrontendSchema
+        frontend_schema: Type[UserFrontendSchema] = UserFrontendSchema,
     ) -> ValidationResponse:
         """Validate LLM user data against frontend requirements.
 
@@ -316,18 +338,25 @@ class ValidationService:
         # Calculate completeness
         total_fields = len(frontend_schema.model_fields)
         filled_fields = sum(
-            1 for field_name in frontend_schema.model_fields
+            1
+            for field_name in frontend_schema.model_fields
             if getattr(llm_data, field_name, None) is not None
         )
         completeness = (filled_fields / total_fields * 100) if total_fields > 0 else 0
 
         # Calculate required completeness
         required_fields = sum(
-            1 for field_info in frontend_schema.model_fields.values()
-            if field_info.is_required() or ValidationService._get_json_schema_extra(field_info).get("ui_required", False)
+            1
+            for field_info in frontend_schema.model_fields.values()
+            if field_info.is_required()
+            or ValidationService._get_json_schema_extra(field_info).get(
+                "ui_required", False
+            )
         )
         filled_required = required_fields - len(missing_required)
-        required_completeness = (filled_required / required_fields * 100) if required_fields > 0 else 0
+        required_completeness = (
+            (filled_required / required_fields * 100) if required_fields > 0 else 0
+        )
 
         # Determine validation status
         if not llm_data.model_dump(exclude_none=True):
@@ -351,13 +380,12 @@ class ValidationService:
             extraction_metadata={
                 "timestamp": datetime.utcnow().isoformat(),
                 "schema_version": "1.0.0",
-            }
+            },
         )
 
     @staticmethod
     def merge_with_user_input(
-        llm_data: UserLLMSchema,
-        user_input: Dict[str, Any]
+        llm_data: UserLLMSchema, user_input: Dict[str, Any]
     ) -> UserLLMSchema:
         """Merge LLM extracted data with user input.
 
