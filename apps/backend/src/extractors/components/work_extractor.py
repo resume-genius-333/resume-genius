@@ -3,28 +3,27 @@
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
-from src.schemas.base import BaseLLMSchema
-from src.schemas.llm.work import WorkExperienceLLMSchema
+from src.models.base import BaseLLMSchema
+from src.models.llm.work import WorkExperienceLLMSchema
 from src.extractors.base_extractor import BaseExtractor
 
 
 class WorkListSchema(BaseLLMSchema):
     """Schema for extracting multiple work experience entries."""
-    
+
     work_entries: List[WorkExperienceLLMSchema] = Field(
         default_factory=list,
-        description="List of all work experiences found in the resume"
+        description="List of all work experiences found in the resume",
     )
-    
+
     extraction_notes: Optional[str] = Field(
-        None,
-        description="Any notes about the extraction"
+        None, description="Any notes about the extraction"
     )
 
 
 class WorkExtractor(BaseExtractor[WorkListSchema]):
     """Extractor for work experience section of resumes."""
-    
+
     def get_extraction_prompt(self) -> str:
         """Get the prompt for work experience extraction."""
         return """Extract ALL work experiences from this resume including:
@@ -51,7 +50,7 @@ class WorkExtractor(BaseExtractor[WorkListSchema]):
         skills/technologies if mentioned.
         
         Be comprehensive and include all work-related experiences."""
-    
+
     def get_response_model(self):
         """Get the response model for work experience extraction."""
         return WorkListSchema
