@@ -1,1 +1,0 @@
-"""Schema package for Resume Genius application."""

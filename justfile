@@ -39,8 +39,9 @@ up:
     cd {{compose_dir}} && docker-compose up -d
     @echo "{{GREEN}}Services started!{{NC}}"
     @echo "Frontend: http://localhost:3000"
-    @echo "Backend:  http://localhost:8000"
+    @echo "Backend:  http://localhost:8000/docs"
     @echo "LiteLLM:  http://localhost:4000"
+    @echo "Redis:    localhost:6380"
 
 # Start all services in production mode
 up-prod:
@@ -186,6 +187,21 @@ db-shell-litellm:
     @echo "{{BLUE}}Connecting to LiteLLM database...{{NC}}"
     docker exec -it litellm-postgres psql -U postgres -d litellm
 
+# Connect to Redis CLI
+redis-cli:
+    @echo "{{BLUE}}Connecting to Redis...{{NC}}"
+    docker exec -it resume-genius-redis redis-cli
+
+# Monitor Redis in real-time
+redis-monitor:
+    @echo "{{BLUE}}Monitoring Redis commands...{{NC}}"
+    docker exec -it resume-genius-redis redis-cli monitor
+
+# Check Redis info
+redis-info:
+    @echo "{{BLUE}}Redis server information:{{NC}}"
+    docker exec resume-genius-redis redis-cli INFO server
+
 # Backup Resume Genius database
 db-backup:
     @echo "{{BLUE}}Backing up Resume Genius database...{{NC}}"
@@ -286,7 +302,9 @@ help:
     @echo "  just migrate        - Run database migrations"
     @echo ""
     @echo "{{GREEN}}Database:{{NC}}"
-    @echo "  just db-shell       - Connect to database"
+    @echo "  just db-shell       - Connect to PostgreSQL"
+    @echo "  just redis-cli      - Connect to Redis CLI"
+    @echo "  just redis-monitor  - Monitor Redis commands"
     @echo "  just db-backup      - Backup database"
     @echo "  just db-restore     - Restore database"
     @echo ""

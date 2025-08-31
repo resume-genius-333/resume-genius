@@ -3,28 +3,26 @@
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
-from src.schemas.base import BaseLLMSchema
-from src.schemas.llm.project import ProjectLLMSchema
+from src.models.base import BaseLLMSchema
+from src.models.llm.project import ProjectLLMSchema
 from src.extractors.base_extractor import BaseExtractor
 
 
 class ProjectListSchema(BaseLLMSchema):
     """Schema for extracting multiple project entries."""
-    
+
     project_entries: List[ProjectLLMSchema] = Field(
-        default_factory=list,
-        description="List of all projects found in the resume"
+        default_factory=list, description="List of all projects found in the resume"
     )
-    
+
     extraction_notes: Optional[str] = Field(
-        None,
-        description="Any notes about the extraction"
+        None, description="Any notes about the extraction"
     )
 
 
 class ProjectExtractor(BaseExtractor[ProjectListSchema]):
     """Extractor for projects section of resumes."""
-    
+
     def get_extraction_prompt(self) -> str:
         """Get the prompt for project extraction."""
         return """Extract ALL projects from this resume including:
@@ -51,7 +49,7 @@ class ProjectExtractor(BaseExtractor[ProjectListSchema]):
         project as separate entries. Include all technical details and technologies used.
         
         Be thorough and capture all project-related information."""
-    
+
     def get_response_model(self):
         """Get the response model for project extraction."""
         return ProjectListSchema

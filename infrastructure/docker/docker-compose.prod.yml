@@ -42,10 +42,13 @@ services:
       - DATABASE_SYNC_URL=postgresql://postgres:${RESUME_GENIUS_POSTGRES_PASSWORD:-postgres}@resume-genius-postgres:5432/resume_genius
       - DATABASE_ECHO=false
       - PYTHONUNBUFFERED=1
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_secure_password_changeme}@resume-genius-redis:6379/0
       # Production-specific settings
       - LOG_LEVEL=warning
     depends_on:
       resume-genius-postgres:
+        condition: service_healthy
+      resume-genius-redis:
         condition: service_healthy
       litellm:
         condition: service_started
@@ -88,3 +91,11 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${RESUME_GENIUS_POSTGRES_PASSWORD}  # Must use secure password in production
       POSTGRES_DB: resume_genius
+
+  # Redis Service (Production)
+  resume-genius-redis:
+    restart: always
+    # Production-specific Redis configuration
+    command: redis-server --appendonly yes --appendfsync everysec --maxmemory 256mb --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD:-redis_secure_password_changeme}
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_secure_password_changeme}

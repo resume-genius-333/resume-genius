@@ -1,19 +1,16 @@
-from .enums import ProviderType
-from .auth_provider import AuthProvider
-from .refresh_token import RefreshToken
-from .user_session import UserSession
-from .blacklisted_token import BlacklistedToken
-from .password_reset_token import PasswordResetToken
-from .email_verification_token import EmailVerificationToken
-from .api_key import APIKey
+"""Authentication schemas."""
+from .register import UserRegisterRequest, UserRegisterResponse
+from .login import UserLoginRequest, UserLoginResponse
+from .token import TokenPayload, RefreshTokenRequest, RefreshTokenResponse
+from .user import UserResponse
 
 __all__ = [
-    "ProviderType",
-    "AuthProvider",
-    "RefreshToken",
-    "UserSession",
-    "BlacklistedToken",
-    "PasswordResetToken",
-    "EmailVerificationToken",
-    "APIKey",
+    "UserRegisterRequest",
+    "UserRegisterResponse",
+    "UserLoginRequest",
+    "UserLoginResponse",
+    "TokenPayload",
+    "RefreshTokenRequest",
+    "RefreshTokenResponse",
+    "UserResponse",
 ]

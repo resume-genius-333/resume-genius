@@ -3,82 +3,57 @@
 from typing import Optional
 from pydantic import BaseModel, Field, EmailStr, HttpUrl
 
-from src.schemas.base import BaseLLMSchema
+from src.models.base import BaseLLMSchema
 from src.extractors.base_extractor import BaseExtractor
 
 
 class ContactSchema(BaseLLMSchema):
     """Schema for extracting contact information."""
-    
-    first_name: Optional[str] = Field(
-        None,
-        description="Person's first name"
-    )
-    
-    last_name: Optional[str] = Field(
-        None,
-        description="Person's last name"
-    )
-    
+
+    first_name: Optional[str] = Field(None, description="Person's first name")
+
+    last_name: Optional[str] = Field(None, description="Person's last name")
+
     full_name: Optional[str] = Field(
-        None,
-        description="Person's full name if first/last not clearly separated"
+        None, description="Person's full name if first/last not clearly separated"
     )
-    
+
     name_prefix: Optional[str] = Field(
-        None,
-        description="Name prefix or title (Dr., Mr., Ms., Prof., etc.)"
+        None, description="Name prefix or title (Dr., Mr., Ms., Prof., etc.)"
     )
-    
+
     name_suffix: Optional[str] = Field(
-        None,
-        description="Name suffix (Jr., Sr., III, PhD, MD, etc.)"
+        None, description="Name suffix (Jr., Sr., III, PhD, MD, etc.)"
     )
-    
-    email: Optional[EmailStr] = Field(
-        None,
-        description="Email address"
-    )
-    
-    phone: Optional[str] = Field(
-        None,
-        description="Phone number in any format"
-    )
-    
+
+    email: Optional[EmailStr] = Field(None, description="Email address")
+
+    phone: Optional[str] = Field(None, description="Phone number in any format")
+
     location: Optional[str] = Field(
-        None,
-        description="Current location (city, state, country)"
+        None, description="Current location (city, state, country)"
     )
-    
-    linkedin_url: Optional[HttpUrl] = Field(
-        None,
-        description="LinkedIn profile URL"
-    )
-    
-    github_url: Optional[HttpUrl] = Field(
-        None,
-        description="GitHub profile URL"
-    )
-    
+
+    linkedin_url: Optional[HttpUrl] = Field(None, description="LinkedIn profile URL")
+
+    github_url: Optional[HttpUrl] = Field(None, description="GitHub profile URL")
+
     portfolio_url: Optional[HttpUrl] = Field(
-        None,
-        description="Personal website or portfolio URL"
+        None, description="Personal website or portfolio URL"
     )
-    
+
     summary: Optional[str] = Field(
-        None,
-        description="Professional summary or objective"
+        None, description="Professional summary or objective"
     )
-    
+
     extraction_notes: Optional[str] = Field(
-        None,
-        description="Any notes about the extraction"
+        None, description="Any notes about the extraction"
     )
 
 
 class ContactExtractor(BaseExtractor[ContactSchema]):
     """Extractor for contact information and personal details."""
-    
+
     def get_extraction_prompt(self) -> str:
         """Get the prompt for contact information extraction."""
         return """Extract ALL contact and personal information from this resume including:
@@ -114,7 +89,7 @@ class ContactExtractor(BaseExtractor[ContactSchema]):
         - Capture the full professional summary if present
         
         Be thorough in extracting all contact and identification information."""
-    
+
     def get_response_model(self):
         """Get the response model for contact extraction."""
         return ContactSchema

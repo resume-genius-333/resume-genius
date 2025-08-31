@@ -3,28 +3,26 @@
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
-from src.schemas.base import BaseLLMSchema
-from src.schemas.llm.skill import SkillLLMSchema
+from src.models.base import BaseLLMSchema
+from src.models.llm.skill import SkillLLMSchema
 from src.extractors.base_extractor import BaseExtractor
 
 
 class SkillListSchema(BaseLLMSchema):
     """Schema for extracting multiple skill entries."""
-    
+
     skill_entries: List[SkillLLMSchema] = Field(
-        default_factory=list,
-        description="List of all skills found in the resume"
+        default_factory=list, description="List of all skills found in the resume"
     )
-    
+
     extraction_notes: Optional[str] = Field(
-        None,
-        description="Any notes about the extraction"
+        None, description="Any notes about the extraction"
     )
 
 
 class SkillExtractor(BaseExtractor[SkillListSchema]):
     """Extractor for skills section of resumes."""
-    
+
     def get_extraction_prompt(self) -> str:
         """Get the prompt for skill extraction."""
         return """Extract ALL skills from this resume including:
@@ -53,7 +51,7 @@ class SkillExtractor(BaseExtractor[SkillListSchema]):
         - Preserve the exact name as mentioned (e.g., "React.js" not just "React")
         
         Be comprehensive and extract every skill, technology, and competency mentioned."""
-    
+
     def get_response_model(self):
         """Get the response model for skill extraction."""
         return SkillListSchema
