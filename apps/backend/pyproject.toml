@@ -45,6 +45,7 @@ dependencies = [
     "python-jose[cryptography]>=3.5.0",
     "python-multipart>=0.0.20",
     "pyzmq==27.0.1",
+    "redis[hiredis]>=6.4.0",
     "sqlalchemy>=2.0.42",
     "stack-data==0.6.3",
     "tornado==6.5.2",
