@@ -53,7 +53,7 @@ async def register(
         return await service.register_user(request, ip_address, user_agent)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except Exception as e:
+    except Exception:
         await repository.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -80,7 +80,7 @@ async def login(
         return await service.login_user(request, ip_address, user_agent)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
-    except Exception as e:
+    except Exception:
         await repository.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Login failed"
@@ -106,7 +106,7 @@ async def refresh_token(
         return await service.refresh_access_token(request, ip_address, user_agent)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
-    except Exception as e:
+    except Exception:
         await repository.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -142,7 +142,7 @@ async def logout(
         try:
             data = json.loads(body)
             refresh_token = data.get("refresh_token")
-        except:
+        except (json.JSONDecodeError, AttributeError):
             pass
 
     if access_token:

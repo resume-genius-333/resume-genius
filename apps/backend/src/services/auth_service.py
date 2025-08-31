@@ -1,6 +1,6 @@
 """Authentication service for business logic."""
 
-from typing import Optional, Tuple
+from typing import Optional
 from datetime import datetime, timezone
 from src.repositories.auth_repository import AuthRepository
 from src.core.security import SecurityUtils

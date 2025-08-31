@@ -1,7 +1,7 @@
 """Security utilities for authentication."""
 
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Dict, Any
+from typing import Optional
 import secrets
 import hashlib
 from jose import jwt, JWTError
