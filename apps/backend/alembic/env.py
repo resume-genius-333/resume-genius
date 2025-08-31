@@ -14,18 +14,18 @@ load_dotenv()
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 # Import your models here
-from src.models import Base
-from src.models import (
-    User,  
-    Education, 
-    WorkExperience,  
-    WorkResponsibility,  
-    Project, 
-    ProjectTask,  
-    Skill, 
-    UserSkill,  
-    TaskSkillMapping, 
-    ResponsibilitySkillMapping, 
+from src.models.db import Base
+from src.models.db import (
+    User,
+    Education,
+    WorkExperience,
+    WorkResponsibility,
+    Project,
+    ProjectTask,
+    Skill,
+    UserSkill,
+    TaskSkillMapping,
+    ResponsibilitySkillMapping,
 )
 
 # this is the Alembic Config object, which provides
@@ -90,11 +90,11 @@ def run_migrations_online() -> None:
     configuration = config.get_section(config.config_ini_section)
     if configuration is None:
         configuration = {}
-    
+
     # database_url is guaranteed to be non-None due to check at module level
     if database_url:
         configuration["sqlalchemy.url"] = database_url
-    
+
     connectable = engine_from_config(
         configuration,
         prefix="sqlalchemy.",
@@ -103,7 +103,7 @@ def run_migrations_online() -> None:
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, 
+            connection=connection,
             target_metadata=target_metadata,
             compare_type=True,
             compare_server_default=True,
