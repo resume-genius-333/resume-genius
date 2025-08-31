@@ -13,20 +13,11 @@ load_dotenv()
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
+# Import database configuration
+from src.core.db_config import get_sync_database_url  # noqa: E402
+
 # Import your models here
-from src.models.db import Base
-from src.models.db import (
-    User,
-    Education,
-    WorkExperience,
-    WorkResponsibility,
-    Project,
-    ProjectTask,
-    Skill,
-    UserSkill,
-    TaskSkillMapping,
-    ResponsibilitySkillMapping,
-)
+from src.models.db import Base  # noqa: E402
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -37,11 +28,8 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Set the database URL from environment variable
-database_url = os.getenv("DATABASE_SYNC_URL")
-if not database_url:
-    raise ValueError("DATABASE_SYNC_URL environment variable is not set")
-
+# Set the database URL using the centralized configuration
+database_url = get_sync_database_url()
 config.set_main_option("sqlalchemy.url", database_url)
 
 # add your model's MetaData object here
@@ -91,9 +79,8 @@ def run_migrations_online() -> None:
     if configuration is None:
         configuration = {}
 
-    # database_url is guaranteed to be non-None due to check at module level
-    if database_url:
-        configuration["sqlalchemy.url"] = database_url
+    # Database URL is already set in config.set_main_option above
+    configuration["sqlalchemy.url"] = database_url
 
     connectable = engine_from_config(
         configuration,
