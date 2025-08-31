@@ -70,7 +70,7 @@ def create_key(name: str):
         print(f"\n{'=' * 60}")
         print(f"API Key created for: {name}")
         print(f"{'=' * 60}")
-        print(f"\nKey (save this - it won't be shown again):\n")
+        print("\nKey (save this - it won't be shown again):\n")
         print(f"  {raw_key}")
         print(f"\n{'=' * 60}\n")
 
