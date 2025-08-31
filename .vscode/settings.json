@@ -1,6 +1,9 @@
 {
-    "python.defaultInterpreterPath": "./apps/backend/.venv/bin/python",
-    "python.analysis.stubPath": "apps/backend/typings",
-    "python.analysis.extraPaths": ["apps/backend"],
-    "python.analysis.typeCheckingMode": "standard"
+  "python.defaultInterpreterPath": "./apps/backend/.venv/bin/python",
+  "python.analysis.stubPath": "apps/backend/typings",
+  "python.analysis.extraPaths": ["apps/backend"],
+  "python.analysis.typeCheckingMode": "standard",
+  "cursorpyright.analysis.extraPaths": ["apps/backend"],
+  "cursorpyright.analysis.stubPath": "apps/backend/typings",
+  "cursorpyright.analysis.typeCheckingMode": "standard"
 }
