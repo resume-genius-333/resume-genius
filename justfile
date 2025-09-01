@@ -31,6 +31,7 @@ alias u := up
 alias d := down
 alias l := logs
 alias r := restart
+alias rb := rebuild-backend
 
 # ============================================================================
 # Docker Commands
@@ -98,6 +99,12 @@ ps:
 exec service command:
     {{docker_compose}} exec {{service}} {{command}}
 
+# Clear Docker logs for a specific service (defaults to backend)
+clear-logs service="backend":
+    @echo "{{YELLOW}}Clearing logs for {{service}} by restarting...{{NC}}"
+    {{docker_compose}} restart {{service}}
+    @echo "{{GREEN}}Logs cleared for {{service}}{{NC}}"
+
 # ============================================================================
 # Backend Commands
 # ============================================================================
@@ -162,6 +169,33 @@ backend-lint:
 backend-install:
     @echo "{{BLUE}}Installing backend dependencies...{{NC}}"
     cd apps/backend && uv sync
+
+# Clear Python bytecode cache files
+clear-pycache:
+    @echo "{{YELLOW}}Clearing Python bytecode cache...{{NC}}"
+    @find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+    @find . -type f -name "*.pyc" -delete 2>/dev/null || true
+    @find . -type f -name "*.pyo" -delete 2>/dev/null || true
+    @echo "{{GREEN}}Python cache cleared!{{NC}}"
+
+# Clear Python bytecode cache in backend only
+backend-clear-cache:
+    @echo "{{YELLOW}}Clearing backend Python cache...{{NC}}"
+    @find apps/backend -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+    @find apps/backend -type f -name "*.pyc" -delete 2>/dev/null || true
+    @find apps/backend -type f -name "*.pyo" -delete 2>/dev/null || true
+    @echo "{{GREEN}}Backend Python cache cleared!{{NC}}"
+
+# Rebuild backend service (stop, build, start)
+rebuild-backend:
+    @echo "{{YELLOW}}Rebuilding backend service...{{NC}}"
+    @echo "{{BLUE}}1. Stopping backend...{{NC}}"
+    {{docker_compose}} stop backend
+    @echo "{{BLUE}}2. Building backend...{{NC}}"
+    {{docker_compose}} build backend
+    @echo "{{BLUE}}3. Starting backend...{{NC}}"
+    {{docker_compose}} up -d backend
+    @echo "{{GREEN}}Backend rebuilt and started!{{NC}}"
 
 # ============================================================================
 # Frontend Commands
