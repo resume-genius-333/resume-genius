@@ -13,7 +13,7 @@ services:
     command: [ "--config", "/app/config.yaml", "--port", "4000", "--num_workers", "1" ]
     environment:
       - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:-sk-1234}  # CHANGEME
-      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/litellm
+      - DATABASE_URL=postgresql://${LITELLM_POSTGRES_USER}:${LITELLM_POSTGRES_PASSWORD}@litellm-postgres:5432/${LITELLM_POSTGRES_DB}
       # API Keys for providers
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
@@ -23,19 +23,19 @@ services:
       - PERPLEXITYAI_API_KEY=${PERPLEXITYAI_API_KEY}
       - XAI_API_KEY=${XAI_API_KEY}
     depends_on:
-      postgres:
+      litellm-postgres:
         condition: service_healthy
     restart: unless-stopped
 
   # PostgreSQL Database for LiteLLM
-  postgres:
+  litellm-postgres:
     image: postgres:16-alpine
     container_name: litellm-postgres
     restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}  # CHANGEME
-      POSTGRES_DB: litellm
+      POSTGRES_USER: ${LITELLM_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${LITELLM_POSTGRES_PASSWORD}  # CHANGEME
+      POSTGRES_DB: ${LITELLM_POSTGRES_DB}
     volumes:
       - litellm_postgres_data:/var/lib/postgresql/data
     ports:
@@ -52,9 +52,9 @@ services:
     container_name: resume-genius-postgres
     restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${RESUME_GENIUS_POSTGRES_PASSWORD:-postgres}  # CHANGEME
-      POSTGRES_DB: resume_genius
+      POSTGRES_USER: ${BACKEND_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${BACKEND_POSTGRES_PASSWORD:-postgres}  # CHANGEME
+      POSTGRES_DB: ${BACKEND_POSTGRES_DB}
     volumes:
       - resume_genius_postgres_data:/var/lib/postgresql/data
     ports:
@@ -117,13 +117,40 @@ services:
       # Anonymous volume for .venv to avoid conflicts
       - /app/.venv
     environment:
-      - LITELLM_API_KEY=${LITELLM_MASTER_KEY}
-      - LITELLM_BASE_URL=http://litellm:4000
-      - DATABASE_URL=postgresql+asyncpg://postgres:${RESUME_GENIUS_POSTGRES_PASSWORD:-postgres}@resume-genius-postgres:5432/resume_genius
-      - DATABASE_SYNC_URL=postgresql://postgres:${RESUME_GENIUS_POSTGRES_PASSWORD:-postgres}@resume-genius-postgres:5432/resume_genius
-      - DATABASE_ECHO=${DATABASE_ECHO:-false}
+      - DOCKER_CONTAINER=true
+      - LITELLM_API_KEY=${LITELLM_API_KEY}
+      - LITELLM_BASE_URL_DOCKER=${LITELLM_BASE_URL_DOCKER}
+      - LITELLM_BASE_URL_LOCAL=${LITELLM_BASE_URL_LOCAL}
+      # Database configuration components
+      - BACKEND_POSTGRES_USER=${BACKEND_POSTGRES_USER}
+      - BACKEND_POSTGRES_PASSWORD=${BACKEND_POSTGRES_PASSWORD}
+      - BACKEND_POSTGRES_DB=${BACKEND_POSTGRES_DB}
+      - BACKEND_POSTGRES_HOST_DOCKER=${BACKEND_POSTGRES_HOST_DOCKER}
+      - BACKEND_POSTGRES_HOST_LOCAL=${BACKEND_POSTGRES_HOST_LOCAL}
+      - BACKEND_POSTGRES_PORT_DOCKER=${BACKEND_POSTGRES_PORT_DOCKER}
+      - BACKEND_POSTGRES_PORT_LOCAL=${BACKEND_POSTGRES_PORT_LOCAL}
+      - BACKEND_DATABASE_ECHO=${BACKEND_DATABASE_ECHO:-false}
+      # Auth configuration
+      - BACKEND_JWT_SECRET_KEY=${BACKEND_JWT_SECRET_KEY:-changeme}
+      - BACKEND_JWT_ALGORITHM=${BACKEND_JWT_ALGORITHM:-HS256}
+      - BACKEND_ACCESS_TOKEN_EXPIRE_MINUTES=${BACKEND_ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      - BACKEND_REFRESH_TOKEN_EXPIRE_DAYS=${BACKEND_REFRESH_TOKEN_EXPIRE_DAYS:-7}
+      - BACKEND_PASSWORD_RESET_TOKEN_EXPIRE_HOURS=${BACKEND_PASSWORD_RESET_TOKEN_EXPIRE_HOURS:-24}
+      - BACKEND_EMAIL_VERIFICATION_TOKEN_EXPIRE_HOURS=${BACKEND_EMAIL_VERIFICATION_TOKEN_EXPIRE_HOURS:-48}
+      # Redis configuration components
+      - BACKEND_REDIS_HOST_DOCKER=${BACKEND_REDIS_HOST_DOCKER}
+      - BACKEND_REDIS_HOST_LOCAL=${BACKEND_REDIS_HOST_LOCAL}
+      - BACKEND_REDIS_PORT_DOCKER=${BACKEND_REDIS_PORT_DOCKER}
+      - BACKEND_REDIS_PORT_LOCAL=${BACKEND_REDIS_PORT_LOCAL}
+      - BACKEND_REDIS_DB=${BACKEND_REDIS_DB:-0}
+      - BACKEND_REDIS_MAX_CONNECTIONS=${BACKEND_REDIS_MAX_CONNECTIONS:-50}
+      - BACKEND_REDIS_ENCODING=${BACKEND_REDIS_ENCODING:-utf-8}
+      - BACKEND_REDIS_DECODE_RESPONSES=${BACKEND_REDIS_DECODE_RESPONSES:-true}
+      - BACKEND_REDIS_SOCKET_CONNECT_TIMEOUT=${BACKEND_REDIS_SOCKET_CONNECT_TIMEOUT:-5}
+      - BACKEND_REDIS_SOCKET_TIMEOUT=${BACKEND_REDIS_SOCKET_TIMEOUT:-5}
+      - BACKEND_REDIS_RETRY_ON_TIMEOUT=${BACKEND_REDIS_RETRY_ON_TIMEOUT:-true}
+      - BACKEND_REDIS_HEALTH_CHECK_INTERVAL=${BACKEND_REDIS_HEALTH_CHECK_INTERVAL:-30}
       - PYTHONUNBUFFERED=1
-      - REDIS_URL=redis://resume-genius-redis:6379/0
     depends_on:
       resume-genius-postgres:
         condition: service_healthy

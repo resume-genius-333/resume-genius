@@ -49,5 +49,8 @@ COPY . .
 # Expose FastAPI port
 EXPOSE 8000
 
+# Set environment variable to indicate we're running in Docker
+ENV DOCKER_CONTAINER=true
+
 # Start development server with hot reload
 CMD ["uv", "run", "python", "main.py"]

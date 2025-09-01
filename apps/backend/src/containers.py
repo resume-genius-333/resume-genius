@@ -80,3 +80,7 @@ class Container(containers.DeclarativeContainer):
         retry_on_timeout=config.redis.retry_on_timeout,
         health_check_interval=config.redis.health_check_interval,
     )
+
+
+# Global container instance
+container = Container()

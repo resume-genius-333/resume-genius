@@ -1,6 +1,6 @@
 """API dependencies for dependency injection."""
 
-from typing import AsyncGenerator, Optional, Union
+from typing import AsyncGenerator, Optional
 from fastapi import Depends, HTTPException, status, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,19 +30,22 @@ async def get_db(
 
 
 @inject
-async def get_auth_config(config=Provide[Container.config.auth]) -> AuthConfig:
+async def get_auth_config(
+    jwt_secret_key=Provide[Container.config.auth.jwt_secret_key],
+    jwt_algorithm=Provide[Container.config.auth.jwt_algorithm],
+    access_token_expire_minutes=Provide[Container.config.auth.access_token_expire_minutes],
+    refresh_token_expire_days=Provide[Container.config.auth.refresh_token_expire_days],
+    password_reset_token_expire_hours=Provide[Container.config.auth.password_reset_token_expire_hours],
+    email_verification_token_expire_hours=Provide[Container.config.auth.email_verification_token_expire_hours],
+) -> AuthConfig:
     """Get authentication configuration."""
     return AuthConfig(
-        jwt_secret_key=config.jwt_secret_key(),
-        jwt_algorithm=config.jwt_algorithm() or "HS256",
-        access_token_expire_minutes=int(config.access_token_expire_minutes() or 30),
-        refresh_token_expire_days=int(config.refresh_token_expire_days() or 7),
-        password_reset_token_expire_hours=int(
-            config.password_reset_token_expire_hours() or 24
-        ),
-        email_verification_token_expire_hours=int(
-            config.email_verification_token_expire_hours() or 48
-        ),
+        jwt_secret_key=jwt_secret_key,
+        jwt_algorithm=jwt_algorithm or "HS256",
+        access_token_expire_minutes=int(access_token_expire_minutes or 30),
+        refresh_token_expire_days=int(refresh_token_expire_days or 7),
+        password_reset_token_expire_hours=int(password_reset_token_expire_hours or 24),
+        email_verification_token_expire_hours=int(email_verification_token_expire_hours or 48),
     )
 
 
@@ -176,7 +179,7 @@ async def verify_api_key(
     key_hash = hashlib.sha256(api_key.encode()).hexdigest()
 
     result = await db.execute(
-        select(APIKey).where(APIKey.key_hash == key_hash, APIKey.is_active == True)
+        select(APIKey).where(APIKey.key_hash == key_hash, APIKey.is_active)
     )
 
     return result.scalar_one_or_none() is not None

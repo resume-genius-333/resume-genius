@@ -1,6 +1,6 @@
 """Configuration for extraction system."""
 
-from typing import Dict, Any, Optional
+from typing import Optional
 from pathlib import Path
 from pydantic import BaseModel, Field
 import os

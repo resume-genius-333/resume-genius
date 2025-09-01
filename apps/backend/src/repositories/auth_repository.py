@@ -3,8 +3,7 @@
 from typing import Optional
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_
-from sqlalchemy.orm import selectinload
+from sqlalchemy import select, and_
 import uuid
 
 from src.models.db import (
@@ -13,8 +12,6 @@ from src.models.db import (
     RefreshToken,
     UserSession,
     BlacklistedToken,
-    PasswordResetToken,
-    EmailVerificationToken,
     ProviderType,
 )
 
@@ -88,7 +85,7 @@ class AuthRepository:
                 and_(
                     AuthProvider.user_id == user_id,
                     AuthProvider.provider_type == provider_type,
-                    AuthProvider.is_active == True,
+                    AuthProvider.is_active,
                 )
             )
         )
@@ -140,7 +137,7 @@ class AuthRepository:
             select(RefreshToken).where(
                 and_(
                     RefreshToken.token_hash == token_hash,
-                    RefreshToken.is_revoked == False,
+                    ~RefreshToken.is_revoked,
                     RefreshToken.expires_at > datetime.now(timezone.utc),
                 )
             )
