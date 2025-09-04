@@ -197,6 +197,27 @@ frontend-clean:
     @echo "{{YELLOW}}Cleaning frontend build artifacts...{{NC}}"
     cd apps/frontend && rm -rf .next node_modules
 
+# Generate TypeScript SDK from backend OpenAPI spec
+generate-sdk:
+    @echo "{{BLUE}}Generating TypeScript SDK from OpenAPI spec...{{NC}}"
+    @echo "{{YELLOW}}Starting backend to ensure API is available...{{NC}}"
+    @# Ensure backend is running
+    @docker ps | grep -q resume-genius-backend || (echo "{{YELLOW}}Backend not running, starting it...{{NC}}" && {{docker_compose}} up -d backend && sleep 5)
+    @echo "{{BLUE}}Exporting OpenAPI schema...{{NC}}"
+    cd apps/backend && uv run python scripts/export_openapi.py > ../frontend/openapi.json
+    @echo "{{BLUE}}Generating TypeScript SDK with Orval...{{NC}}"
+    cd apps/frontend && npx orval --config orval.config.ts
+    @echo "{{YELLOW}}Cleaning up temporary files...{{NC}}"
+    rm -f apps/frontend/openapi.json
+    @echo "{{GREEN}}SDK generated successfully!{{NC}}"
+    @echo "Generated files are in: apps/frontend/src/lib/api/generated/"
+
+# Generate SDK in watch mode (for development)
+generate-sdk-watch:
+    @echo "{{BLUE}}Starting SDK generation in watch mode...{{NC}}"
+    @echo "{{YELLOW}}This will regenerate the SDK whenever the backend changes{{NC}}"
+    cd apps/frontend && npx orval --config orval.config.ts --watch
+
 # ============================================================================
 # Database Commands
 # ============================================================================
