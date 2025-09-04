@@ -113,21 +113,6 @@ async def _create_job_background_wrapper(
     instructor: AsyncInstructor = Provide[Container.async_instructor],
     session_factory: async_sessionmaker = Provide[Container.async_session_factory],
 ):
-    """Wrapper function that handles dependency injection for background task."""
-    await _create_job_with_deps(
-        user_id, job_id, input_body, redis_client, instructor, session_factory
-    )
-
-
-async def _create_job_with_deps(
-    user_id: uuid.UUID,
-    job_id: uuid.UUID,
-    input_body: CreateJobRequest,
-    redis_client: redis.Redis,
-    instructor: AsyncInstructor,
-    session_factory: async_sessionmaker,
-):
-    """Wrapper that accepts dependencies directly instead of using @inject."""
     import traceback
 
     print(
@@ -207,41 +192,41 @@ async def _stream_status(
     redis_client: redis.Redis = Provide[Container.redis_client],
 ):
     import logging
-    
+
     logger = logging.getLogger(__name__)
     channel = f"user:{user_id.hex}:job:{job_id.hex}"
-    
+
     logger.info(f"SSE: Starting stream for channel: {channel}")
     logger.info(f"SSE: user_id={user_id}, job_id={job_id}")
-    
+
     pubsub = redis_client.pubsub()
     await pubsub.subscribe(channel)
     logger.info(f"SSE: Subscribed to Redis channel: {channel}")
-    
+
     try:
         # Listen for messages
         async for message in pubsub.listen():
             logger.debug(f"SSE: Received message type: {message['type']}")
-            
+
             if message["type"] == "message":
                 logger.info(f"SSE: Message received on channel {channel}")
                 print(message["data"])
-                
+
                 data = message["data"]
                 if isinstance(data, bytes):
                     data = data.decode("utf-8")
                     logger.debug("SSE: Decoded bytes to string")
-                
+
                 logger.info(f"SSE: Yielding data: {data[:200]}...")
                 yield f"data: {data}\n\n"
-                
+
             elif message["type"] == "subscribe":
                 logger.info("SSE: Successfully subscribed to channel")
-                
+
     except Exception as e:
         logger.error(f"SSE: Error in stream: {str(e)}")
         raise
-        
+
     finally:
         # Clean up
         logger.info(f"SSE: Cleaning up - unsubscribing from {channel}")
