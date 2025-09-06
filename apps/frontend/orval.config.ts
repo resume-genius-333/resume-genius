@@ -12,7 +12,7 @@ export default defineConfig({
       client: 'axios-functions',
       override: {
         mutator: {
-          path: './src/lib/api/axios-instance.ts',
+          path: './src/lib/api/orval-axios.ts',
           name: 'customAxiosInstance',
         },
       },

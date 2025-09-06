@@ -27,7 +27,7 @@ import type {
   VerifyTokenApiV1AuthVerifyTokenGetParams,
 } from "./schemas";
 
-import { customAxiosInstance } from "../axios-instance";
+import { customAxiosInstance } from "../orval-axios";
 /**
  * Register a new user.
  * @summary Register
