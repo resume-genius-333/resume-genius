@@ -1,4 +1,5 @@
-import time
+import asyncio
+import json
 from typing import Optional
 import uuid
 from instructor import AsyncInstructor
@@ -22,7 +23,8 @@ class CreateJobRequest(BaseModel):
 
 
 class CreateJobResponse(BaseModel):
-    job_id: str
+    job_id: uuid.UUID
+    sse_url: str
 
 
 @inject
@@ -39,7 +41,7 @@ async def _create_job(
 
     logger = logging.getLogger(__name__)
     logger.info(f"Starting job creation for user_id={user_id}, job_id={job_id}")
-    time.sleep(15)
+    # await asyncio.sleep(15)
 
     try:
         # Log LLM call
@@ -55,8 +57,6 @@ async def _create_job(
             ],
         )
         logger.info(f"LLM response received: {result.model_dump_json(indent=2)}")
-
-        print(result.model_dump_json(indent=2))
 
         # Create job from LLM result
         logger.info("Creating Job object from LLM result")
@@ -75,7 +75,7 @@ async def _create_job(
             logger.info(f"Job saved to database: job_id={job_id}")
 
         # Publish to Redis
-        channel = f"user:{user_id.hex}:job:{job_id.hex}"
+        channel = f"user:{user_id}:job:{job_id}"
         message = job.schema.model_dump_json()
         logger.info(f"Publishing to Redis channel: {channel}")
         logger.info(f"Message: {message[:200]}...")  # Log first 200 chars
@@ -101,7 +101,10 @@ async def create_job(
     background_tasks.add_task(
         _create_job_background_wrapper, user_id, job_id, input_body
     )
-    return CreateJobResponse(job_id=job_id.hex)
+    return CreateJobResponse(
+        job_id=job_id,
+        sse_url=f"http://localhost:8000/api/v1/users/{user_id}/jobs/{job_id}/status",
+    )
 
 
 @inject
@@ -114,77 +117,8 @@ async def _create_job_background_wrapper(
     session_factory: async_sessionmaker = Provide[Container.async_session_factory],
 ):
     """Wrapper function that handles dependency injection for background task."""
-    await _create_job_with_deps(
-        user_id, job_id, input_body, redis_client, instructor, session_factory
-    )
-
-
-async def _create_job_with_deps(
-    user_id: uuid.UUID,
-    job_id: uuid.UUID,
-    input_body: CreateJobRequest,
-    redis_client: redis.Redis,
-    instructor: AsyncInstructor,
-    session_factory: async_sessionmaker,
-):
-    """Wrapper that accepts dependencies directly instead of using @inject."""
-    import traceback
-
-    print(
-        f"[BACKGROUND JOB] Starting job creation for user_id={user_id}, job_id={job_id}"
-    )
-
-    try:
-        # Log LLM call
-        print("[BACKGROUND JOB] Calling LLM with job description")
-        result = await instructor.create(
-            model="gpt-5-nano",
-            response_model=JobLLMSchema,
-            messages=[
-                {
-                    "role": "user",
-                    "content": f"Extract information from the job description. \n\n{input_body.job_description}",
-                }
-            ],
-        )
-        print(
-            f"[BACKGROUND JOB] LLM response received: {result.model_dump_json(indent=2)}"
-        )
-
-        print(result.model_dump_json(indent=2))
-
-        # Create job from LLM result
-        print("[BACKGROUND JOB] Creating Job object from LLM result")
-        job = Job.from_llm(
-            user_id=user_id,
-            job_id=job_id,
-            llm_schema=result,
-            job_url=input_body.job_url,
-        )
-
-        # Save to database
-        print("[BACKGROUND JOB] Saving job to database")
-        async with session_factory() as session:
-            session.add(job)
-            await session.commit()
-            print(f"[BACKGROUND JOB] Job saved to database: job_id={job_id}")
-
-        # Publish to Redis
-        channel = f"user:{user_id.hex}:job:{job_id.hex}"
-        message = job.schema.model_dump_json()
-        print(f"[BACKGROUND JOB] Publishing to Redis channel: {channel}")
-        print(f"[BACKGROUND JOB] Message: {message[:200]}...")  # Log first 200 chars
-
-        await redis_client.publish(channel, message)
-        print(
-            f"[BACKGROUND JOB] Successfully published job to Redis channel: {channel}"
-        )
-
-    except Exception as e:
-        print(f"[BACKGROUND JOB ERROR] Error in _create_job_with_deps: {str(e)}")
-        print(f"[BACKGROUND JOB ERROR] Traceback: {traceback.format_exc()}")
-        # Re-raise to ensure background task fails properly
-        raise
+    # Only pass the non-injected parameters, let _create_job's @inject handle the rest
+    await _create_job(user_id, job_id, input_body)
 
 
 @router.post("/users/{user_id}/jobs/{job_id}/select_relevant_info")
@@ -207,41 +141,43 @@ async def _stream_status(
     redis_client: redis.Redis = Provide[Container.redis_client],
 ):
     import logging
-    
+
     logger = logging.getLogger(__name__)
-    channel = f"user:{user_id.hex}:job:{job_id.hex}"
-    
+    channel = f"user:{user_id}:job:{job_id}"
+
     logger.info(f"SSE: Starting stream for channel: {channel}")
     logger.info(f"SSE: user_id={user_id}, job_id={job_id}")
-    
+
     pubsub = redis_client.pubsub()
     await pubsub.subscribe(channel)
     logger.info(f"SSE: Subscribed to Redis channel: {channel}")
-    
+
     try:
         # Listen for messages
         async for message in pubsub.listen():
-            logger.debug(f"SSE: Received message type: {message['type']}")
-            
+            logger.info(
+                f"SSE: Received message type: {message['type']}, {json.dumps(message)}"
+            )
+
             if message["type"] == "message":
                 logger.info(f"SSE: Message received on channel {channel}")
                 print(message["data"])
-                
+
                 data = message["data"]
                 if isinstance(data, bytes):
                     data = data.decode("utf-8")
                     logger.debug("SSE: Decoded bytes to string")
-                
+
                 logger.info(f"SSE: Yielding data: {data[:200]}...")
                 yield f"data: {data}\n\n"
-                
+
             elif message["type"] == "subscribe":
                 logger.info("SSE: Successfully subscribed to channel")
-                
+
     except Exception as e:
         logger.error(f"SSE: Error in stream: {str(e)}")
         raise
-        
+
     finally:
         # Clean up
         logger.info(f"SSE: Cleaning up - unsubscribing from {channel}")
@@ -250,7 +186,7 @@ async def _stream_status(
         logger.info(f"SSE: Stream closed for {channel}")
 
 
-@router.get("/users/{user_id}/jobs/{job_id}/status")
+@router.get("/users/{user_id}/jobs/{job_id}/status-stream")
 async def stream_status(
     user_id: uuid.UUID,
     job_id: uuid.UUID,
@@ -286,7 +222,7 @@ async def create_job_sync(
         await _create_job(user_id, job_id, input_body)
         return {
             "status": "success",
-            "job_id": job_id.hex,
+            "job_id": job_id,
             "message": "Job created and published to Redis successfully",
         }
     except Exception as e:
@@ -295,7 +231,7 @@ async def create_job_sync(
 
         return {
             "status": "error",
-            "job_id": job_id.hex,
+            "job_id": job_id,
             "error": str(e),
             "traceback": traceback.format_exc(),
         }
