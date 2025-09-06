@@ -41,14 +41,14 @@ model_list:
       api_key: os.environ/OPENAI_API_KEY
 
   # Anthropic Models
-  - model_name: claude-4-opus
+  - model_name: claude-4.1-opus
     litellm_params:
-      model: anthropic/claude-4-opus
+      model: anthropic/claude-opus-4-1-20250805
       api_key: os.environ/ANTHROPIC_API_KEY # Set in environment variable
 
   - model_name: claude-4-sonnet
     litellm_params:
-      model: anthropic/claude-4-sonnet
+      model: anthropic/claude-sonnet-4-20250514
       api_key: os.environ/ANTHROPIC_API_KEY
 
   - model_name: claude-3.5-sonnet
@@ -195,8 +195,6 @@ litellm_settings:
   telemetry: false
   # success_callback: []  # Removed Langfuse callback
 
-
-
 # Router Settings (Optional)
 router_settings:
   routing_strategy: "simple-shuffle" # Options: simple-shuffle, least-busy, usage-based-routing
@@ -214,19 +212,18 @@ database_args:
 files_settings:
   - custom_llm_provider: openai
     api_key: os.environ/OPENAI_API_KEY
-  
+
   - custom_llm_provider: gemini
     api_key: os.environ/GEMINI_API_KEY
-  
+
   - custom_llm_provider: anthropic
     api_key: os.environ/ANTHROPIC_API_KEY
-  
+
   - custom_llm_provider: perplexity
     api_key: os.environ/PERPLEXITYAI_API_KEY
-  
+
   - custom_llm_provider: xai
     api_key: os.environ/XAI_API_KEY
-
 # Caching (Optional)
 # cache:
 #   type: "redis"
