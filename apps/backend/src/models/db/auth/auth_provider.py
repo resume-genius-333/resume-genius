@@ -24,21 +24,21 @@ class AuthProvider(Base):
     
     # Security fields
     failed_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    locked_until: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, nullable=True)
+    locked_until: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     
     # OAuth token fields
     access_token: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # Encrypted
     refresh_token: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # Encrypted
-    token_expires_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, nullable=True)
+    token_expires_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     
     # Provider-specific data
     provider_data: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     
     # Status fields
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    last_used_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, nullable=True)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
-    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+    last_used_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
 
     # Relationships
     user: Mapped["User"] = relationship(back_populates="auth_providers")

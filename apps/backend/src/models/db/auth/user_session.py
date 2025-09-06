@@ -26,9 +26,9 @@ class UserSession(Base):
     device_data: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     
     # Session lifecycle
-    last_activity_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False)
-    signed_out_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, nullable=True)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+    last_activity_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    signed_out_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     # Relationships
     user: Mapped["User"] = relationship(back_populates="sessions")

@@ -25,10 +25,10 @@ class RefreshToken(Base):
     user_agent: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     
     # Token lifecycle
-    expires_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False)
-    last_used_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, nullable=True)
+    expires_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_used_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     is_revoked: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     # Relationships
     user: Mapped["User"] = relationship(back_populates="refresh_tokens")

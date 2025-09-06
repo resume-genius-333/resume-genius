@@ -17,9 +17,9 @@ class BlacklistedToken(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     jti: Mapped[str] = mapped_column(String, nullable=False, unique=True)  # JWT ID
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    expires_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False)
+    expires_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     reason: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     # Relationships
     user: Mapped["User"] = relationship(back_populates="blacklisted_tokens")
