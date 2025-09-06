@@ -481,6 +481,12 @@ help:
     @echo "  just db-backup      - Backup database"
     @echo "  just db-restore     - Restore database"
     @echo ""
+    @echo "{{GREEN}}Maintenance:{{NC}}"
+    @echo "  just clear-pycache  - Clear all Python bytecode cache"
+    @echo "  just backend-clear-cache - Clear backend Python cache only"
+    @echo "  just rebuild-backend (rb) - Rebuild backend Docker container"
+    @echo "  just clear-logs [service] - Clear Docker logs for a service"
+    @echo ""
     @echo "Run 'just --list' to see all available commands"
 
 # ============================================================================
