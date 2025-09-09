@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime, timezone
 import json
 from typing import Optional
 import uuid
@@ -25,6 +26,18 @@ class CreateJobRequest(BaseModel):
 class CreateJobResponse(BaseModel):
     job_id: uuid.UUID
     sse_url: str
+
+
+class ProcessingStatus(BaseModel):
+    job_parsed_at: Optional[datetime] = None
+
+
+def _status_key(user_id: uuid.UUID, job_id: uuid.UUID) -> str:
+    return f"user:{user_id}:job:{job_id}:status"  # Redis key for latest status
+
+
+def _status_channel(user_id: uuid.UUID, job_id: uuid.UUID) -> str:
+    return f"user:{user_id}:job:{job_id}:status-stream"  # Pub/Sub channel for SSE
 
 
 @inject
@@ -74,14 +87,16 @@ async def _create_job(
             await session.commit()
             logger.info(f"Job saved to database: job_id={job_id}")
 
-        # Publish to Redis
-        channel = f"user:{user_id}:job:{job_id}"
-        message = job.schema.model_dump_json()
-        logger.info(f"Publishing to Redis channel: {channel}")
-        logger.info(f"Message: {message[:200]}...")  # Log first 200 chars
+        # Compute status
+        now = datetime.now(timezone.utc)
+        status = ProcessingStatus(job_parsed_at=now)
 
-        await redis_client.publish(channel, message)
-        logger.info(f"Successfully published job to Redis channel: {channel}")
+        # Save latest status into Redis (for GET /status)
+        await redis_client.set(_status_key(user_id, job_id), status.model_dump_json())
+
+        channel = _status_channel(user_id, job_id)
+        await redis_client.publish(channel, status.model_dump_json())
+        logger.info(f"Published status to {channel}: {status.model_dump_json()}")
 
     except Exception as e:
         logger.error(f"Error in _create_job: {str(e)}")
@@ -143,7 +158,7 @@ async def _stream_status(
     import logging
 
     logger = logging.getLogger(__name__)
-    channel = f"user:{user_id}:job:{job_id}"
+    channel = _status_channel(user_id, job_id)
 
     logger.info(f"SSE: Starting stream for channel: {channel}")
     logger.info(f"SSE: user_id={user_id}, job_id={job_id}")
@@ -186,7 +201,9 @@ async def _stream_status(
         logger.info(f"SSE: Stream closed for {channel}")
 
 
-@router.get("/users/{user_id}/jobs/{job_id}/status-stream")
+@router.get(
+    "/users/{user_id}/jobs/{job_id}/status-stream"
+)  # No reponse_model because SSE is a byte stream, not a JSON body
 async def stream_status(
     user_id: uuid.UUID,
     job_id: uuid.UUID,
@@ -202,36 +219,19 @@ async def stream_status(
     )
 
 
-@router.post("/users/{user_id}/jobs/create_sync")
-async def create_job_sync(
+@router.get("/users/{user_id}/jobs/{job_id}/status", response_model=ProcessingStatus)
+@inject
+async def get_status(
     user_id: uuid.UUID,
-    input_body: CreateJobRequest,
+    job_id: uuid.UUID,
+    redis_client: redis.Redis = Provide[Container.redis_client],
 ):
-    """Debug endpoint that processes job synchronously for testing"""
-    import logging
-
-    logger = logging.getLogger(__name__)
-
-    job_id = uuid.uuid4()
-    logger.info(
-        f"Starting synchronous job creation: user_id={user_id}, job_id={job_id}"
-    )
-
+    raw = await redis_client.get(_status_key(user_id, job_id))  # raw is a JSON string
+    if not raw:
+        return ProcessingStatus()
     try:
-        # Call the job creation function directly (not as background task)
-        await _create_job(user_id, job_id, input_body)
-        return {
-            "status": "success",
-            "job_id": job_id,
-            "message": "Job created and published to Redis successfully",
-        }
-    except Exception as e:
-        logger.error(f"Error in synchronous job creation: {str(e)}")
-        import traceback
-
-        return {
-            "status": "error",
-            "job_id": job_id,
-            "error": str(e),
-            "traceback": traceback.format_exc(),
-        }
+        return ProcessingStatus.model_validate_json(
+            raw
+        )  # Returns a fully constructed ProcessingStatus instance
+    except Exception:
+        return ProcessingStatus()
