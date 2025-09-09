@@ -1,7 +1,5 @@
-import asyncio
 from datetime import datetime, timezone
-import json
-from typing import Optional
+from typing import Literal, Optional
 import uuid
 from instructor import AsyncInstructor
 from pydantic import BaseModel
@@ -14,6 +12,10 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from src.models.db.resumes.job import Job
 from src.models.llm.resumes.job import JobLLMSchema
+import logging
+import traceback
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -28,16 +30,56 @@ class CreateJobResponse(BaseModel):
     sse_url: str
 
 
-class ProcessingStatus(BaseModel):
-    job_parsed_at: Optional[datetime] = None
+type ProcessingStatusType = Literal["job-parsed-at"]
 
 
-def _status_key(user_id: uuid.UUID, job_id: uuid.UUID) -> str:
-    return f"user:{user_id}:job:{job_id}:status"  # Redis key for latest status
+def _status_key(
+    user_id: uuid.UUID, job_id: uuid.UUID, tag: ProcessingStatusType
+) -> str:
+    return f"user:{user_id}:job:{job_id}:{tag}:status"  # Redis key for latest status
 
 
 def _status_channel(user_id: uuid.UUID, job_id: uuid.UUID) -> str:
     return f"user:{user_id}:job:{job_id}:status-stream"  # Pub/Sub channel for SSE
+
+
+class ProcessingStatus(BaseModel):
+    job_parsed_at: Optional[datetime] = None
+
+
+class ProcessingStatusUpdate(BaseModel):
+    timestamp: datetime
+    tag: ProcessingStatusType
+
+
+@inject
+async def get_processing_status(
+    user_id: uuid.UUID,
+    job_id: uuid.UUID,
+    redis_client: redis.Redis = Provide[Container.redis_client],
+) -> ProcessingStatus:
+    job_parsed_at = await redis_client.get(
+        _status_key(user_id, job_id, "job-parsed-at")
+    )
+    return ProcessingStatus(job_parsed_at=datetime.fromisoformat(job_parsed_at))
+
+
+@inject
+async def set_and_publish_processing_status(
+    user_id: uuid.UUID,
+    job_id: uuid.UUID,
+    tag: ProcessingStatusType,
+    timestamp: Optional[datetime] = None,
+    redis_client: redis.Redis = Provide[Container.redis_client],
+):
+    if not timestamp:
+        timestamp = datetime.now(timezone.utc)
+    await redis_client.set(_status_key(user_id, job_id, tag), timestamp.isoformat())
+    # TODO: Implement publish issues
+    update = ProcessingStatusUpdate(timestamp=timestamp, tag=tag)
+    await redis_client.publish(
+        _status_channel(user_id, job_id), update.model_dump_json()
+    )
 
 
 @inject
@@ -49,10 +91,6 @@ async def _create_job(
     instructor: AsyncInstructor = Provide[Container.async_instructor],
     session_factory: async_sessionmaker = Provide[Container.async_session_factory],
 ):
-    import traceback
-    import logging
-
-    logger = logging.getLogger(__name__)
     logger.info(f"Starting job creation for user_id={user_id}, job_id={job_id}")
     # await asyncio.sleep(15)
 
@@ -88,15 +126,14 @@ async def _create_job(
             logger.info(f"Job saved to database: job_id={job_id}")
 
         # Compute status
-        now = datetime.now(timezone.utc)
-        status = ProcessingStatus(job_parsed_at=now)
+        # now = datetime.now(timezone.utc)
+        # status = ProcessingStatus(job_parsed_at=now)
 
-        # Save latest status into Redis (for GET /status)
-        await redis_client.set(_status_key(user_id, job_id), status.model_dump_json())
+        await set_and_publish_processing_status(user_id, job_id, "job-parsed-at")
 
-        channel = _status_channel(user_id, job_id)
-        await redis_client.publish(channel, status.model_dump_json())
-        logger.info(f"Published status to {channel}: {status.model_dump_json()}")
+        # channel = _status_channel(user_id, job_id)
+        # await redis_client.publish(channel, status.model_dump_json())
+        # logger.info(f"Published status to {channel}: {status.model_dump_json()}")
 
     except Exception as e:
         logger.error(f"Error in _create_job: {str(e)}")
@@ -155,39 +192,24 @@ async def _stream_status(
     job_id: uuid.UUID,
     redis_client: redis.Redis = Provide[Container.redis_client],
 ):
-    import logging
-
-    logger = logging.getLogger(__name__)
     channel = _status_channel(user_id, job_id)
-
-    logger.info(f"SSE: Starting stream for channel: {channel}")
-    logger.info(f"SSE: user_id={user_id}, job_id={job_id}")
 
     pubsub = redis_client.pubsub()
     await pubsub.subscribe(channel)
-    logger.info(f"SSE: Subscribed to Redis channel: {channel}")
 
     try:
         # Listen for messages
         async for message in pubsub.listen():
-            logger.info(
-                f"SSE: Received message type: {message['type']}, {json.dumps(message)}"
-            )
-
             if message["type"] == "message":
-                logger.info(f"SSE: Message received on channel {channel}")
-                print(message["data"])
-
                 data = message["data"]
-                if isinstance(data, bytes):
-                    data = data.decode("utf-8")
-                    logger.debug("SSE: Decoded bytes to string")
-
-                logger.info(f"SSE: Yielding data: {data[:200]}...")
-                yield f"data: {data}\n\n"
+                info = ProcessingStatusUpdate.model_validate_json(data)
+                logger.debug(f"Received update: {info.model_dump_json(indent=2)}")
 
             elif message["type"] == "subscribe":
                 logger.info("SSE: Successfully subscribed to channel")
+
+            result = await get_processing_status(user_id, job_id)
+            yield f"data: {result.model_dump_json()}\n\n"
 
     except Exception as e:
         logger.error(f"SSE: Error in stream: {str(e)}")
@@ -220,18 +242,8 @@ async def stream_status(
 
 
 @router.get("/users/{user_id}/jobs/{job_id}/status", response_model=ProcessingStatus)
-@inject
 async def get_status(
     user_id: uuid.UUID,
     job_id: uuid.UUID,
-    redis_client: redis.Redis = Provide[Container.redis_client],
 ):
-    raw = await redis_client.get(_status_key(user_id, job_id))  # raw is a JSON string
-    if not raw:
-        return ProcessingStatus()
-    try:
-        return ProcessingStatus.model_validate_json(
-            raw
-        )  # Returns a fully constructed ProcessingStatus instance
-    except Exception:
-        return ProcessingStatus()
+    return await get_processing_status(user_id, job_id)
