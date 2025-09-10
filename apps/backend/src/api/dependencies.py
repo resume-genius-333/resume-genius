@@ -33,10 +33,16 @@ async def get_db(
 async def get_auth_config(
     jwt_secret_key=Provide[Container.config.auth.jwt_secret_key],
     jwt_algorithm=Provide[Container.config.auth.jwt_algorithm],
-    access_token_expire_minutes=Provide[Container.config.auth.access_token_expire_minutes],
+    access_token_expire_minutes=Provide[
+        Container.config.auth.access_token_expire_minutes
+    ],
     refresh_token_expire_days=Provide[Container.config.auth.refresh_token_expire_days],
-    password_reset_token_expire_hours=Provide[Container.config.auth.password_reset_token_expire_hours],
-    email_verification_token_expire_hours=Provide[Container.config.auth.email_verification_token_expire_hours],
+    password_reset_token_expire_hours=Provide[
+        Container.config.auth.password_reset_token_expire_hours
+    ],
+    email_verification_token_expire_hours=Provide[
+        Container.config.auth.email_verification_token_expire_hours
+    ],
 ) -> AuthConfig:
     """Get authentication configuration."""
     return AuthConfig(
@@ -45,7 +51,9 @@ async def get_auth_config(
         access_token_expire_minutes=int(access_token_expire_minutes or 30),
         refresh_token_expire_days=int(refresh_token_expire_days or 7),
         password_reset_token_expire_hours=int(password_reset_token_expire_hours or 24),
-        email_verification_token_expire_hours=int(email_verification_token_expire_hours or 48),
+        email_verification_token_expire_hours=int(
+            email_verification_token_expire_hours or 48
+        ),
     )
 
 
@@ -87,10 +95,18 @@ async def get_current_token(
         )
 
     # Check if token is blacklisted
-    if await repository.is_token_blacklisted(token_payload.jti):
+    if token_payload.jti is not None and await repository.is_token_blacklisted(
+        token_payload.jti
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has been revoked",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    elif token_payload.jti is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token: missing jti",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
