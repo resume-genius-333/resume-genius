@@ -4,12 +4,14 @@ import uuid
 from instructor import AsyncInstructor
 from pydantic import BaseModel
 import redis.asyncio as redis
-from fastapi import APIRouter, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, Depends
 from dependency_injector.wiring import inject, Provide
+from src.api.dependencies import get_current_user
 from src.containers import Container
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
+from src.models.auth.user import UserResponse
 from src.models.db.resumes.job import Job
 from src.models.llm.resumes.job import JobLLMSchema
 import logging
@@ -142,12 +144,13 @@ async def _create_job(
         raise
 
 
-@router.post("/users/{user_id}/jobs/create", response_model=CreateJobResponse)
+@router.post("/jobs/create", response_model=CreateJobResponse)
 async def create_job(
-    user_id: uuid.UUID,
     input_body: CreateJobRequest,
     background_tasks: BackgroundTasks,
+    current_user: UserResponse = Depends(get_current_user),
 ):
+    user_id = uuid.UUID(current_user.id)
     job_id = uuid.uuid4()
     # Add background task that will handle dependency injection
     background_tasks.add_task(
@@ -173,15 +176,19 @@ async def _create_job_background_wrapper(
     await _create_job(user_id, job_id, input_body)
 
 
-@router.post("/users/{user_id}/jobs/{job_id}/select_relevant_info")
-async def select_relevant_info(user_id: uuid.UUID, job_id: uuid.UUID):
+@router.post("/jobs/{job_id}/select_relevant_info")
+async def select_relevant_info(
+    job_id: uuid.UUID,
+    current_user: UserResponse = Depends(get_current_user),
+):
+    _user_id = uuid.UUID(current_user.id)
     pass
 
 
-@router.post("/users/{user_id}/jobs/{job_id}/refine")
+@router.post("/jobs/{job_id}/refine")
 async def refine_resume(
-    user_id: uuid.UUID,
     job_id: uuid.UUID,
+    current_user: UserResponse = Depends(get_current_user),
 ):
     return {"status": "success", "message": "Resume refinement started"}
 
@@ -224,14 +231,14 @@ async def _stream_status(
 
 
 @router.get(
-    "/users/{user_id}/jobs/{job_id}/status-stream"
+    "/jobs/{job_id}/status-stream"
 )  # No reponse_model because SSE is a byte stream, not a JSON body
 async def stream_status(
-    user_id: uuid.UUID,
     job_id: uuid.UUID,
+    current_user: UserResponse = Depends(get_current_user),
 ):
     return StreamingResponse(
-        _stream_status(user_id, job_id),
+        _stream_status(uuid.UUID(current_user.id), job_id),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
@@ -241,9 +248,9 @@ async def stream_status(
     )
 
 
-@router.get("/users/{user_id}/jobs/{job_id}/status", response_model=ProcessingStatus)
+@router.get("/jobs/{job_id}/status", response_model=ProcessingStatus)
 async def get_status(
-    user_id: uuid.UUID,
     job_id: uuid.UUID,
+    current_user: UserResponse = Depends(get_current_user),
 ):
-    return await get_processing_status(user_id, job_id)
+    return await get_processing_status(uuid.UUID(current_user.id), job_id)
