@@ -1,7 +1,8 @@
 """Authentication router."""
 
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Form
+from fastapi.security import OAuth2PasswordRequestForm
 
 from src.api.dependencies import (
     get_auth_repository,
@@ -84,6 +85,60 @@ async def login(
         await repository.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Login failed"
+        )
+
+
+@router.post("/token")
+async def token(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    req: Request = None,
+    repository: AuthRepository = Depends(get_auth_repository),
+    security: SecurityUtils = Depends(get_security_utils),
+    config: AuthConfig = Depends(get_auth_config),
+):
+    """
+    OAuth2 compatible token endpoint for Swagger UI authentication.
+    
+    This endpoint accepts username (email) and password via form data
+    and returns an access token in OAuth2 format.
+    """
+    service = AuthService(repository, security, config)
+    
+    # Get client info
+    ip_address = req.client.host if req and req.client else "127.0.0.1"
+    user_agent = req.headers.get("user-agent") if req else None
+    
+    # Create a UserLoginRequest from the OAuth2 form data
+    login_request = UserLoginRequest(
+        email=form_data.username,  # OAuth2 uses 'username' field
+        password=form_data.password,
+        remember_me=False  # Default to False for OAuth2 flow
+    )
+    
+    try:
+        # Use the existing login service
+        login_response = await service.login_user(login_request, ip_address, user_agent)
+        
+        # Return OAuth2-compatible response
+        return {
+            "access_token": login_response.access_token,
+            "token_type": "bearer",
+            "expires_in": login_response.expires_in,
+            # Optionally include refresh token if needed
+            "refresh_token": login_response.refresh_token
+        }
+    except ValueError as e:
+        # OAuth2 requires specific error format
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except Exception:
+        await repository.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Authentication failed"
         )
 
 

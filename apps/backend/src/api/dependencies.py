@@ -2,7 +2,7 @@
 
 from typing import AsyncGenerator, Optional
 from fastapi import Depends, HTTPException, status, Header
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from dependency_injector.wiring import inject, Provide
@@ -16,8 +16,9 @@ from src.config.auth import AuthConfig
 from src.models.db.auth.api_key import APIKey
 
 
-# Security scheme
-security_scheme = HTTPBearer()
+# Security schemes
+security_scheme = HTTPBearer(auto_error=False)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token", auto_error=False)
 
 
 @inject
@@ -70,12 +71,25 @@ async def get_auth_repository(db: AsyncSession = Depends(get_db)) -> AuthReposit
 
 
 async def get_current_token(
-    credentials: HTTPAuthorizationCredentials = Depends(security_scheme),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security_scheme),
+    oauth2_token: Optional[str] = Depends(oauth2_scheme),
     security: SecurityUtils = Depends(get_security_utils),
     repository: AuthRepository = Depends(get_auth_repository),
 ) -> TokenPayload:
-    """Extract and validate current token."""
-    token = credentials.credentials
+    """Extract and validate current token from either HTTPBearer or OAuth2."""
+    # Try to get token from HTTPBearer first, then OAuth2
+    token = None
+    if credentials and credentials.credentials:
+        token = credentials.credentials
+    elif oauth2_token:
+        token = oauth2_token
+    
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     # Decode token
     token_payload = security.decode_token(token)

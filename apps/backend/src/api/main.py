@@ -3,6 +3,7 @@ import logging
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordBearer
 
 from src.containers import container
 
@@ -87,7 +88,17 @@ container.wire(modules=[
 # Import routers AFTER wiring
 from .routers import resume, auth, jobs  # noqa: E402
 
-app = FastAPI(title="Resume Genius API", version="1.0.0")
+# OAuth2 scheme for Swagger UI
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
+
+app = FastAPI(
+    title="Resume Genius API",
+    version="1.0.0",
+    swagger_ui_parameters={
+        "persistAuthorization": True,
+        "displayRequestDuration": True,
+    }
+)
 
 app.add_middleware(
     CORSMiddleware,
