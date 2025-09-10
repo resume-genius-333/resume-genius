@@ -85,6 +85,25 @@ export const loginApiV1AuthLoginPostResponse = zod
   .describe("User login response schema.");
 
 /**
+ * OAuth2 compatible token endpoint for Swagger UI authentication.
+
+This endpoint accepts username (email) and password via form data
+and returns an access token in OAuth2 format.
+ * @summary Token
+ */
+export const tokenApiV1AuthTokenPostQueryParams = zod.object({
+  session_factory: zod.any().optional(),
+  jwt_secret_key: zod.any().optional(),
+  jwt_algorithm: zod.any().optional(),
+  access_token_expire_minutes: zod.any().optional(),
+  refresh_token_expire_days: zod.any().optional(),
+  password_reset_token_expire_hours: zod.any().optional(),
+  email_verification_token_expire_hours: zod.any().optional(),
+});
+
+export const tokenApiV1AuthTokenPostResponse = zod.any();
+
+/**
  * Refresh access token using refresh token.
  * @summary Refresh Token
  */
@@ -568,71 +587,106 @@ export const getLatestResumeApiV1UsersUserIdJobsJobIdResumeGetResponse =
 /**
  * @summary Create Job
  */
-export const createJobApiV1UsersUserIdJobsCreatePostParams = zod.object({
-  user_id: zod.uuid(),
+export const createJobApiV1JobsCreatePostQueryParams = zod.object({
+  jwt_secret_key: zod.any().optional(),
+  jwt_algorithm: zod.any().optional(),
+  access_token_expire_minutes: zod.any().optional(),
+  refresh_token_expire_days: zod.any().optional(),
+  password_reset_token_expire_hours: zod.any().optional(),
+  email_verification_token_expire_hours: zod.any().optional(),
+  session_factory: zod.any().optional(),
 });
 
-export const createJobApiV1UsersUserIdJobsCreatePostBody = zod.object({
+export const createJobApiV1JobsCreatePostBody = zod.object({
   job_description: zod.string(),
   job_url: zod.union([zod.string(), zod.null()]).optional(),
 });
 
-export const createJobApiV1UsersUserIdJobsCreatePostResponse = zod.object({
-  job_id: zod.string(),
+export const createJobApiV1JobsCreatePostResponse = zod.object({
+  job_id: zod.uuid(),
+  sse_url: zod.string(),
 });
 
 /**
  * @summary Select Relevant Info
  */
-export const selectRelevantInfoApiV1UsersUserIdJobsJobIdSelectRelevantInfoPostParams =
+export const selectRelevantInfoApiV1JobsJobIdSelectRelevantInfoPostParams =
   zod.object({
-    user_id: zod.uuid(),
     job_id: zod.uuid(),
   });
 
-export const selectRelevantInfoApiV1UsersUserIdJobsJobIdSelectRelevantInfoPostResponse =
+export const selectRelevantInfoApiV1JobsJobIdSelectRelevantInfoPostQueryParams =
+  zod.object({
+    jwt_secret_key: zod.any().optional(),
+    jwt_algorithm: zod.any().optional(),
+    access_token_expire_minutes: zod.any().optional(),
+    refresh_token_expire_days: zod.any().optional(),
+    password_reset_token_expire_hours: zod.any().optional(),
+    email_verification_token_expire_hours: zod.any().optional(),
+    session_factory: zod.any().optional(),
+  });
+
+export const selectRelevantInfoApiV1JobsJobIdSelectRelevantInfoPostResponse =
   zod.any();
 
 /**
  * @summary Refine Resume
  */
-export const refineResumeApiV1UsersUserIdJobsJobIdRefinePostParams = zod.object(
-  {
-    user_id: zod.uuid(),
-    job_id: zod.uuid(),
-  }
-);
+export const refineResumeApiV1JobsJobIdRefinePostParams = zod.object({
+  job_id: zod.uuid(),
+});
 
-export const refineResumeApiV1UsersUserIdJobsJobIdRefinePostResponse =
-  zod.any();
+export const refineResumeApiV1JobsJobIdRefinePostQueryParams = zod.object({
+  jwt_secret_key: zod.any().optional(),
+  jwt_algorithm: zod.any().optional(),
+  access_token_expire_minutes: zod.any().optional(),
+  refresh_token_expire_days: zod.any().optional(),
+  password_reset_token_expire_hours: zod.any().optional(),
+  email_verification_token_expire_hours: zod.any().optional(),
+  session_factory: zod.any().optional(),
+});
+
+export const refineResumeApiV1JobsJobIdRefinePostResponse = zod.any();
 
 /**
  * @summary Stream Status
  */
-export const streamStatusApiV1UsersUserIdJobsJobIdStatusGetParams = zod.object({
-  user_id: zod.uuid(),
+export const streamStatusApiV1JobsJobIdStatusStreamGetParams = zod.object({
   job_id: zod.uuid(),
 });
 
-export const streamStatusApiV1UsersUserIdJobsJobIdStatusGetResponse = zod.any();
-
-/**
- * Debug endpoint that processes job synchronously for testing
- * @summary Create Job Sync
- */
-export const createJobSyncApiV1UsersUserIdJobsCreateSyncPostParams = zod.object(
-  {
-    user_id: zod.uuid(),
-  }
-);
-
-export const createJobSyncApiV1UsersUserIdJobsCreateSyncPostBody = zod.object({
-  job_description: zod.string(),
-  job_url: zod.union([zod.string(), zod.null()]).optional(),
+export const streamStatusApiV1JobsJobIdStatusStreamGetQueryParams = zod.object({
+  jwt_secret_key: zod.any().optional(),
+  jwt_algorithm: zod.any().optional(),
+  access_token_expire_minutes: zod.any().optional(),
+  refresh_token_expire_days: zod.any().optional(),
+  password_reset_token_expire_hours: zod.any().optional(),
+  email_verification_token_expire_hours: zod.any().optional(),
+  session_factory: zod.any().optional(),
 });
 
-export const createJobSyncApiV1UsersUserIdJobsCreateSyncPostResponse =
-  zod.any();
+export const streamStatusApiV1JobsJobIdStatusStreamGetResponse = zod.any();
+
+/**
+ * @summary Get Status
+ */
+export const getStatusApiV1JobsJobIdStatusGetParams = zod.object({
+  job_id: zod.uuid(),
+});
+
+export const getStatusApiV1JobsJobIdStatusGetQueryParams = zod.object({
+  jwt_secret_key: zod.any().optional(),
+  jwt_algorithm: zod.any().optional(),
+  access_token_expire_minutes: zod.any().optional(),
+  refresh_token_expire_days: zod.any().optional(),
+  password_reset_token_expire_hours: zod.any().optional(),
+  email_verification_token_expire_hours: zod.any().optional(),
+  session_factory: zod.any().optional(),
+});
+
+export const getStatusApiV1JobsJobIdStatusGetResponse = zod.object({
+  job_parsed_at: zod.union([zod.iso.datetime({}), zod.null()]).optional(),
+});
 
 /**
  * @summary Root

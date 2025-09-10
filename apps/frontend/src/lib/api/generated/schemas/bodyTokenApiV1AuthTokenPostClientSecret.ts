@@ -5,7 +5,4 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export interface CreateJobResponse {
-  job_id: string;
-  sse_url: string;
-}
+export type BodyTokenApiV1AuthTokenPostClientSecret = string | null;

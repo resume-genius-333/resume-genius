@@ -5,19 +5,27 @@
  * OpenAPI spec version: 1.0.0
  */
 import type {
+  BodyTokenApiV1AuthTokenPost,
+  CreateJobApiV1JobsCreatePostParams,
   CreateJobRequest,
   CreateJobResponse,
   GetMeApiV1AuthMeGetParams,
+  GetStatusApiV1JobsJobIdStatusGetParams,
   LoginApiV1AuthLoginPostParams,
   LogoutApiV1AuthLogoutPostParams,
+  ProcessingStatus,
+  RefineResumeApiV1JobsJobIdRefinePostParams,
   RefreshTokenApiV1AuthRefreshPostParams,
   RefreshTokenRequest,
   RefreshTokenResponse,
   RegisterApiV1AuthRegisterPostParams,
   Resume,
   ResumeListItem,
+  SelectRelevantInfoApiV1JobsJobIdSelectRelevantInfoPostParams,
+  StreamStatusApiV1JobsJobIdStatusStreamGetParams,
   TestApiKeyApiV1AuthTestApiKeyGet200,
   TestApiKeyApiV1AuthTestApiKeyGetParams,
+  TokenApiV1AuthTokenPostParams,
   UserLoginRequest,
   UserLoginResponse,
   UserRegisterRequest,
@@ -58,6 +66,54 @@ export const loginApiV1AuthLoginPost = (
     method: "POST",
     headers: { "Content-Type": "application/json" },
     data: userLoginRequest,
+    params,
+  });
+};
+
+/**
+ * OAuth2 compatible token endpoint for Swagger UI authentication.
+
+This endpoint accepts username (email) and password via form data
+and returns an access token in OAuth2 format.
+ * @summary Token
+ */
+export const tokenApiV1AuthTokenPost = (
+  bodyTokenApiV1AuthTokenPost: BodyTokenApiV1AuthTokenPost,
+  params?: TokenApiV1AuthTokenPostParams
+) => {
+  const formUrlEncoded = new URLSearchParams();
+  if (
+    bodyTokenApiV1AuthTokenPost.grant_type !== undefined &&
+    bodyTokenApiV1AuthTokenPost.grant_type !== null
+  ) {
+    formUrlEncoded.append(`grant_type`, bodyTokenApiV1AuthTokenPost.grant_type);
+  }
+  formUrlEncoded.append(`username`, bodyTokenApiV1AuthTokenPost.username);
+  formUrlEncoded.append(`password`, bodyTokenApiV1AuthTokenPost.password);
+  if (bodyTokenApiV1AuthTokenPost.scope !== undefined) {
+    formUrlEncoded.append(`scope`, bodyTokenApiV1AuthTokenPost.scope);
+  }
+  if (
+    bodyTokenApiV1AuthTokenPost.client_id !== undefined &&
+    bodyTokenApiV1AuthTokenPost.client_id !== null
+  ) {
+    formUrlEncoded.append(`client_id`, bodyTokenApiV1AuthTokenPost.client_id);
+  }
+  if (
+    bodyTokenApiV1AuthTokenPost.client_secret !== undefined &&
+    bodyTokenApiV1AuthTokenPost.client_secret !== null
+  ) {
+    formUrlEncoded.append(
+      `client_secret`,
+      bodyTokenApiV1AuthTokenPost.client_secret
+    );
+  }
+
+  return customAxiosInstance<unknown>({
+    url: `/api/v1/auth/token`,
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    data: formUrlEncoded,
     params,
   });
 };
@@ -196,68 +252,72 @@ export const getLatestResumeApiV1UsersUserIdJobsJobIdResumeGet = (
 /**
  * @summary Create Job
  */
-export const createJobApiV1UsersUserIdJobsCreatePost = (
-  userId: string,
-  createJobRequest: CreateJobRequest
+export const createJobApiV1JobsCreatePost = (
+  createJobRequest: CreateJobRequest,
+  params?: CreateJobApiV1JobsCreatePostParams
 ) => {
   return customAxiosInstance<CreateJobResponse>({
-    url: `/api/v1/users/${userId}/jobs/create`,
+    url: `/api/v1/jobs/create`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
     data: createJobRequest,
+    params,
   });
 };
 
 /**
  * @summary Select Relevant Info
  */
-export const selectRelevantInfoApiV1UsersUserIdJobsJobIdSelectRelevantInfoPost =
-  (userId: string, jobId: string) => {
-    return customAxiosInstance<unknown>({
-      url: `/api/v1/users/${userId}/jobs/${jobId}/select_relevant_info`,
-      method: "POST",
-    });
-  };
+export const selectRelevantInfoApiV1JobsJobIdSelectRelevantInfoPost = (
+  jobId: string,
+  params?: SelectRelevantInfoApiV1JobsJobIdSelectRelevantInfoPostParams
+) => {
+  return customAxiosInstance<unknown>({
+    url: `/api/v1/jobs/${jobId}/select_relevant_info`,
+    method: "POST",
+    params,
+  });
+};
 
 /**
  * @summary Refine Resume
  */
-export const refineResumeApiV1UsersUserIdJobsJobIdRefinePost = (
-  userId: string,
-  jobId: string
+export const refineResumeApiV1JobsJobIdRefinePost = (
+  jobId: string,
+  params?: RefineResumeApiV1JobsJobIdRefinePostParams
 ) => {
   return customAxiosInstance<unknown>({
-    url: `/api/v1/users/${userId}/jobs/${jobId}/refine`,
+    url: `/api/v1/jobs/${jobId}/refine`,
     method: "POST",
+    params,
   });
 };
 
 /**
  * @summary Stream Status
  */
-export const streamStatusApiV1UsersUserIdJobsJobIdStatusGet = (
-  userId: string,
-  jobId: string
+export const streamStatusApiV1JobsJobIdStatusStreamGet = (
+  jobId: string,
+  params?: StreamStatusApiV1JobsJobIdStatusStreamGetParams
 ) => {
   return customAxiosInstance<unknown>({
-    url: `/api/v1/users/${userId}/jobs/${jobId}/status`,
+    url: `/api/v1/jobs/${jobId}/status-stream`,
     method: "GET",
+    params,
   });
 };
 
 /**
- * Debug endpoint that processes job synchronously for testing
- * @summary Create Job Sync
+ * @summary Get Status
  */
-export const createJobSyncApiV1UsersUserIdJobsCreateSyncPost = (
-  userId: string,
-  createJobRequest: CreateJobRequest
+export const getStatusApiV1JobsJobIdStatusGet = (
+  jobId: string,
+  params?: GetStatusApiV1JobsJobIdStatusGetParams
 ) => {
-  return customAxiosInstance<unknown>({
-    url: `/api/v1/users/${userId}/jobs/create_sync`,
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    data: createJobRequest,
+  return customAxiosInstance<ProcessingStatus>({
+    url: `/api/v1/jobs/${jobId}/status`,
+    method: "GET",
+    params,
   });
 };
 
@@ -280,6 +340,9 @@ export type RegisterApiV1AuthRegisterPostResult = NonNullable<
 >;
 export type LoginApiV1AuthLoginPostResult = NonNullable<
   Awaited<ReturnType<typeof loginApiV1AuthLoginPost>>
+>;
+export type TokenApiV1AuthTokenPostResult = NonNullable<
+  Awaited<ReturnType<typeof tokenApiV1AuthTokenPost>>
 >;
 export type RefreshTokenApiV1AuthRefreshPostResult = NonNullable<
   Awaited<ReturnType<typeof refreshTokenApiV1AuthRefreshPost>>
@@ -322,25 +385,23 @@ export type GetLatestResumeApiV1UsersUserIdJobsJobIdResumeGetResult =
       ReturnType<typeof getLatestResumeApiV1UsersUserIdJobsJobIdResumeGet>
     >
   >;
-export type CreateJobApiV1UsersUserIdJobsCreatePostResult = NonNullable<
-  Awaited<ReturnType<typeof createJobApiV1UsersUserIdJobsCreatePost>>
+export type CreateJobApiV1JobsCreatePostResult = NonNullable<
+  Awaited<ReturnType<typeof createJobApiV1JobsCreatePost>>
 >;
-export type SelectRelevantInfoApiV1UsersUserIdJobsJobIdSelectRelevantInfoPostResult =
+export type SelectRelevantInfoApiV1JobsJobIdSelectRelevantInfoPostResult =
   NonNullable<
     Awaited<
-      ReturnType<
-        typeof selectRelevantInfoApiV1UsersUserIdJobsJobIdSelectRelevantInfoPost
-      >
+      ReturnType<typeof selectRelevantInfoApiV1JobsJobIdSelectRelevantInfoPost>
     >
   >;
-export type RefineResumeApiV1UsersUserIdJobsJobIdRefinePostResult = NonNullable<
-  Awaited<ReturnType<typeof refineResumeApiV1UsersUserIdJobsJobIdRefinePost>>
+export type RefineResumeApiV1JobsJobIdRefinePostResult = NonNullable<
+  Awaited<ReturnType<typeof refineResumeApiV1JobsJobIdRefinePost>>
 >;
-export type StreamStatusApiV1UsersUserIdJobsJobIdStatusGetResult = NonNullable<
-  Awaited<ReturnType<typeof streamStatusApiV1UsersUserIdJobsJobIdStatusGet>>
+export type StreamStatusApiV1JobsJobIdStatusStreamGetResult = NonNullable<
+  Awaited<ReturnType<typeof streamStatusApiV1JobsJobIdStatusStreamGet>>
 >;
-export type CreateJobSyncApiV1UsersUserIdJobsCreateSyncPostResult = NonNullable<
-  Awaited<ReturnType<typeof createJobSyncApiV1UsersUserIdJobsCreateSyncPost>>
+export type GetStatusApiV1JobsJobIdStatusGetResult = NonNullable<
+  Awaited<ReturnType<typeof getStatusApiV1JobsJobIdStatusGet>>
 >;
 export type RootGetResult = NonNullable<Awaited<ReturnType<typeof rootGet>>>;
 export type HealthCheckHealthGetResult = NonNullable<
