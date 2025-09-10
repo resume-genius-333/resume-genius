@@ -10,7 +10,7 @@ from src.containers import Container
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from src.models.db.resumes.job import Job
+from src.models.db.resumes.job import Job, JobSchema
 from src.models.llm.resumes.job import JobLLMSchema
 import logging
 import traceback
@@ -82,18 +82,30 @@ async def set_and_publish_processing_status(
     )
 
 
+@router.post("/users/{user_id}/jobs/create", response_model=CreateJobResponse)
+async def create_job(
+    user_id: uuid.UUID,
+    input_body: CreateJobRequest,
+    background_tasks: BackgroundTasks,
+):
+    job_id = uuid.uuid4()
+    # Add background task that will handle dependency injection
+    background_tasks.add_task(_create_job, user_id, job_id, input_body)
+    return CreateJobResponse(
+        job_id=job_id,
+        sse_url=f"http://localhost:8000/api/v1/users/{user_id}/jobs/{job_id}/status",
+    )
+
+
 @inject
 async def _create_job(
     user_id: uuid.UUID,
     job_id: uuid.UUID,
     input_body: CreateJobRequest,
-    redis_client: redis.Redis = Provide[Container.redis_client],
     instructor: AsyncInstructor = Provide[Container.async_instructor],
     session_factory: async_sessionmaker = Provide[Container.async_session_factory],
 ):
     logger.info(f"Starting job creation for user_id={user_id}, job_id={job_id}")
-    # await asyncio.sleep(15)
-
     try:
         # Log LLM call
         logger.info("Calling LLM with job description")
@@ -142,35 +154,20 @@ async def _create_job(
         raise
 
 
-@router.post("/users/{user_id}/jobs/create", response_model=CreateJobResponse)
-async def create_job(
-    user_id: uuid.UUID,
-    input_body: CreateJobRequest,
-    background_tasks: BackgroundTasks,
-):
-    job_id = uuid.uuid4()
-    # Add background task that will handle dependency injection
-    background_tasks.add_task(
-        _create_job_background_wrapper, user_id, job_id, input_body
-    )
-    return CreateJobResponse(
-        job_id=job_id,
-        sse_url=f"http://localhost:8000/api/v1/users/{user_id}/jobs/{job_id}/status",
-    )
-
-
 @inject
-async def _create_job_background_wrapper(
+async def _get_job(
     user_id: uuid.UUID,
     job_id: uuid.UUID,
-    input_body: CreateJobRequest,
-    redis_client: redis.Redis = Provide[Container.redis_client],
-    instructor: AsyncInstructor = Provide[Container.async_instructor],
     session_factory: async_sessionmaker = Provide[Container.async_session_factory],
 ):
-    """Wrapper function that handles dependency injection for background task."""
-    # Only pass the non-injected parameters, let _create_job's @inject handle the rest
-    await _create_job(user_id, job_id, input_body)
+    async with session_factory() as session:
+        job = await session.get(Job, job_id)
+        return job.schema
+
+
+@router.get("/users/{user_id}/jobs/{job_id}", response_model=JobSchema)
+async def get_job(user_id: uuid.UUID, job_id: uuid.UUID):
+    return await _get_job(user_id, job_id)
 
 
 @router.post("/users/{user_id}/jobs/{job_id}/select_relevant_info")
