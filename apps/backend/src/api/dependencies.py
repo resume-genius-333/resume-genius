@@ -2,7 +2,11 @@
 
 from typing import AsyncGenerator, Optional
 from fastapi import Depends, HTTPException, status, Header
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, OAuth2PasswordBearer
+from fastapi.security import (
+    HTTPBearer,
+    HTTPAuthorizationCredentials,
+    OAuth2PasswordBearer,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from dependency_injector.wiring import inject, Provide
@@ -83,7 +87,7 @@ async def get_current_token(
         token = credentials.credentials
     elif oauth2_token:
         token = oauth2_token
-    
+
     if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -192,7 +196,9 @@ async def get_optional_current_user(
         return None
 
     try:
-        token_payload = await get_current_token(credentials, security, repository)
+        token_payload = await get_current_token(
+            credentials, security=security, repository=repository
+        )
         return await get_current_user(token_payload, repository)
     except HTTPException:
         return None
