@@ -1,23 +1,24 @@
 """API dependencies for dependency injection."""
 
-from typing import AsyncGenerator, Optional
+from typing import Optional
 from fastapi import Depends, HTTPException, status, Header
 from fastapi.security import (
     HTTPBearer,
     HTTPAuthorizationCredentials,
     OAuth2PasswordBearer,
 )
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy import select
 from dependency_injector.wiring import inject, Provide
 import hashlib
 
 from src.containers import Container
 from src.core.security import SecurityUtils
-from src.repositories.auth_repository import AuthRepository
+from src.core.unit_of_work import UnitOfWorkFactory
 from src.models.auth import UserResponse, TokenPayload
 from src.config.auth import AuthConfig
 from src.models.db.auth.api_key import APIKey
+import redis.asyncio as redis
 
 
 # Security schemes
@@ -25,17 +26,25 @@ security_scheme = HTTPBearer(auto_error=False)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token", auto_error=False)
 
 
-@inject
-async def get_db(
-    session_factory=Provide[Container.async_session_factory],
-) -> AsyncGenerator[AsyncSession, None]:
-    """Get database session."""
-    async with session_factory() as session:
-        yield session
+# @inject
+# async def get_db(
+#     session_factory=Provide[Container.async_session_factory],
+# ) -> AsyncGenerator[AsyncSession, None]:
+#     """Get database session."""
+#     async with session_factory() as session:
+#         yield session
 
 
 @inject
-async def get_auth_config(
+def get_redis_client(
+    redis_client: redis.Redis = Provide[Container.redis_client],
+) -> redis.Redis:
+    """Get Redis client."""
+    return redis_client
+
+
+@inject
+def _get_auth_config(
     jwt_secret_key=Provide[Container.config.auth.jwt_secret_key],
     jwt_algorithm=Provide[Container.config.auth.jwt_algorithm],
     access_token_expire_minutes=Provide[
@@ -62,6 +71,11 @@ async def get_auth_config(
     )
 
 
+def get_auth_config() -> AuthConfig:
+    """Get authentication configuration."""
+    return _get_auth_config()
+
+
 async def get_security_utils(
     config: AuthConfig = Depends(get_auth_config),
 ) -> SecurityUtils:
@@ -69,16 +83,18 @@ async def get_security_utils(
     return SecurityUtils(config)
 
 
-async def get_auth_repository(db: AsyncSession = Depends(get_db)) -> AuthRepository:
-    """Get authentication repository."""
-    return AuthRepository(db)
+@inject
+def get_session_maker(
+    session_maker: async_sessionmaker = Provide[Container.async_session_factory],
+) -> async_sessionmaker:
+    """Get session maker."""
+    return session_maker
 
 
 async def get_current_token(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security_scheme),
     oauth2_token: Optional[str] = Depends(oauth2_scheme),
     security: SecurityUtils = Depends(get_security_utils),
-    repository: AuthRepository = Depends(get_auth_repository),
 ) -> TokenPayload:
     """Extract and validate current token from either HTTPBearer or OAuth2."""
     # Try to get token from HTTPBearer first, then OAuth2
@@ -113,66 +129,68 @@ async def get_current_token(
         )
 
     # Check if token is blacklisted
-    if token_payload.jti is not None and await repository.is_token_blacklisted(
-        token_payload.jti
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token has been revoked",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    elif token_payload.jti is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token: missing jti",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    async with UnitOfWorkFactory() as uow:
+        repository = uow.auth_repository
+        if token_payload.jti is not None and await repository.is_token_blacklisted(
+            token_payload.jti
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token has been revoked",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        elif token_payload.jti is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token: missing jti",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
-    # Check if token is expired
-    if security.is_token_expired(token_payload):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token has expired",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        # Check if token is expired
+        if security.is_token_expired(token_payload):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token has expired",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
-    return token_payload
+        return token_payload
 
 
 async def get_current_user(
     token_payload: TokenPayload = Depends(get_current_token),
-    repository: AuthRepository = Depends(get_auth_repository),
 ) -> UserResponse:
     """Get current authenticated user."""
     # Get user from database
-    user = await repository.get_user_by_id(token_payload.sub)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-        )
+    async with UnitOfWorkFactory() as uow:
+        user = await uow.auth_repository.get_user_by_id(token_payload.sub)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            )
 
-    # Convert to response schema
-    return UserResponse(
-        id=str(user.id),
-        email=user.email,
-        first_name=user.first_name,
-        last_name=user.last_name,
-        full_name=user.full_name,
-        name_prefix=user.name_prefix,
-        name_suffix=user.name_suffix,
-        phone=user.phone,
-        location=user.location,
-        avatar_url=user.avatar_url,
-        linkedin_url=user.linkedin_url,
-        github_url=user.github_url,
-        portfolio_url=user.portfolio_url,
-        is_active=user.is_active,
-        email_verified=user.email_verified,
-        email_verified_at=user.email_verified_at,
-        last_login_at=user.last_login_at,
-        created_at=user.created_at,
-        updated_at=user.updated_at,
-    )
+        # Convert to response schema
+        return UserResponse(
+            id=str(user.id),
+            email=user.email,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            full_name=user.full_name,
+            name_prefix=user.name_prefix,
+            name_suffix=user.name_suffix,
+            phone=user.phone,
+            location=user.location,
+            avatar_url=user.avatar_url,
+            linkedin_url=user.linkedin_url,
+            github_url=user.github_url,
+            portfolio_url=user.portfolio_url,
+            is_active=user.is_active,
+            email_verified=user.email_verified,
+            email_verified_at=user.email_verified_at,
+            last_login_at=user.last_login_at,
+            created_at=user.created_at,
+            updated_at=user.updated_at,
+        )
 
 
 async def get_current_active_user(
@@ -189,36 +207,34 @@ async def get_current_active_user(
 async def get_optional_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security_scheme),
     security: SecurityUtils = Depends(get_security_utils),
-    repository: AuthRepository = Depends(get_auth_repository),
 ) -> Optional[UserResponse]:
     """Get current user if authenticated, otherwise None."""
     if not credentials:
         return None
 
     try:
-        token_payload = await get_current_token(
-            credentials, security=security, repository=repository
-        )
-        return await get_current_user(token_payload, repository)
+        token_payload = await get_current_token(credentials, security=security)
+        return await get_current_user(token_payload)
     except HTTPException:
         return None
 
 
 async def verify_api_key(
     api_key: Optional[str] = Header(None, alias="X-API-Key"),
-    db: AsyncSession = Depends(get_db),
 ) -> bool:
     """Check if API key is valid."""
     if not api_key:
         return False
 
+    session_maker = get_session_maker()
+
     key_hash = hashlib.sha256(api_key.encode()).hexdigest()
+    async with session_maker() as db:
+        result = await db.execute(
+            select(APIKey).where(APIKey.key_hash == key_hash, APIKey.is_active)
+        )
 
-    result = await db.execute(
-        select(APIKey).where(APIKey.key_hash == key_hash, APIKey.is_active)
-    )
-
-    return result.scalar_one_or_none() is not None
+        return result.scalar_one_or_none() is not None
 
 
 async def require_api_key(valid_key: bool = Depends(verify_api_key)):

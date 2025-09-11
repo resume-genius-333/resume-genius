@@ -1,17 +1,19 @@
 """Authentication router."""
 
+import logging
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Form
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 
+from dependency_injector.wiring import inject
 from src.api.dependencies import (
-    get_auth_repository,
     get_security_utils,
     get_auth_config,
     get_current_active_user,
     get_current_token,
     require_api_key,
 )
+from src.core.unit_of_work import UnitOfWorkFactory
 from src.models.auth import (
     UserRegisterRequest,
     UserRegisterResponse,
@@ -23,9 +25,11 @@ from src.models.auth import (
     TokenPayload,
 )
 from src.services.auth_service import AuthService
-from src.repositories.auth_repository import AuthRepository
 from src.core.security import SecurityUtils
 from src.config.auth import AuthConfig
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
@@ -36,150 +40,171 @@ router = APIRouter(prefix="/auth", tags=["authentication"])
     response_model=UserRegisterResponse,
     status_code=status.HTTP_201_CREATED,
 )
+@inject
 async def register(
     request: UserRegisterRequest,
     req: Request,
-    repository: AuthRepository = Depends(get_auth_repository),
     security: SecurityUtils = Depends(get_security_utils),
     config: AuthConfig = Depends(get_auth_config),
 ) -> UserRegisterResponse:
     """Register a new user."""
-    service = AuthService(repository, security, config)
-
     # Get client info
     ip_address = req.client.host if req.client else "127.0.0.1"
     user_agent = req.headers.get("user-agent")
 
-    try:
-        return await service.register_user(request, ip_address, user_agent)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except Exception:
-        await repository.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Registration failed",
-        )
+    async with UnitOfWorkFactory() as uow:
+        service = AuthService(uow, security, config)
+        try:
+            result = await service.register_user(request, ip_address, user_agent)
+            await uow.commit()
+            return result
+        except ValueError as e:
+            await uow.rollback()
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        except Exception:
+            await uow.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Registration failed",
+            )
 
 
 @router.post("/login", response_model=UserLoginResponse)
+@inject
 async def login(
     request: UserLoginRequest,
     req: Request,
-    repository: AuthRepository = Depends(get_auth_repository),
     security: SecurityUtils = Depends(get_security_utils),
     config: AuthConfig = Depends(get_auth_config),
 ) -> UserLoginResponse:
     """Login user and create session."""
-    service = AuthService(repository, security, config)
-
     # Get client info
     ip_address = req.client.host if req.client else "127.0.0.1"
     user_agent = req.headers.get("user-agent")
 
-    try:
-        return await service.login_user(request, ip_address, user_agent)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
-    except Exception:
-        await repository.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Login failed"
-        )
+    async with UnitOfWorkFactory() as uow:
+        service = AuthService(uow, security, config)
+        try:
+            result = await service.login_user(request, ip_address, user_agent)
+            await uow.commit()
+            return result
+        except ValueError as e:
+            await uow.rollback()
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+        except Exception:
+            await uow.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Login failed"
+            )
 
 
 @router.post("/token")
+@inject
 async def token(
+    req: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
-    req: Request = None,
-    repository: AuthRepository = Depends(get_auth_repository),
     security: SecurityUtils = Depends(get_security_utils),
     config: AuthConfig = Depends(get_auth_config),
 ):
     """
     OAuth2 compatible token endpoint for Swagger UI authentication.
-    
+
     This endpoint accepts username (email) and password via form data
     and returns an access token in OAuth2 format.
     """
-    service = AuthService(repository, security, config)
-    
+    logger.info(f"Token endpoint called with username: {form_data.username}")
+
     # Get client info
     ip_address = req.client.host if req and req.client else "127.0.0.1"
     user_agent = req.headers.get("user-agent") if req else None
-    
+    logger.debug(f"Client info - IP: {ip_address}, User-Agent: {user_agent}")
+
     # Create a UserLoginRequest from the OAuth2 form data
     login_request = UserLoginRequest(
         email=form_data.username,  # OAuth2 uses 'username' field
         password=form_data.password,
-        remember_me=False  # Default to False for OAuth2 flow
+        remember_me=False,  # Default to False for OAuth2 flow
     )
-    
-    try:
-        # Use the existing login service
-        login_response = await service.login_user(login_request, ip_address, user_agent)
-        
-        # Return OAuth2-compatible response
-        return {
-            "access_token": login_response.access_token,
-            "token_type": "bearer",
-            "expires_in": login_response.expires_in,
-            # Optionally include refresh token if needed
-            "refresh_token": login_response.refresh_token
-        }
-    except ValueError as e:
-        # OAuth2 requires specific error format
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    except Exception:
-        await repository.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Authentication failed"
-        )
+    logger.debug(f"Login request created for email: {login_request.email}")
+
+    async with UnitOfWorkFactory() as uow:
+        service = AuthService(uow, security, config)
+        logger.debug("Auth service initialized successfully")
+
+        try:
+            # Use the existing login service
+            logger.info("Calling login_user service method")
+            login_response = await service.login_user(
+                login_request, ip_address, user_agent
+            )
+            await uow.commit()
+            logger.info(f"Login successful for user: {login_request.email}")
+
+            # Return OAuth2-compatible response
+            return {
+                "access_token": login_response.access_token,
+                "token_type": "bearer",
+                "expires_in": login_response.expires_in,
+                # Optionally include refresh token if needed
+                "refresh_token": login_response.refresh_token,
+            }
+        except ValueError as e:
+            await uow.rollback()
+            logger.warning(f"Authentication failed with ValueError: {str(e)}")
+            # OAuth2 requires specific error format
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid username or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        except Exception as e:
+            await uow.rollback()
+            logger.error(f"Unexpected error in token endpoint: {str(e)}", exc_info=True)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Authentication failed",
+            )
 
 
 @router.post("/refresh", response_model=RefreshTokenResponse)
+@inject
 async def refresh_token(
     request: RefreshTokenRequest,
     req: Request,
-    repository: AuthRepository = Depends(get_auth_repository),
     security: SecurityUtils = Depends(get_security_utils),
     config: AuthConfig = Depends(get_auth_config),
 ) -> RefreshTokenResponse:
     """Refresh access token using refresh token."""
-    service = AuthService(repository, security, config)
-
     # Get client info
     ip_address = req.client.host if req.client else "127.0.0.1"
     user_agent = req.headers.get("user-agent")
 
-    try:
-        return await service.refresh_access_token(request, ip_address, user_agent)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
-    except Exception:
-        await repository.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Token refresh failed",
-        )
+    async with UnitOfWorkFactory() as uow:
+        service = AuthService(uow, security, config)
+        try:
+            result = await service.refresh_access_token(request, ip_address, user_agent)
+            await uow.commit()
+            return result
+        except ValueError as e:
+            await uow.rollback()
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+        except Exception:
+            await uow.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Token refresh failed",
+            )
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+@inject
 async def logout(
     request: Request,
     _: TokenPayload = Depends(get_current_token),  # Validate token
-    repository: AuthRepository = Depends(get_auth_repository),
     security: SecurityUtils = Depends(get_security_utils),
     config: AuthConfig = Depends(get_auth_config),
 ) -> None:
     """Logout user by revoking tokens."""
-    service = AuthService(repository, security, config)
-
     # Get access token from header
     auth_header = request.headers.get("authorization", "")
     access_token = (
@@ -201,12 +226,15 @@ async def logout(
             pass
 
     if access_token:
-        try:
-            await service.logout_user(access_token, refresh_token)
-        except Exception:
-            await repository.rollback()
-            # Don't raise error on logout failure, just log it
-            pass
+        async with UnitOfWorkFactory() as uow:
+            service = AuthService(uow, security, config)
+            try:
+                await service.logout_user(access_token, refresh_token)
+                await uow.commit()
+            except Exception:
+                await uow.rollback()
+                # Don't raise error on logout failure, just log it
+                pass
 
 
 @router.get("/me", response_model=UserResponse)
