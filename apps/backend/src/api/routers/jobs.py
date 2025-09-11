@@ -1,176 +1,114 @@
-from datetime import datetime, timezone
-from typing import Literal, Optional
-import uuid
-from instructor import AsyncInstructor
-from pydantic import BaseModel
-import redis.asyncio as redis
-from fastapi import APIRouter, BackgroundTasks, Depends
-from dependency_injector.wiring import inject, Provide
-from src.api.dependencies import get_current_user
-from src.containers import Container
-from fastapi.responses import StreamingResponse
-from sqlalchemy.ext.asyncio import async_sessionmaker
+"""Jobs router using service layer architecture."""
 
+import uuid
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
+from dependency_injector.wiring import inject, Provide
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.api.dependencies import get_current_user, get_db
+from src.containers import Container
 from src.models.auth.user import UserResponse
-from src.models.db.resumes.job import Job, JobSchema
-from src.models.llm.resumes.job import JobLLMSchema
+from src.models.api.job import (
+    CreateJobRequest,
+    CreateJobResponse,
+    RefineResumeResponse,
+)
+from src.models.db.resumes.job import JobSchema
+from src.repositories.job_repository import JobRepository
+from src.services.job_service import JobService
+from src.services.status_service import StatusService, ProcessingStatus
 import logging
-import traceback
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 
-class CreateJobRequest(BaseModel):
-    job_description: str
-    job_url: Optional[str] = None
-
-
-class CreateJobResponse(BaseModel):
-    job_id: uuid.UUID
-    sse_url: str
-
-
-type ProcessingStatusType = Literal["job-parsed-at"]
-
-
-def _status_key(
-    user_id: uuid.UUID, job_id: uuid.UUID, tag: ProcessingStatusType
-) -> str:
-    return f"user:{user_id}:job:{job_id}:{tag}:status"  # Redis key for latest status
-
-
-def _status_channel(user_id: uuid.UUID, job_id: uuid.UUID) -> str:
-    return f"user:{user_id}:job:{job_id}:status-stream"  # Pub/Sub channel for SSE
-
-
-class ProcessingStatus(BaseModel):
-    job_parsed_at: Optional[datetime] = None
-
-
-class ProcessingStatusUpdate(BaseModel):
-    timestamp: datetime
-    tag: ProcessingStatusType
-
-
 @inject
-async def get_processing_status(
-    user_id: uuid.UUID,
-    job_id: uuid.UUID,
-    redis_client: redis.Redis = Provide[Container.redis_client],
-) -> ProcessingStatus:
-    job_parsed_at = await redis_client.get(
-        _status_key(user_id, job_id, "job-parsed-at")
-    )
-    return ProcessingStatus(job_parsed_at=datetime.fromisoformat(job_parsed_at))
-
-
-@inject
-async def set_and_publish_processing_status(
-    user_id: uuid.UUID,
-    job_id: uuid.UUID,
-    tag: ProcessingStatusType,
-    timestamp: Optional[datetime] = None,
-    redis_client: redis.Redis = Provide[Container.redis_client],
+def get_job_service(
+    db: AsyncSession = Depends(get_db),
+    status_service: StatusService = Provide[Container.status_service],
+    instructor=Provide[Container.async_instructor],
 ):
-    if not timestamp:
-        timestamp = datetime.now(timezone.utc)
-    await redis_client.set(_status_key(user_id, job_id, tag), timestamp.isoformat())
-    # TODO: Implement publish issues
-    update = ProcessingStatusUpdate(timestamp=timestamp, tag=tag)
-    await redis_client.publish(
-        _status_channel(user_id, job_id), update.model_dump_json()
-    )
+    """Get job service with dependencies."""
+    repository = JobRepository(db)
+    return JobService(repository, status_service, instructor)
 
 
 @inject
-async def _create_job(
+def get_status_service(
+    status_service: StatusService = Provide[Container.status_service],
+) -> StatusService:
+    """Get status service."""
+    return status_service
+
+
+@inject
+async def _create_job_background(
     user_id: uuid.UUID,
     job_id: uuid.UUID,
-    input_body: CreateJobRequest,
-    instructor: AsyncInstructor = Provide[Container.async_instructor],
-    session_factory: async_sessionmaker = Provide[Container.async_session_factory],
+    request: CreateJobRequest,
+    session_factory=Provide[Container.async_session_factory],
+    status_service: StatusService = Provide[Container.status_service],
+    instructor=Provide[Container.async_instructor],
 ):
-    logger.info(f"Starting job creation for user_id={user_id}, job_id={job_id}")
+    """Background task for creating a job."""
     try:
-        # Log LLM call
-        logger.info("Calling LLM with job description")
-        result = await instructor.create(
-            model="gpt-5-nano",
-            response_model=JobLLMSchema,
-            messages=[
-                {
-                    "role": "user",
-                    "content": f"Extract information from the job description. \n\n{input_body.job_description}",
-                }
-            ],
-        )
-        logger.info(f"LLM response received: {result.model_dump_json(indent=2)}")
+        async with session_factory() as db:
+            repository = JobRepository(db)
+            job_service = JobService(repository, status_service, instructor)
 
-        # Create job from LLM result
-        logger.info("Creating Job object from LLM result")
-        job = Job.from_llm(
-            user_id=user_id,
-            job_id=job_id,
-            llm_schema=result,
-            job_url=input_body.job_url,
-        )
-
-        # Save to database
-        logger.info("Saving job to database")
-        async with session_factory() as session:
-            session.add(job)
-            await session.commit()
-            logger.info(f"Job saved to database: job_id={job_id}")
-
-        # Compute status
-        # now = datetime.now(timezone.utc)
-        # status = ProcessingStatus(job_parsed_at=now)
-
-        await set_and_publish_processing_status(user_id, job_id, "job-parsed-at")
-
-        # channel = _status_channel(user_id, job_id)
-        # await redis_client.publish(channel, status.model_dump_json())
-        # logger.info(f"Published status to {channel}: {status.model_dump_json()}")
-
+            await job_service.create_job(
+                user_id=user_id,
+                job_id=job_id,
+                job_description=request.job_description,
+                job_url=request.job_url,
+            )
     except Exception as e:
-        logger.error(f"Error in _create_job: {str(e)}")
-        logger.error(f"Traceback: {traceback.format_exc()}")
-        # Re-raise to ensure background task fails properly
+        logger.error(f"Error in background job creation: {str(e)}")
         raise
 
 
 @router.post("/jobs/create", response_model=CreateJobResponse)
 async def create_job(
-    input_body: CreateJobRequest,
+    request: CreateJobRequest,
     background_tasks: BackgroundTasks,
     current_user: UserResponse = Depends(get_current_user),
 ):
+    """Create a new job and process it in the background."""
     user_id = uuid.UUID(current_user.id)
     job_id = uuid.uuid4()
-    # Add background task that will handle dependency injection
-    background_tasks.add_task(_create_job, user_id, job_id, input_body)
+
+    # Add background task with dependency injection
+    background_tasks.add_task(
+        _create_job_background,
+        user_id,
+        job_id,
+        request,
+    )
+
     return CreateJobResponse(
         job_id=job_id,
-        sse_url=f"http://localhost:8000/api/v1/users/{user_id}/jobs/{job_id}/status",
+        sse_url=f"http://localhost:8000/api/v1/jobs/{job_id}/status-stream",
     )
 
 
-@inject
-async def _get_job(
+@router.get("/users/{user_id}/jobs/{job_id}", response_model=JobSchema)
+async def get_job(
     user_id: uuid.UUID,
     job_id: uuid.UUID,
-    session_factory: async_sessionmaker = Provide[Container.async_session_factory],
 ):
-    async with session_factory() as session:
-        job = await session.get(Job, job_id)
-        return job.schema
+    """Get a specific job by ID."""
+    job_service = get_job_service()
+    job = await job_service.get_job(job_id, user_id)
 
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Job not found"
+        )
 
-@router.get("/users/{user_id}/jobs/{job_id}", response_model=JobSchema)
-async def get_job(user_id: uuid.UUID, job_id: uuid.UUID):
-    return await _get_job(user_id, job_id)
+    return job
 
 
 @router.post("/jobs/{job_id}/select_relevant_info")
@@ -178,64 +116,35 @@ async def select_relevant_info(
     job_id: uuid.UUID,
     current_user: UserResponse = Depends(get_current_user),
 ):
-    _user_id = uuid.UUID(current_user.id)
-    pass
+    """Select relevant information from user's resume for the job."""
+    job_service = get_job_service()
+    user_id = uuid.UUID(current_user.id)
+    result = await job_service.select_relevant_info(job_id, user_id)
+    return result
 
 
-@router.post("/jobs/{job_id}/refine")
+@router.post("/jobs/{job_id}/refine", response_model=RefineResumeResponse)
 async def refine_resume(
     job_id: uuid.UUID,
     current_user: UserResponse = Depends(get_current_user),
-):
-    return {"status": "success", "message": "Resume refinement started"}
+) -> RefineResumeResponse:
+    """Refine user's resume for the specific job."""
+    user_id = uuid.UUID(current_user.id)
+    job_service = get_job_service()
+    result = await job_service.refine_resume(job_id, user_id)
+    return RefineResumeResponse(**result)
 
 
-@inject
-async def _stream_status(
-    user_id: uuid.UUID,
-    job_id: uuid.UUID,
-    redis_client: redis.Redis = Provide[Container.redis_client],
-):
-    channel = _status_channel(user_id, job_id)
-
-    pubsub = redis_client.pubsub()
-    await pubsub.subscribe(channel)
-
-    try:
-        # Listen for messages
-        async for message in pubsub.listen():
-            if message["type"] == "message":
-                data = message["data"]
-                info = ProcessingStatusUpdate.model_validate_json(data)
-                logger.debug(f"Received update: {info.model_dump_json(indent=2)}")
-
-            elif message["type"] == "subscribe":
-                logger.info("SSE: Successfully subscribed to channel")
-
-            result = await get_processing_status(user_id, job_id)
-            yield f"data: {result.model_dump_json()}\n\n"
-
-    except Exception as e:
-        logger.error(f"SSE: Error in stream: {str(e)}")
-        raise
-
-    finally:
-        # Clean up
-        logger.info(f"SSE: Cleaning up - unsubscribing from {channel}")
-        await pubsub.unsubscribe(channel)
-        await pubsub.close()
-        logger.info(f"SSE: Stream closed for {channel}")
-
-
-@router.get(
-    "/jobs/{job_id}/status-stream"
-)  # No reponse_model because SSE is a byte stream, not a JSON body
+@router.get("/jobs/{job_id}/status-stream")
 async def stream_status(
     job_id: uuid.UUID,
     current_user: UserResponse = Depends(get_current_user),
 ):
+    """Stream job processing status via Server-Sent Events."""
+    user_id = uuid.UUID(current_user.id)
+    status_service = get_status_service()
     return StreamingResponse(
-        _stream_status(uuid.UUID(current_user.id), job_id),
+        status_service.stream_status(user_id, job_id),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
@@ -249,5 +158,8 @@ async def stream_status(
 async def get_status(
     job_id: uuid.UUID,
     current_user: UserResponse = Depends(get_current_user),
-):
-    return await get_processing_status(uuid.UUID(current_user.id), job_id)
+) -> ProcessingStatus:
+    """Get current processing status for a job."""
+    user_id = uuid.UUID(current_user.id)
+    status_service = get_status_service()
+    return await status_service.get_processing_status(user_id, job_id)
