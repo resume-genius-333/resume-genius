@@ -6,6 +6,9 @@
  */
 import type { CreateJobRequestJobUrl } from "./createJobRequestJobUrl";
 
+/**
+ * Request model for creating a job.
+ */
 export interface CreateJobRequest {
   job_description: string;
   job_url?: CreateJobRequestJobUrl;

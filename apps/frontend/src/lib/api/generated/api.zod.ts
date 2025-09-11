@@ -10,16 +10,6 @@ import { z as zod } from "zod";
  * Register a new user.
  * @summary Register
  */
-export const registerApiV1AuthRegisterPostQueryParams = zod.object({
-  session_factory: zod.any().optional(),
-  jwt_secret_key: zod.any().optional(),
-  jwt_algorithm: zod.any().optional(),
-  access_token_expire_minutes: zod.any().optional(),
-  refresh_token_expire_days: zod.any().optional(),
-  password_reset_token_expire_hours: zod.any().optional(),
-  email_verification_token_expire_hours: zod.any().optional(),
-});
-
 export const registerApiV1AuthRegisterPostBodyPasswordMin = 8;
 export const registerApiV1AuthRegisterPostBodyFirstNameMax = 100;
 export const registerApiV1AuthRegisterPostBodyLastNameMaxOne = 100;
@@ -50,16 +40,6 @@ export const registerApiV1AuthRegisterPostBody = zod
  * Login user and create session.
  * @summary Login
  */
-export const loginApiV1AuthLoginPostQueryParams = zod.object({
-  session_factory: zod.any().optional(),
-  jwt_secret_key: zod.any().optional(),
-  jwt_algorithm: zod.any().optional(),
-  access_token_expire_minutes: zod.any().optional(),
-  refresh_token_expire_days: zod.any().optional(),
-  password_reset_token_expire_hours: zod.any().optional(),
-  email_verification_token_expire_hours: zod.any().optional(),
-});
-
 export const loginApiV1AuthLoginPostBodyRememberMeDefault = false;
 
 export const loginApiV1AuthLoginPostBody = zod
@@ -85,19 +65,18 @@ export const loginApiV1AuthLoginPostResponse = zod
   .describe("User login response schema.");
 
 /**
+ * OAuth2 compatible token endpoint for Swagger UI authentication.
+
+This endpoint accepts username (email) and password via form data
+and returns an access token in OAuth2 format.
+ * @summary Token
+ */
+export const tokenApiV1AuthTokenPostResponse = zod.any();
+
+/**
  * Refresh access token using refresh token.
  * @summary Refresh Token
  */
-export const refreshTokenApiV1AuthRefreshPostQueryParams = zod.object({
-  session_factory: zod.any().optional(),
-  jwt_secret_key: zod.any().optional(),
-  jwt_algorithm: zod.any().optional(),
-  access_token_expire_minutes: zod.any().optional(),
-  refresh_token_expire_days: zod.any().optional(),
-  password_reset_token_expire_hours: zod.any().optional(),
-  email_verification_token_expire_hours: zod.any().optional(),
-});
-
 export const refreshTokenApiV1AuthRefreshPostBody = zod
   .object({
     refresh_token: zod.string().describe("JWT refresh token"),
@@ -119,33 +98,9 @@ export const refreshTokenApiV1AuthRefreshPostResponse = zod
   .describe("Refresh token response schema.");
 
 /**
- * Logout user by revoking tokens.
- * @summary Logout
- */
-export const logoutApiV1AuthLogoutPostQueryParams = zod.object({
-  jwt_secret_key: zod.any().optional(),
-  jwt_algorithm: zod.any().optional(),
-  access_token_expire_minutes: zod.any().optional(),
-  refresh_token_expire_days: zod.any().optional(),
-  password_reset_token_expire_hours: zod.any().optional(),
-  email_verification_token_expire_hours: zod.any().optional(),
-  session_factory: zod.any().optional(),
-});
-
-/**
  * Get current user information.
  * @summary Get Me
  */
-export const getMeApiV1AuthMeGetQueryParams = zod.object({
-  jwt_secret_key: zod.any().optional(),
-  jwt_algorithm: zod.any().optional(),
-  access_token_expire_minutes: zod.any().optional(),
-  refresh_token_expire_days: zod.any().optional(),
-  password_reset_token_expire_hours: zod.any().optional(),
-  email_verification_token_expire_hours: zod.any().optional(),
-  session_factory: zod.any().optional(),
-});
-
 export const getMeApiV1AuthMeGetResponse = zod
   .object({
     id: zod.string().describe("User ID"),
@@ -210,16 +165,6 @@ export const getMeApiV1AuthMeGetResponse = zod
  * Verify if token is valid.
  * @summary Verify Token
  */
-export const verifyTokenApiV1AuthVerifyTokenGetQueryParams = zod.object({
-  jwt_secret_key: zod.any().optional(),
-  jwt_algorithm: zod.any().optional(),
-  access_token_expire_minutes: zod.any().optional(),
-  refresh_token_expire_days: zod.any().optional(),
-  password_reset_token_expire_hours: zod.any().optional(),
-  email_verification_token_expire_hours: zod.any().optional(),
-  session_factory: zod.any().optional(),
-});
-
 export const verifyTokenApiV1AuthVerifyTokenGetResponse = zod.record(
   zod.string(),
   zod.any()
@@ -229,10 +174,6 @@ export const verifyTokenApiV1AuthVerifyTokenGetResponse = zod.record(
  * Test endpoint that requires API key authentication.
  * @summary Test Api Key
  */
-export const testApiKeyApiV1AuthTestApiKeyGetQueryParams = zod.object({
-  session_factory: zod.any().optional(),
-});
-
 export const testApiKeyApiV1AuthTestApiKeyGetHeader = zod.object({
   "X-API-Key": zod.union([zod.string(), zod.null()]).optional(),
 });
@@ -243,396 +184,1007 @@ export const testApiKeyApiV1AuthTestApiKeyGetResponse = zod.record(
 );
 
 /**
- * List all resume versions for a specific job
- * @summary List Resume Versions
- */
-export const listResumeVersionsApiV1UsersUserIdJobsJobIdResumesGetParams =
-  zod.object({
-    user_id: zod.string(),
-    job_id: zod.string(),
-  });
-
-export const listResumeVersionsApiV1UsersUserIdJobsJobIdResumesGetResponseItem =
-  zod.object({
-    version: zod.string(),
-    created_at: zod.iso.datetime({}),
-    updated_at: zod.iso.datetime({}),
-    description: zod.string(),
-  });
-export const listResumeVersionsApiV1UsersUserIdJobsJobIdResumesGetResponse =
-  zod.array(listResumeVersionsApiV1UsersUserIdJobsJobIdResumesGetResponseItem);
-
-/**
- * Create a new resume version
- * @summary Create Resume Version
- */
-export const createResumeVersionApiV1UsersUserIdJobsJobIdResumesPostParams =
-  zod.object({
-    user_id: zod.string(),
-    job_id: zod.string(),
-  });
-
-export const createResumeVersionApiV1UsersUserIdJobsJobIdResumesPostBodyEducationItemPointsDefault =
-  [];
-export const createResumeVersionApiV1UsersUserIdJobsJobIdResumesPostBodyExperienceItemKeyPointsDefault =
-  [];
-export const createResumeVersionApiV1UsersUserIdJobsJobIdResumesPostBodyProjectsItemKeyPointsDefault =
-  [];
-
-export const createResumeVersionApiV1UsersUserIdJobsJobIdResumesPostBody =
-  zod.object({
-    id: zod.string(),
-    user_id: zod.string(),
-    job_id: zod.string(),
-    version: zod.string(),
-    full_name: zod.string(),
-    email: zod.string(),
-    phone: zod.union([zod.string(), zod.null()]).optional(),
-    location: zod.union([zod.string(), zod.null()]).optional(),
-    summary: zod.union([zod.string(), zod.null()]).optional(),
-    education: zod.array(
-      zod.object({
-        degree: zod.string(),
-        school_name: zod.string(),
-        start_date: zod.string(),
-        end_date: zod.string(),
-        city: zod.union([zod.string(), zod.null()]).optional(),
-        country: zod.union([zod.string(), zod.null()]).optional(),
-        points: zod
-          .array(zod.string())
-          .default(
-            createResumeVersionApiV1UsersUserIdJobsJobIdResumesPostBodyEducationItemPointsDefault
-          ),
-      })
-    ),
-    experience: zod.array(
-      zod.object({
-        job_title: zod.string(),
-        company_name: zod.string(),
-        start_date: zod.string(),
-        end_date: zod.union([zod.string(), zod.null()]).optional(),
-        location: zod.union([zod.string(), zod.null()]).optional(),
-        description: zod.union([zod.string(), zod.null()]).optional(),
-        key_points: zod
-          .array(zod.string())
-          .default(
-            createResumeVersionApiV1UsersUserIdJobsJobIdResumesPostBodyExperienceItemKeyPointsDefault
-          ),
-      })
-    ),
-    projects: zod.array(
-      zod.object({
-        project_name: zod.string(),
-        role: zod.string(),
-        start_date: zod.string(),
-        end_date: zod.union([zod.string(), zod.null()]).optional(),
-        location: zod.union([zod.string(), zod.null()]).optional(),
-        description: zod.union([zod.string(), zod.null()]).optional(),
-        key_points: zod
-          .array(zod.string())
-          .default(
-            createResumeVersionApiV1UsersUserIdJobsJobIdResumesPostBodyProjectsItemKeyPointsDefault
-          ),
-      })
-    ),
-    skills: zod.array(zod.string()),
-    created_at: zod.iso.datetime({}),
-    updated_at: zod.iso.datetime({}),
-  });
-
-export const createResumeVersionApiV1UsersUserIdJobsJobIdResumesPostResponseEducationItemPointsDefault =
-  [];
-export const createResumeVersionApiV1UsersUserIdJobsJobIdResumesPostResponseExperienceItemKeyPointsDefault =
-  [];
-export const createResumeVersionApiV1UsersUserIdJobsJobIdResumesPostResponseProjectsItemKeyPointsDefault =
-  [];
-
-export const createResumeVersionApiV1UsersUserIdJobsJobIdResumesPostResponse =
-  zod.object({
-    id: zod.string(),
-    user_id: zod.string(),
-    job_id: zod.string(),
-    version: zod.string(),
-    full_name: zod.string(),
-    email: zod.string(),
-    phone: zod.union([zod.string(), zod.null()]).optional(),
-    location: zod.union([zod.string(), zod.null()]).optional(),
-    summary: zod.union([zod.string(), zod.null()]).optional(),
-    education: zod.array(
-      zod.object({
-        degree: zod.string(),
-        school_name: zod.string(),
-        start_date: zod.string(),
-        end_date: zod.string(),
-        city: zod.union([zod.string(), zod.null()]).optional(),
-        country: zod.union([zod.string(), zod.null()]).optional(),
-        points: zod
-          .array(zod.string())
-          .default(
-            createResumeVersionApiV1UsersUserIdJobsJobIdResumesPostResponseEducationItemPointsDefault
-          ),
-      })
-    ),
-    experience: zod.array(
-      zod.object({
-        job_title: zod.string(),
-        company_name: zod.string(),
-        start_date: zod.string(),
-        end_date: zod.union([zod.string(), zod.null()]).optional(),
-        location: zod.union([zod.string(), zod.null()]).optional(),
-        description: zod.union([zod.string(), zod.null()]).optional(),
-        key_points: zod
-          .array(zod.string())
-          .default(
-            createResumeVersionApiV1UsersUserIdJobsJobIdResumesPostResponseExperienceItemKeyPointsDefault
-          ),
-      })
-    ),
-    projects: zod.array(
-      zod.object({
-        project_name: zod.string(),
-        role: zod.string(),
-        start_date: zod.string(),
-        end_date: zod.union([zod.string(), zod.null()]).optional(),
-        location: zod.union([zod.string(), zod.null()]).optional(),
-        description: zod.union([zod.string(), zod.null()]).optional(),
-        key_points: zod
-          .array(zod.string())
-          .default(
-            createResumeVersionApiV1UsersUserIdJobsJobIdResumesPostResponseProjectsItemKeyPointsDefault
-          ),
-      })
-    ),
-    skills: zod.array(zod.string()),
-    created_at: zod.iso.datetime({}),
-    updated_at: zod.iso.datetime({}),
-  });
-
-/**
- * Get a specific resume version
- * @summary Get Resume Version
- */
-export const getResumeVersionApiV1UsersUserIdJobsJobIdResumesVersionGetParams =
-  zod.object({
-    user_id: zod.string(),
-    job_id: zod.string(),
-    version: zod.string(),
-  });
-
-export const getResumeVersionApiV1UsersUserIdJobsJobIdResumesVersionGetResponseEducationItemPointsDefault =
-  [];
-export const getResumeVersionApiV1UsersUserIdJobsJobIdResumesVersionGetResponseExperienceItemKeyPointsDefault =
-  [];
-export const getResumeVersionApiV1UsersUserIdJobsJobIdResumesVersionGetResponseProjectsItemKeyPointsDefault =
-  [];
-
-export const getResumeVersionApiV1UsersUserIdJobsJobIdResumesVersionGetResponse =
-  zod.object({
-    id: zod.string(),
-    user_id: zod.string(),
-    job_id: zod.string(),
-    version: zod.string(),
-    full_name: zod.string(),
-    email: zod.string(),
-    phone: zod.union([zod.string(), zod.null()]).optional(),
-    location: zod.union([zod.string(), zod.null()]).optional(),
-    summary: zod.union([zod.string(), zod.null()]).optional(),
-    education: zod.array(
-      zod.object({
-        degree: zod.string(),
-        school_name: zod.string(),
-        start_date: zod.string(),
-        end_date: zod.string(),
-        city: zod.union([zod.string(), zod.null()]).optional(),
-        country: zod.union([zod.string(), zod.null()]).optional(),
-        points: zod
-          .array(zod.string())
-          .default(
-            getResumeVersionApiV1UsersUserIdJobsJobIdResumesVersionGetResponseEducationItemPointsDefault
-          ),
-      })
-    ),
-    experience: zod.array(
-      zod.object({
-        job_title: zod.string(),
-        company_name: zod.string(),
-        start_date: zod.string(),
-        end_date: zod.union([zod.string(), zod.null()]).optional(),
-        location: zod.union([zod.string(), zod.null()]).optional(),
-        description: zod.union([zod.string(), zod.null()]).optional(),
-        key_points: zod
-          .array(zod.string())
-          .default(
-            getResumeVersionApiV1UsersUserIdJobsJobIdResumesVersionGetResponseExperienceItemKeyPointsDefault
-          ),
-      })
-    ),
-    projects: zod.array(
-      zod.object({
-        project_name: zod.string(),
-        role: zod.string(),
-        start_date: zod.string(),
-        end_date: zod.union([zod.string(), zod.null()]).optional(),
-        location: zod.union([zod.string(), zod.null()]).optional(),
-        description: zod.union([zod.string(), zod.null()]).optional(),
-        key_points: zod
-          .array(zod.string())
-          .default(
-            getResumeVersionApiV1UsersUserIdJobsJobIdResumesVersionGetResponseProjectsItemKeyPointsDefault
-          ),
-      })
-    ),
-    skills: zod.array(zod.string()),
-    created_at: zod.iso.datetime({}),
-    updated_at: zod.iso.datetime({}),
-  });
-
-/**
- * Get the latest resume version (backward compatibility)
- * @summary Get Latest Resume
- */
-export const getLatestResumeApiV1UsersUserIdJobsJobIdResumeGetParams =
-  zod.object({
-    user_id: zod.string(),
-    job_id: zod.string(),
-  });
-
-export const getLatestResumeApiV1UsersUserIdJobsJobIdResumeGetResponseEducationItemPointsDefault =
-  [];
-export const getLatestResumeApiV1UsersUserIdJobsJobIdResumeGetResponseExperienceItemKeyPointsDefault =
-  [];
-export const getLatestResumeApiV1UsersUserIdJobsJobIdResumeGetResponseProjectsItemKeyPointsDefault =
-  [];
-
-export const getLatestResumeApiV1UsersUserIdJobsJobIdResumeGetResponse =
-  zod.object({
-    id: zod.string(),
-    user_id: zod.string(),
-    job_id: zod.string(),
-    version: zod.string(),
-    full_name: zod.string(),
-    email: zod.string(),
-    phone: zod.union([zod.string(), zod.null()]).optional(),
-    location: zod.union([zod.string(), zod.null()]).optional(),
-    summary: zod.union([zod.string(), zod.null()]).optional(),
-    education: zod.array(
-      zod.object({
-        degree: zod.string(),
-        school_name: zod.string(),
-        start_date: zod.string(),
-        end_date: zod.string(),
-        city: zod.union([zod.string(), zod.null()]).optional(),
-        country: zod.union([zod.string(), zod.null()]).optional(),
-        points: zod
-          .array(zod.string())
-          .default(
-            getLatestResumeApiV1UsersUserIdJobsJobIdResumeGetResponseEducationItemPointsDefault
-          ),
-      })
-    ),
-    experience: zod.array(
-      zod.object({
-        job_title: zod.string(),
-        company_name: zod.string(),
-        start_date: zod.string(),
-        end_date: zod.union([zod.string(), zod.null()]).optional(),
-        location: zod.union([zod.string(), zod.null()]).optional(),
-        description: zod.union([zod.string(), zod.null()]).optional(),
-        key_points: zod
-          .array(zod.string())
-          .default(
-            getLatestResumeApiV1UsersUserIdJobsJobIdResumeGetResponseExperienceItemKeyPointsDefault
-          ),
-      })
-    ),
-    projects: zod.array(
-      zod.object({
-        project_name: zod.string(),
-        role: zod.string(),
-        start_date: zod.string(),
-        end_date: zod.union([zod.string(), zod.null()]).optional(),
-        location: zod.union([zod.string(), zod.null()]).optional(),
-        description: zod.union([zod.string(), zod.null()]).optional(),
-        key_points: zod
-          .array(zod.string())
-          .default(
-            getLatestResumeApiV1UsersUserIdJobsJobIdResumeGetResponseProjectsItemKeyPointsDefault
-          ),
-      })
-    ),
-    skills: zod.array(zod.string()),
-    created_at: zod.iso.datetime({}),
-    updated_at: zod.iso.datetime({}),
-  });
-
-/**
+ * Create a new job and process it in the background.
  * @summary Create Job
  */
-export const createJobApiV1UsersUserIdJobsCreatePostParams = zod.object({
-  user_id: zod.uuid(),
-});
+export const createJobApiV1JobsCreatePostBody = zod
+  .object({
+    job_description: zod.string(),
+    job_url: zod.union([zod.string(), zod.null()]).optional(),
+  })
+  .describe("Request model for creating a job.");
 
-export const createJobApiV1UsersUserIdJobsCreatePostBody = zod.object({
-  job_description: zod.string(),
-  job_url: zod.union([zod.string(), zod.null()]).optional(),
-});
-
-export const createJobApiV1UsersUserIdJobsCreatePostResponse = zod.object({
-  job_id: zod.string(),
-});
-
-/**
- * @summary Select Relevant Info
- */
-export const selectRelevantInfoApiV1UsersUserIdJobsJobIdSelectRelevantInfoPostParams =
-  zod.object({
-    user_id: zod.uuid(),
+export const createJobApiV1JobsCreatePostResponse = zod
+  .object({
     job_id: zod.uuid(),
-  });
-
-export const selectRelevantInfoApiV1UsersUserIdJobsJobIdSelectRelevantInfoPostResponse =
-  zod.any();
-
-/**
- * @summary Refine Resume
- */
-export const refineResumeApiV1UsersUserIdJobsJobIdRefinePostParams = zod.object(
-  {
-    user_id: zod.uuid(),
-    job_id: zod.uuid(),
-  }
-);
-
-export const refineResumeApiV1UsersUserIdJobsJobIdRefinePostResponse =
-  zod.any();
+    sse_url: zod.string(),
+  })
+  .describe("Response model for job creation.");
 
 /**
- * @summary Stream Status
+ * Get a specific job by ID.
+ * @summary Get Job
  */
-export const streamStatusApiV1UsersUserIdJobsJobIdStatusGetParams = zod.object({
-  user_id: zod.uuid(),
+export const getJobApiV1JobsJobIdGetParams = zod.object({
   job_id: zod.uuid(),
 });
 
-export const streamStatusApiV1UsersUserIdJobsJobIdStatusGetResponse = zod.any();
-
-/**
- * Debug endpoint that processes job synchronously for testing
- * @summary Create Job Sync
- */
-export const createJobSyncApiV1UsersUserIdJobsCreateSyncPostParams = zod.object(
-  {
-    user_id: zod.uuid(),
-  }
-);
-
-export const createJobSyncApiV1UsersUserIdJobsCreateSyncPostBody = zod.object({
+export const getJobApiV1JobsJobIdGetResponse = zod.object({
+  id: zod.uuid(),
+  user_id: zod.uuid(),
+  company_name: zod.string(),
+  position_title: zod.string(),
   job_description: zod.string(),
   job_url: zod.union([zod.string(), zod.null()]).optional(),
 });
 
-export const createJobSyncApiV1UsersUserIdJobsCreateSyncPostResponse =
+/**
+ * Select relevant information from user's resume for the job.
+ * @summary Select Relevant Info
+ */
+export const selectRelevantInfoApiV1JobsJobIdSelectRelevantInfoPostParams =
+  zod.object({
+    job_id: zod.uuid(),
+  });
+
+export const selectRelevantInfoApiV1JobsJobIdSelectRelevantInfoPostResponse =
   zod.any();
+
+/**
+ * Refine user's resume for the specific job.
+ * @summary Refine Resume
+ */
+export const refineResumeApiV1JobsJobIdRefinePostParams = zod.object({
+  job_id: zod.uuid(),
+});
+
+export const refineResumeApiV1JobsJobIdRefinePostResponse = zod
+  .object({
+    status: zod.string(),
+    message: zod.string(),
+  })
+  .describe("Response model for resume refinement.");
+
+/**
+ * Stream job processing status via Server-Sent Events.
+ * @summary Stream Status
+ */
+export const streamStatusApiV1JobsJobIdStatusStreamGetParams = zod.object({
+  job_id: zod.uuid(),
+});
+
+export const streamStatusApiV1JobsJobIdStatusStreamGetResponse = zod.any();
+
+/**
+ * Get current processing status for a job.
+ * @summary Get Status
+ */
+export const getStatusApiV1JobsJobIdStatusGetParams = zod.object({
+  job_id: zod.uuid(),
+});
+
+export const getStatusApiV1JobsJobIdStatusGetResponse = zod
+  .object({
+    job_parsed_at: zod.union([zod.iso.datetime({}), zod.null()]).optional(),
+  })
+  .describe("Processing status model.");
+
+/**
+ * List all resume versions for the current user with pagination.
+ * @summary List Resume Versions
+ */
+export const listResumeVersionsApiV1ResumesGetQueryLimitDefault = 20;
+export const listResumeVersionsApiV1ResumesGetQueryLimitMax = 100;
+export const listResumeVersionsApiV1ResumesGetQueryOffsetDefault = 0;
+export const listResumeVersionsApiV1ResumesGetQueryOffsetMin = 0;
+
+export const listResumeVersionsApiV1ResumesGetQueryParams = zod.object({
+  job_id: zod.union([zod.uuid(), zod.null()]).optional(),
+  limit: zod
+    .number()
+    .min(1)
+    .max(listResumeVersionsApiV1ResumesGetQueryLimitMax)
+    .default(listResumeVersionsApiV1ResumesGetQueryLimitDefault),
+  offset: zod
+    .number()
+    .min(listResumeVersionsApiV1ResumesGetQueryOffsetMin)
+    .optional(),
+});
+
+export const listResumeVersionsApiV1ResumesGetResponse = zod
+  .object({
+    items: zod.array(zod.any()),
+    total: zod.number(),
+    limit: zod.number(),
+    offset: zod.number(),
+    has_more: zod.boolean(),
+  })
+  .describe("Base model for paginated responses.");
+
+/**
+ * Create a new resume version.
+ * @summary Create Resume Version
+ */
+export const createResumeVersionApiV1ResumesPostBody = zod
+  .object({
+    job_id: zod.uuid(),
+    parent_version: zod.union([zod.uuid(), zod.null()]).optional(),
+    metadata_id: zod.union([zod.uuid(), zod.null()]).optional(),
+    pinned_education_ids: zod
+      .union([zod.array(zod.uuid()), zod.null()])
+      .optional(),
+    pinned_experience_ids: zod
+      .union([zod.array(zod.uuid()), zod.null()])
+      .optional(),
+    pinned_project_ids: zod
+      .union([zod.array(zod.uuid()), zod.null()])
+      .optional(),
+    pinned_skill_ids: zod.union([zod.array(zod.uuid()), zod.null()]).optional(),
+  })
+  .describe("Request model for creating a new resume version.");
+
+export const createResumeVersionApiV1ResumesPostResponse = zod
+  .object({
+    version: zod.uuid(),
+    user_id: zod.uuid(),
+    job_id: zod.uuid(),
+    parent_version: zod.union([zod.uuid(), zod.null()]),
+    metadata_id: zod.uuid(),
+    pinned_education_ids: zod.array(zod.uuid()),
+    pinned_experience_ids: zod.array(zod.uuid()),
+    pinned_project_ids: zod.array(zod.uuid()),
+    pinned_skill_ids: zod.array(zod.uuid()),
+    created_at: zod.iso.datetime({}),
+    updated_at: zod.iso.datetime({}),
+  })
+  .describe("Response model for resume version.");
+
+/**
+ * Get the latest resume version for the current user.
+ * @summary Get Latest Resume Version
+ */
+export const getLatestResumeVersionApiV1ResumesLatestGetQueryParams =
+  zod.object({
+    job_id: zod.union([zod.uuid(), zod.null()]).optional(),
+  });
+
+export const getLatestResumeVersionApiV1ResumesLatestGetResponse = zod
+  .object({
+    version: zod.uuid(),
+    user_id: zod.uuid(),
+    job_id: zod.uuid(),
+    parent_version: zod.union([zod.uuid(), zod.null()]),
+    metadata_id: zod.uuid(),
+    pinned_education_ids: zod.array(zod.uuid()),
+    pinned_experience_ids: zod.array(zod.uuid()),
+    pinned_project_ids: zod.array(zod.uuid()),
+    pinned_skill_ids: zod.array(zod.uuid()),
+    created_at: zod.iso.datetime({}),
+    updated_at: zod.iso.datetime({}),
+  })
+  .describe("Response model for resume version.");
+
+/**
+ * Get full resume with all sections for a specific version.
+ * @summary Get Full Resume
+ */
+export const getFullResumeApiV1ResumesVersionIdGetParams = zod.object({
+  version_id: zod.uuid(),
+});
+
+export const getFullResumeApiV1ResumesVersionIdGetResponse = zod
+  .object({
+    version: zod
+      .object({
+        version: zod.uuid(),
+        user_id: zod.uuid(),
+        job_id: zod.uuid(),
+        parent_version: zod.union([zod.uuid(), zod.null()]),
+        metadata_id: zod.uuid(),
+        pinned_education_ids: zod.array(zod.uuid()),
+        pinned_experience_ids: zod.array(zod.uuid()),
+        pinned_project_ids: zod.array(zod.uuid()),
+        pinned_skill_ids: zod.array(zod.uuid()),
+        created_at: zod.iso.datetime({}),
+        updated_at: zod.iso.datetime({}),
+      })
+      .describe("Response model for resume version."),
+    metadata: zod.union([
+      zod
+        .object({
+          id: zod.uuid(),
+          user_id: zod.uuid(),
+          job_id: zod.uuid(),
+          parent_id: zod.union([zod.uuid(), zod.null()]),
+          user_name: zod.string(),
+          email: zod.union([zod.string(), zod.null()]),
+          phone: zod.union([zod.string(), zod.null()]),
+          location: zod.union([zod.string(), zod.null()]),
+          linkedin_url: zod.union([zod.string(), zod.null()]),
+          github_url: zod.union([zod.string(), zod.null()]),
+          portfolio_website: zod.union([zod.string(), zod.null()]),
+          custom_styles: zod.union([
+            zod.record(zod.string(), zod.any()),
+            zod.null(),
+          ]),
+          created_at: zod.iso.datetime({}),
+          updated_at: zod.iso.datetime({}),
+        })
+        .describe("Response model for resume metadata."),
+      zod.null(),
+    ]),
+    educations: zod.array(
+      zod
+        .object({
+          id: zod.uuid(),
+          user_id: zod.uuid(),
+          job_id: zod.uuid(),
+          parent_id: zod.union([zod.uuid(), zod.null()]),
+          institution_name: zod.string(),
+          degree: zod.string(),
+          field_of_study: zod.string(),
+          focus_area: zod.union([zod.string(), zod.null()]),
+          start_date: zod.union([zod.string(), zod.null()]),
+          end_date: zod.union([zod.string(), zod.null()]),
+          gpa: zod.union([zod.number(), zod.null()]),
+          max_gpa: zod.union([zod.number(), zod.null()]),
+          city: zod.union([zod.string(), zod.null()]),
+          country: zod.union([zod.string(), zod.null()]),
+          created_at: zod.iso.datetime({}),
+          updated_at: zod.iso.datetime({}),
+        })
+        .describe("Response model for resume education.")
+    ),
+    work_experiences: zod.array(
+      zod
+        .object({
+          id: zod.uuid(),
+          user_id: zod.uuid(),
+          job_id: zod.uuid(),
+          parent_id: zod.union([zod.uuid(), zod.null()]),
+          job_title: zod.string(),
+          company_name: zod.string(),
+          employment_type: zod.union([zod.string(), zod.null()]),
+          start_date: zod.union([zod.string(), zod.null()]),
+          end_date: zod.union([zod.string(), zod.null()]),
+          location: zod.union([zod.string(), zod.null()]),
+          description: zod.union([zod.string(), zod.null()]),
+          achievements: zod.union([zod.array(zod.string()), zod.null()]),
+          created_at: zod.iso.datetime({}),
+          updated_at: zod.iso.datetime({}),
+        })
+        .describe("Response model for resume work experience.")
+    ),
+    projects: zod.array(
+      zod
+        .object({
+          id: zod.uuid(),
+          user_id: zod.uuid(),
+          job_id: zod.uuid(),
+          parent_id: zod.union([zod.uuid(), zod.null()]),
+          project_name: zod.string(),
+          role: zod.union([zod.string(), zod.null()]),
+          start_date: zod.union([zod.string(), zod.null()]),
+          end_date: zod.union([zod.string(), zod.null()]),
+          location: zod.union([zod.string(), zod.null()]),
+          description: zod.union([zod.string(), zod.null()]),
+          technologies: zod.union([zod.array(zod.string()), zod.null()]),
+          url: zod.union([zod.string(), zod.null()]),
+          created_at: zod.iso.datetime({}),
+          updated_at: zod.iso.datetime({}),
+        })
+        .describe("Response model for resume project.")
+    ),
+    skills: zod.array(
+      zod
+        .object({
+          id: zod.uuid(),
+          user_id: zod.uuid(),
+          job_id: zod.uuid(),
+          parent_id: zod.union([zod.uuid(), zod.null()]),
+          skill_name: zod.string(),
+          skill_category: zod.union([zod.string(), zod.null()]),
+          proficiency_level: zod.union([zod.string(), zod.null()]),
+          years_of_experience: zod.union([zod.number(), zod.null()]),
+          created_at: zod.iso.datetime({}),
+          updated_at: zod.iso.datetime({}),
+        })
+        .describe("Response model for resume skill.")
+    ),
+  })
+  .describe("Response model for full resume with all sections.");
+
+/**
+ * Update which sections are pinned to a resume version.
+ * @summary Update Resume Version
+ */
+export const updateResumeVersionApiV1ResumesVersionIdPutParams = zod.object({
+  version_id: zod.uuid(),
+});
+
+export const updateResumeVersionApiV1ResumesVersionIdPutBody = zod
+  .object({
+    metadata_id: zod.union([zod.uuid(), zod.null()]).optional(),
+    pinned_education_ids: zod
+      .union([zod.array(zod.uuid()), zod.null()])
+      .optional(),
+    pinned_experience_ids: zod
+      .union([zod.array(zod.uuid()), zod.null()])
+      .optional(),
+    pinned_project_ids: zod
+      .union([zod.array(zod.uuid()), zod.null()])
+      .optional(),
+    pinned_skill_ids: zod.union([zod.array(zod.uuid()), zod.null()]).optional(),
+  })
+  .describe("Request model for updating resume version pins.");
+
+export const updateResumeVersionApiV1ResumesVersionIdPutResponse = zod
+  .object({
+    version: zod.uuid(),
+    user_id: zod.uuid(),
+    job_id: zod.uuid(),
+    parent_version: zod.union([zod.uuid(), zod.null()]),
+    metadata_id: zod.uuid(),
+    pinned_education_ids: zod.array(zod.uuid()),
+    pinned_experience_ids: zod.array(zod.uuid()),
+    pinned_project_ids: zod.array(zod.uuid()),
+    pinned_skill_ids: zod.array(zod.uuid()),
+    created_at: zod.iso.datetime({}),
+    updated_at: zod.iso.datetime({}),
+  })
+  .describe("Response model for resume version.");
+
+/**
+ * Enhance entire resume version using AI.
+ * @summary Enhance Resume Version
+ */
+export const enhanceResumeVersionApiV1ResumesVersionIdEnhancePostParams =
+  zod.object({
+    version_id: zod.uuid(),
+  });
+
+export const enhanceResumeVersionApiV1ResumesVersionIdEnhancePostBodyPromptMax = 2000;
+export const enhanceResumeVersionApiV1ResumesVersionIdEnhancePostBodyAgentModeDefault = false;
+export const enhanceResumeVersionApiV1ResumesVersionIdEnhancePostBodyToneDefault =
+  "professional";
+
+export const enhanceResumeVersionApiV1ResumesVersionIdEnhancePostBody = zod
+  .object({
+    prompt: zod
+      .string()
+      .min(1)
+      .max(enhanceResumeVersionApiV1ResumesVersionIdEnhancePostBodyPromptMax),
+    agent_mode: zod.boolean().optional(),
+    tone: zod
+      .union([zod.string(), zod.null()])
+      .default(
+        enhanceResumeVersionApiV1ResumesVersionIdEnhancePostBodyToneDefault
+      ),
+    context: zod
+      .union([zod.record(zod.string(), zod.any()), zod.null()])
+      .optional(),
+  })
+  .describe("Request model for AI enhancement.");
+
+export const enhanceResumeVersionApiV1ResumesVersionIdEnhancePostResponse = zod
+  .object({
+    version: zod.uuid(),
+    user_id: zod.uuid(),
+    job_id: zod.uuid(),
+    parent_version: zod.union([zod.uuid(), zod.null()]),
+    metadata_id: zod.uuid(),
+    pinned_education_ids: zod.array(zod.uuid()),
+    pinned_experience_ids: zod.array(zod.uuid()),
+    pinned_project_ids: zod.array(zod.uuid()),
+    pinned_skill_ids: zod.array(zod.uuid()),
+    created_at: zod.iso.datetime({}),
+    updated_at: zod.iso.datetime({}),
+  })
+  .describe("Response model for resume version.");
+
+/**
+ * Get specific metadata by ID.
+ * @summary Get Metadata
+ */
+export const getMetadataApiV1ResumesMetadataMetadataIdGetParams = zod.object({
+  metadata_id: zod.uuid(),
+});
+
+export const getMetadataApiV1ResumesMetadataMetadataIdGetResponse = zod
+  .object({
+    id: zod.uuid(),
+    user_id: zod.uuid(),
+    job_id: zod.uuid(),
+    parent_id: zod.union([zod.uuid(), zod.null()]),
+    user_name: zod.string(),
+    email: zod.union([zod.string(), zod.null()]),
+    phone: zod.union([zod.string(), zod.null()]),
+    location: zod.union([zod.string(), zod.null()]),
+    linkedin_url: zod.union([zod.string(), zod.null()]),
+    github_url: zod.union([zod.string(), zod.null()]),
+    portfolio_website: zod.union([zod.string(), zod.null()]),
+    custom_styles: zod.union([zod.record(zod.string(), zod.any()), zod.null()]),
+    created_at: zod.iso.datetime({}),
+    updated_at: zod.iso.datetime({}),
+  })
+  .describe("Response model for resume metadata.");
+
+/**
+ * Update metadata manually.
+ * @summary Update Metadata
+ */
+export const updateMetadataApiV1ResumesMetadataMetadataIdPutParams = zod.object(
+  {
+    metadata_id: zod.uuid(),
+  }
+);
+
+export const updateMetadataApiV1ResumesMetadataMetadataIdPutBody = zod
+  .object({
+    user_name: zod.union([zod.string(), zod.null()]).optional(),
+    email: zod.union([zod.string(), zod.null()]).optional(),
+    phone: zod.union([zod.string(), zod.null()]).optional(),
+    location: zod.union([zod.string(), zod.null()]).optional(),
+    linkedin_url: zod.union([zod.string(), zod.null()]).optional(),
+    github_url: zod.union([zod.string(), zod.null()]).optional(),
+    portfolio_website: zod.union([zod.string(), zod.null()]).optional(),
+    custom_styles: zod
+      .union([zod.record(zod.string(), zod.any()), zod.null()])
+      .optional(),
+  })
+  .describe("Request model for updating resume metadata.");
+
+export const updateMetadataApiV1ResumesMetadataMetadataIdPutResponse = zod
+  .object({
+    id: zod.uuid(),
+    user_id: zod.uuid(),
+    job_id: zod.uuid(),
+    parent_id: zod.union([zod.uuid(), zod.null()]),
+    user_name: zod.string(),
+    email: zod.union([zod.string(), zod.null()]),
+    phone: zod.union([zod.string(), zod.null()]),
+    location: zod.union([zod.string(), zod.null()]),
+    linkedin_url: zod.union([zod.string(), zod.null()]),
+    github_url: zod.union([zod.string(), zod.null()]),
+    portfolio_website: zod.union([zod.string(), zod.null()]),
+    custom_styles: zod.union([zod.record(zod.string(), zod.any()), zod.null()]),
+    created_at: zod.iso.datetime({}),
+    updated_at: zod.iso.datetime({}),
+  })
+  .describe("Response model for resume metadata.");
+
+/**
+ * Enhance metadata using AI.
+ * @summary Enhance Metadata
+ */
+export const enhanceMetadataApiV1ResumesMetadataMetadataIdEnhancePostParams =
+  zod.object({
+    metadata_id: zod.uuid(),
+  });
+
+export const enhanceMetadataApiV1ResumesMetadataMetadataIdEnhancePostBodyPromptMax = 2000;
+export const enhanceMetadataApiV1ResumesMetadataMetadataIdEnhancePostBodyAgentModeDefault = false;
+export const enhanceMetadataApiV1ResumesMetadataMetadataIdEnhancePostBodyToneDefault =
+  "professional";
+
+export const enhanceMetadataApiV1ResumesMetadataMetadataIdEnhancePostBody = zod
+  .object({
+    prompt: zod
+      .string()
+      .min(1)
+      .max(
+        enhanceMetadataApiV1ResumesMetadataMetadataIdEnhancePostBodyPromptMax
+      ),
+    agent_mode: zod.boolean().optional(),
+    tone: zod
+      .union([zod.string(), zod.null()])
+      .default(
+        enhanceMetadataApiV1ResumesMetadataMetadataIdEnhancePostBodyToneDefault
+      ),
+    context: zod
+      .union([zod.record(zod.string(), zod.any()), zod.null()])
+      .optional(),
+  })
+  .describe("Request model for AI enhancement.");
+
+export const enhanceMetadataApiV1ResumesMetadataMetadataIdEnhancePostResponse =
+  zod
+    .object({
+      id: zod.uuid(),
+      user_id: zod.uuid(),
+      job_id: zod.uuid(),
+      parent_id: zod.union([zod.uuid(), zod.null()]),
+      user_name: zod.string(),
+      email: zod.union([zod.string(), zod.null()]),
+      phone: zod.union([zod.string(), zod.null()]),
+      location: zod.union([zod.string(), zod.null()]),
+      linkedin_url: zod.union([zod.string(), zod.null()]),
+      github_url: zod.union([zod.string(), zod.null()]),
+      portfolio_website: zod.union([zod.string(), zod.null()]),
+      custom_styles: zod.union([
+        zod.record(zod.string(), zod.any()),
+        zod.null(),
+      ]),
+      created_at: zod.iso.datetime({}),
+      updated_at: zod.iso.datetime({}),
+    })
+    .describe("Response model for resume metadata.");
+
+/**
+ * Get specific education entry by ID.
+ * @summary Get Education
+ */
+export const getEducationApiV1ResumesEducationsEducationIdGetParams =
+  zod.object({
+    education_id: zod.uuid(),
+  });
+
+export const getEducationApiV1ResumesEducationsEducationIdGetResponse = zod
+  .object({
+    id: zod.uuid(),
+    user_id: zod.uuid(),
+    job_id: zod.uuid(),
+    parent_id: zod.union([zod.uuid(), zod.null()]),
+    institution_name: zod.string(),
+    degree: zod.string(),
+    field_of_study: zod.string(),
+    focus_area: zod.union([zod.string(), zod.null()]),
+    start_date: zod.union([zod.string(), zod.null()]),
+    end_date: zod.union([zod.string(), zod.null()]),
+    gpa: zod.union([zod.number(), zod.null()]),
+    max_gpa: zod.union([zod.number(), zod.null()]),
+    city: zod.union([zod.string(), zod.null()]),
+    country: zod.union([zod.string(), zod.null()]),
+    created_at: zod.iso.datetime({}),
+    updated_at: zod.iso.datetime({}),
+  })
+  .describe("Response model for resume education.");
+
+/**
+ * Update education entry manually.
+ * @summary Update Education
+ */
+export const updateEducationApiV1ResumesEducationsEducationIdPutParams =
+  zod.object({
+    education_id: zod.uuid(),
+  });
+
+export const updateEducationApiV1ResumesEducationsEducationIdPutBody = zod
+  .object({
+    institution_name: zod.union([zod.string(), zod.null()]).optional(),
+    degree: zod.union([zod.string(), zod.null()]).optional(),
+    field_of_study: zod.union([zod.string(), zod.null()]).optional(),
+    focus_area: zod.union([zod.string(), zod.null()]).optional(),
+    start_date: zod.union([zod.string(), zod.null()]).optional(),
+    end_date: zod.union([zod.string(), zod.null()]).optional(),
+    gpa: zod.union([zod.number(), zod.null()]).optional(),
+    max_gpa: zod.union([zod.number(), zod.null()]).optional(),
+    city: zod.union([zod.string(), zod.null()]).optional(),
+    country: zod.union([zod.string(), zod.null()]).optional(),
+  })
+  .describe("Request model for updating resume education.");
+
+export const updateEducationApiV1ResumesEducationsEducationIdPutResponse = zod
+  .object({
+    id: zod.uuid(),
+    user_id: zod.uuid(),
+    job_id: zod.uuid(),
+    parent_id: zod.union([zod.uuid(), zod.null()]),
+    institution_name: zod.string(),
+    degree: zod.string(),
+    field_of_study: zod.string(),
+    focus_area: zod.union([zod.string(), zod.null()]),
+    start_date: zod.union([zod.string(), zod.null()]),
+    end_date: zod.union([zod.string(), zod.null()]),
+    gpa: zod.union([zod.number(), zod.null()]),
+    max_gpa: zod.union([zod.number(), zod.null()]),
+    city: zod.union([zod.string(), zod.null()]),
+    country: zod.union([zod.string(), zod.null()]),
+    created_at: zod.iso.datetime({}),
+    updated_at: zod.iso.datetime({}),
+  })
+  .describe("Response model for resume education.");
+
+/**
+ * Enhance education entry using AI.
+ * @summary Enhance Education
+ */
+export const enhanceEducationApiV1ResumesEducationsEducationIdEnhancePostParams =
+  zod.object({
+    education_id: zod.uuid(),
+  });
+
+export const enhanceEducationApiV1ResumesEducationsEducationIdEnhancePostBodyPromptMax = 2000;
+export const enhanceEducationApiV1ResumesEducationsEducationIdEnhancePostBodyAgentModeDefault = false;
+export const enhanceEducationApiV1ResumesEducationsEducationIdEnhancePostBodyToneDefault =
+  "professional";
+
+export const enhanceEducationApiV1ResumesEducationsEducationIdEnhancePostBody =
+  zod
+    .object({
+      prompt: zod
+        .string()
+        .min(1)
+        .max(
+          enhanceEducationApiV1ResumesEducationsEducationIdEnhancePostBodyPromptMax
+        ),
+      agent_mode: zod.boolean().optional(),
+      tone: zod
+        .union([zod.string(), zod.null()])
+        .default(
+          enhanceEducationApiV1ResumesEducationsEducationIdEnhancePostBodyToneDefault
+        ),
+      context: zod
+        .union([zod.record(zod.string(), zod.any()), zod.null()])
+        .optional(),
+    })
+    .describe("Request model for AI enhancement.");
+
+export const enhanceEducationApiV1ResumesEducationsEducationIdEnhancePostResponse =
+  zod
+    .object({
+      id: zod.uuid(),
+      user_id: zod.uuid(),
+      job_id: zod.uuid(),
+      parent_id: zod.union([zod.uuid(), zod.null()]),
+      institution_name: zod.string(),
+      degree: zod.string(),
+      field_of_study: zod.string(),
+      focus_area: zod.union([zod.string(), zod.null()]),
+      start_date: zod.union([zod.string(), zod.null()]),
+      end_date: zod.union([zod.string(), zod.null()]),
+      gpa: zod.union([zod.number(), zod.null()]),
+      max_gpa: zod.union([zod.number(), zod.null()]),
+      city: zod.union([zod.string(), zod.null()]),
+      country: zod.union([zod.string(), zod.null()]),
+      created_at: zod.iso.datetime({}),
+      updated_at: zod.iso.datetime({}),
+    })
+    .describe("Response model for resume education.");
+
+/**
+ * Get specific work experience by ID.
+ * @summary Get Work Experience
+ */
+export const getWorkExperienceApiV1ResumesWorkExperiencesWorkIdGetParams =
+  zod.object({
+    work_id: zod.uuid(),
+  });
+
+export const getWorkExperienceApiV1ResumesWorkExperiencesWorkIdGetResponse = zod
+  .object({
+    id: zod.uuid(),
+    user_id: zod.uuid(),
+    job_id: zod.uuid(),
+    parent_id: zod.union([zod.uuid(), zod.null()]),
+    job_title: zod.string(),
+    company_name: zod.string(),
+    employment_type: zod.union([zod.string(), zod.null()]),
+    start_date: zod.union([zod.string(), zod.null()]),
+    end_date: zod.union([zod.string(), zod.null()]),
+    location: zod.union([zod.string(), zod.null()]),
+    description: zod.union([zod.string(), zod.null()]),
+    achievements: zod.union([zod.array(zod.string()), zod.null()]),
+    created_at: zod.iso.datetime({}),
+    updated_at: zod.iso.datetime({}),
+  })
+  .describe("Response model for resume work experience.");
+
+/**
+ * Update work experience manually.
+ * @summary Update Work Experience
+ */
+export const updateWorkExperienceApiV1ResumesWorkExperiencesWorkIdPutParams =
+  zod.object({
+    work_id: zod.uuid(),
+  });
+
+export const updateWorkExperienceApiV1ResumesWorkExperiencesWorkIdPutBody = zod
+  .object({
+    job_title: zod.union([zod.string(), zod.null()]).optional(),
+    company_name: zod.union([zod.string(), zod.null()]).optional(),
+    employment_type: zod.union([zod.string(), zod.null()]).optional(),
+    start_date: zod.union([zod.string(), zod.null()]).optional(),
+    end_date: zod.union([zod.string(), zod.null()]).optional(),
+    location: zod.union([zod.string(), zod.null()]).optional(),
+    description: zod.union([zod.string(), zod.null()]).optional(),
+    achievements: zod.union([zod.array(zod.string()), zod.null()]).optional(),
+  })
+  .describe("Request model for updating resume work experience.");
+
+export const updateWorkExperienceApiV1ResumesWorkExperiencesWorkIdPutResponse =
+  zod
+    .object({
+      id: zod.uuid(),
+      user_id: zod.uuid(),
+      job_id: zod.uuid(),
+      parent_id: zod.union([zod.uuid(), zod.null()]),
+      job_title: zod.string(),
+      company_name: zod.string(),
+      employment_type: zod.union([zod.string(), zod.null()]),
+      start_date: zod.union([zod.string(), zod.null()]),
+      end_date: zod.union([zod.string(), zod.null()]),
+      location: zod.union([zod.string(), zod.null()]),
+      description: zod.union([zod.string(), zod.null()]),
+      achievements: zod.union([zod.array(zod.string()), zod.null()]),
+      created_at: zod.iso.datetime({}),
+      updated_at: zod.iso.datetime({}),
+    })
+    .describe("Response model for resume work experience.");
+
+/**
+ * Enhance work experience using AI.
+ * @summary Enhance Work Experience
+ */
+export const enhanceWorkExperienceApiV1ResumesWorkExperiencesWorkIdEnhancePostParams =
+  zod.object({
+    work_id: zod.uuid(),
+  });
+
+export const enhanceWorkExperienceApiV1ResumesWorkExperiencesWorkIdEnhancePostBodyPromptMax = 2000;
+export const enhanceWorkExperienceApiV1ResumesWorkExperiencesWorkIdEnhancePostBodyAgentModeDefault = false;
+export const enhanceWorkExperienceApiV1ResumesWorkExperiencesWorkIdEnhancePostBodyToneDefault =
+  "professional";
+
+export const enhanceWorkExperienceApiV1ResumesWorkExperiencesWorkIdEnhancePostBody =
+  zod
+    .object({
+      prompt: zod
+        .string()
+        .min(1)
+        .max(
+          enhanceWorkExperienceApiV1ResumesWorkExperiencesWorkIdEnhancePostBodyPromptMax
+        ),
+      agent_mode: zod.boolean().optional(),
+      tone: zod
+        .union([zod.string(), zod.null()])
+        .default(
+          enhanceWorkExperienceApiV1ResumesWorkExperiencesWorkIdEnhancePostBodyToneDefault
+        ),
+      context: zod
+        .union([zod.record(zod.string(), zod.any()), zod.null()])
+        .optional(),
+    })
+    .describe("Request model for AI enhancement.");
+
+export const enhanceWorkExperienceApiV1ResumesWorkExperiencesWorkIdEnhancePostResponse =
+  zod
+    .object({
+      id: zod.uuid(),
+      user_id: zod.uuid(),
+      job_id: zod.uuid(),
+      parent_id: zod.union([zod.uuid(), zod.null()]),
+      job_title: zod.string(),
+      company_name: zod.string(),
+      employment_type: zod.union([zod.string(), zod.null()]),
+      start_date: zod.union([zod.string(), zod.null()]),
+      end_date: zod.union([zod.string(), zod.null()]),
+      location: zod.union([zod.string(), zod.null()]),
+      description: zod.union([zod.string(), zod.null()]),
+      achievements: zod.union([zod.array(zod.string()), zod.null()]),
+      created_at: zod.iso.datetime({}),
+      updated_at: zod.iso.datetime({}),
+    })
+    .describe("Response model for resume work experience.");
+
+/**
+ * Get specific project by ID.
+ * @summary Get Project
+ */
+export const getProjectApiV1ResumesProjectsProjectIdGetParams = zod.object({
+  project_id: zod.uuid(),
+});
+
+export const getProjectApiV1ResumesProjectsProjectIdGetResponse = zod
+  .object({
+    id: zod.uuid(),
+    user_id: zod.uuid(),
+    job_id: zod.uuid(),
+    parent_id: zod.union([zod.uuid(), zod.null()]),
+    project_name: zod.string(),
+    role: zod.union([zod.string(), zod.null()]),
+    start_date: zod.union([zod.string(), zod.null()]),
+    end_date: zod.union([zod.string(), zod.null()]),
+    location: zod.union([zod.string(), zod.null()]),
+    description: zod.union([zod.string(), zod.null()]),
+    technologies: zod.union([zod.array(zod.string()), zod.null()]),
+    url: zod.union([zod.string(), zod.null()]),
+    created_at: zod.iso.datetime({}),
+    updated_at: zod.iso.datetime({}),
+  })
+  .describe("Response model for resume project.");
+
+/**
+ * Update project manually.
+ * @summary Update Project
+ */
+export const updateProjectApiV1ResumesProjectsProjectIdPutParams = zod.object({
+  project_id: zod.uuid(),
+});
+
+export const updateProjectApiV1ResumesProjectsProjectIdPutBody = zod
+  .object({
+    project_name: zod.union([zod.string(), zod.null()]).optional(),
+    role: zod.union([zod.string(), zod.null()]).optional(),
+    start_date: zod.union([zod.string(), zod.null()]).optional(),
+    end_date: zod.union([zod.string(), zod.null()]).optional(),
+    location: zod.union([zod.string(), zod.null()]).optional(),
+    description: zod.union([zod.string(), zod.null()]).optional(),
+    technologies: zod.union([zod.array(zod.string()), zod.null()]).optional(),
+    url: zod.union([zod.string(), zod.null()]).optional(),
+  })
+  .describe("Request model for updating resume project.");
+
+export const updateProjectApiV1ResumesProjectsProjectIdPutResponse = zod
+  .object({
+    id: zod.uuid(),
+    user_id: zod.uuid(),
+    job_id: zod.uuid(),
+    parent_id: zod.union([zod.uuid(), zod.null()]),
+    project_name: zod.string(),
+    role: zod.union([zod.string(), zod.null()]),
+    start_date: zod.union([zod.string(), zod.null()]),
+    end_date: zod.union([zod.string(), zod.null()]),
+    location: zod.union([zod.string(), zod.null()]),
+    description: zod.union([zod.string(), zod.null()]),
+    technologies: zod.union([zod.array(zod.string()), zod.null()]),
+    url: zod.union([zod.string(), zod.null()]),
+    created_at: zod.iso.datetime({}),
+    updated_at: zod.iso.datetime({}),
+  })
+  .describe("Response model for resume project.");
+
+/**
+ * Enhance project using AI.
+ * @summary Enhance Project
+ */
+export const enhanceProjectApiV1ResumesProjectsProjectIdEnhancePostParams =
+  zod.object({
+    project_id: zod.uuid(),
+  });
+
+export const enhanceProjectApiV1ResumesProjectsProjectIdEnhancePostBodyPromptMax = 2000;
+export const enhanceProjectApiV1ResumesProjectsProjectIdEnhancePostBodyAgentModeDefault = false;
+export const enhanceProjectApiV1ResumesProjectsProjectIdEnhancePostBodyToneDefault =
+  "professional";
+
+export const enhanceProjectApiV1ResumesProjectsProjectIdEnhancePostBody = zod
+  .object({
+    prompt: zod
+      .string()
+      .min(1)
+      .max(enhanceProjectApiV1ResumesProjectsProjectIdEnhancePostBodyPromptMax),
+    agent_mode: zod.boolean().optional(),
+    tone: zod
+      .union([zod.string(), zod.null()])
+      .default(
+        enhanceProjectApiV1ResumesProjectsProjectIdEnhancePostBodyToneDefault
+      ),
+    context: zod
+      .union([zod.record(zod.string(), zod.any()), zod.null()])
+      .optional(),
+  })
+  .describe("Request model for AI enhancement.");
+
+export const enhanceProjectApiV1ResumesProjectsProjectIdEnhancePostResponse =
+  zod
+    .object({
+      id: zod.uuid(),
+      user_id: zod.uuid(),
+      job_id: zod.uuid(),
+      parent_id: zod.union([zod.uuid(), zod.null()]),
+      project_name: zod.string(),
+      role: zod.union([zod.string(), zod.null()]),
+      start_date: zod.union([zod.string(), zod.null()]),
+      end_date: zod.union([zod.string(), zod.null()]),
+      location: zod.union([zod.string(), zod.null()]),
+      description: zod.union([zod.string(), zod.null()]),
+      technologies: zod.union([zod.array(zod.string()), zod.null()]),
+      url: zod.union([zod.string(), zod.null()]),
+      created_at: zod.iso.datetime({}),
+      updated_at: zod.iso.datetime({}),
+    })
+    .describe("Response model for resume project.");
+
+/**
+ * Get specific skill by ID.
+ * @summary Get Skill
+ */
+export const getSkillApiV1ResumesSkillsSkillIdGetParams = zod.object({
+  skill_id: zod.uuid(),
+});
+
+export const getSkillApiV1ResumesSkillsSkillIdGetResponse = zod
+  .object({
+    id: zod.uuid(),
+    user_id: zod.uuid(),
+    job_id: zod.uuid(),
+    parent_id: zod.union([zod.uuid(), zod.null()]),
+    skill_name: zod.string(),
+    skill_category: zod.union([zod.string(), zod.null()]),
+    proficiency_level: zod.union([zod.string(), zod.null()]),
+    years_of_experience: zod.union([zod.number(), zod.null()]),
+    created_at: zod.iso.datetime({}),
+    updated_at: zod.iso.datetime({}),
+  })
+  .describe("Response model for resume skill.");
+
+/**
+ * Update skill manually.
+ * @summary Update Skill
+ */
+export const updateSkillApiV1ResumesSkillsSkillIdPutParams = zod.object({
+  skill_id: zod.uuid(),
+});
+
+export const updateSkillApiV1ResumesSkillsSkillIdPutBody = zod
+  .object({
+    skill_name: zod.union([zod.string(), zod.null()]).optional(),
+    skill_category: zod.union([zod.string(), zod.null()]).optional(),
+    proficiency_level: zod.union([zod.string(), zod.null()]).optional(),
+    years_of_experience: zod.union([zod.number(), zod.null()]).optional(),
+  })
+  .describe("Request model for updating resume skill.");
+
+export const updateSkillApiV1ResumesSkillsSkillIdPutResponse = zod
+  .object({
+    id: zod.uuid(),
+    user_id: zod.uuid(),
+    job_id: zod.uuid(),
+    parent_id: zod.union([zod.uuid(), zod.null()]),
+    skill_name: zod.string(),
+    skill_category: zod.union([zod.string(), zod.null()]),
+    proficiency_level: zod.union([zod.string(), zod.null()]),
+    years_of_experience: zod.union([zod.number(), zod.null()]),
+    created_at: zod.iso.datetime({}),
+    updated_at: zod.iso.datetime({}),
+  })
+  .describe("Response model for resume skill.");
+
+/**
+ * Enhance skill using AI.
+ * @summary Enhance Skill
+ */
+export const enhanceSkillApiV1ResumesSkillsSkillIdEnhancePostParams =
+  zod.object({
+    skill_id: zod.uuid(),
+  });
+
+export const enhanceSkillApiV1ResumesSkillsSkillIdEnhancePostBodyPromptMax = 2000;
+export const enhanceSkillApiV1ResumesSkillsSkillIdEnhancePostBodyAgentModeDefault = false;
+export const enhanceSkillApiV1ResumesSkillsSkillIdEnhancePostBodyToneDefault =
+  "professional";
+
+export const enhanceSkillApiV1ResumesSkillsSkillIdEnhancePostBody = zod
+  .object({
+    prompt: zod
+      .string()
+      .min(1)
+      .max(enhanceSkillApiV1ResumesSkillsSkillIdEnhancePostBodyPromptMax),
+    agent_mode: zod.boolean().optional(),
+    tone: zod
+      .union([zod.string(), zod.null()])
+      .default(enhanceSkillApiV1ResumesSkillsSkillIdEnhancePostBodyToneDefault),
+    context: zod
+      .union([zod.record(zod.string(), zod.any()), zod.null()])
+      .optional(),
+  })
+  .describe("Request model for AI enhancement.");
+
+export const enhanceSkillApiV1ResumesSkillsSkillIdEnhancePostResponse = zod
+  .object({
+    id: zod.uuid(),
+    user_id: zod.uuid(),
+    job_id: zod.uuid(),
+    parent_id: zod.union([zod.uuid(), zod.null()]),
+    skill_name: zod.string(),
+    skill_category: zod.union([zod.string(), zod.null()]),
+    proficiency_level: zod.union([zod.string(), zod.null()]),
+    years_of_experience: zod.union([zod.number(), zod.null()]),
+    created_at: zod.iso.datetime({}),
+    updated_at: zod.iso.datetime({}),
+  })
+  .describe("Response model for resume skill.");
 
 /**
  * @summary Root

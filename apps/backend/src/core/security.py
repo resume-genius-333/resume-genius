@@ -1,7 +1,7 @@
 """Security utilities for authentication."""
 
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Optional, Tuple
 import secrets
 import hashlib
 from jose import jwt, JWTError
@@ -81,7 +81,7 @@ class SecurityUtils:
         except JWTError:
             return None
 
-    def create_password_reset_token(self, user_id: str) -> str:
+    def create_password_reset_token(self, user_id: str) -> Tuple[str, str]:
         """Create a password reset token."""
         token = secrets.token_urlsafe(32)
         # Hash the token for storage
@@ -92,7 +92,9 @@ class SecurityUtils:
         """Hash a token for storage."""
         return hashlib.sha256(token.encode()).hexdigest()
 
-    def create_email_verification_token(self, user_id: str, email: str) -> str:
+    def create_email_verification_token(
+        self, user_id: str, email: str
+    ) -> Tuple[str, str]:
         """Create an email verification token."""
         token = secrets.token_urlsafe(32)
         # Hash the token for storage
