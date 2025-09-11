@@ -5,27 +5,64 @@
  * OpenAPI spec version: 1.0.0
  */
 import type {
+  AIEnhanceRequest,
   BodyTokenApiV1AuthTokenPost,
   CreateJobApiV1JobsCreatePostParams,
   CreateJobRequest,
   CreateJobResponse,
+  CreateResumeVersionApiV1ResumesPostParams,
+  CreateResumeVersionRequest,
+  EnhanceEducationApiV1ResumesEducationsEducationIdEnhancePostParams,
+  EnhanceMetadataApiV1ResumesMetadataMetadataIdEnhancePostParams,
+  EnhanceProjectApiV1ResumesProjectsProjectIdEnhancePostParams,
+  EnhanceResumeVersionApiV1ResumesVersionIdEnhancePostParams,
+  EnhanceSkillApiV1ResumesSkillsSkillIdEnhancePostParams,
+  EnhanceWorkExperienceApiV1ResumesWorkExperiencesWorkIdEnhancePostParams,
+  FullResumeResponse,
+  GetEducationApiV1ResumesEducationsEducationIdGetParams,
+  GetFullResumeApiV1ResumesVersionIdGetParams,
+  GetLatestResumeVersionApiV1ResumesLatestGetParams,
   GetMeApiV1AuthMeGetParams,
+  GetMetadataApiV1ResumesMetadataMetadataIdGetParams,
+  GetProjectApiV1ResumesProjectsProjectIdGetParams,
+  GetSkillApiV1ResumesSkillsSkillIdGetParams,
   GetStatusApiV1JobsJobIdStatusGetParams,
+  GetWorkExperienceApiV1ResumesWorkExperiencesWorkIdGetParams,
+  JobSchema,
+  ListResumeVersionsApiV1ResumesGetParams,
   LoginApiV1AuthLoginPostParams,
   LogoutApiV1AuthLogoutPostParams,
+  PaginatedResponse,
   ProcessingStatus,
   RefineResumeApiV1JobsJobIdRefinePostParams,
+  RefineResumeResponse,
   RefreshTokenApiV1AuthRefreshPostParams,
   RefreshTokenRequest,
   RefreshTokenResponse,
   RegisterApiV1AuthRegisterPostParams,
-  Resume,
-  ResumeListItem,
+  ResumeEducationRequest,
+  ResumeEducationResponse,
+  ResumeMetadataRequest,
+  ResumeMetadataResponse,
+  ResumeProjectRequest,
+  ResumeProjectResponse,
+  ResumeSkillRequest,
+  ResumeSkillResponse,
+  ResumeVersionResponse,
+  ResumeWorkExperienceRequest,
+  ResumeWorkExperienceResponse,
   SelectRelevantInfoApiV1JobsJobIdSelectRelevantInfoPostParams,
   StreamStatusApiV1JobsJobIdStatusStreamGetParams,
   TestApiKeyApiV1AuthTestApiKeyGet200,
   TestApiKeyApiV1AuthTestApiKeyGetParams,
   TokenApiV1AuthTokenPostParams,
+  UpdateEducationApiV1ResumesEducationsEducationIdPutParams,
+  UpdateMetadataApiV1ResumesMetadataMetadataIdPutParams,
+  UpdateProjectApiV1ResumesProjectsProjectIdPutParams,
+  UpdateResumeVersionApiV1ResumesVersionIdPutParams,
+  UpdateResumeVersionRequest,
+  UpdateSkillApiV1ResumesSkillsSkillIdPutParams,
+  UpdateWorkExperienceApiV1ResumesWorkExperiencesWorkIdPutParams,
   UserLoginRequest,
   UserLoginResponse,
   UserRegisterRequest,
@@ -190,66 +227,7 @@ export const testApiKeyApiV1AuthTestApiKeyGet = (
 };
 
 /**
- * List all resume versions for a specific job
- * @summary List Resume Versions
- */
-export const listResumeVersionsApiV1UsersUserIdJobsJobIdResumesGet = (
-  userId: string,
-  jobId: string
-) => {
-  return customAxiosInstance<ResumeListItem[]>({
-    url: `/api/v1/users/${userId}/jobs/${jobId}/resumes/`,
-    method: "GET",
-  });
-};
-
-/**
- * Create a new resume version
- * @summary Create Resume Version
- */
-export const createResumeVersionApiV1UsersUserIdJobsJobIdResumesPost = (
-  userId: string,
-  jobId: string,
-  resume: Resume
-) => {
-  return customAxiosInstance<Resume>({
-    url: `/api/v1/users/${userId}/jobs/${jobId}/resumes/`,
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    data: resume,
-  });
-};
-
-/**
- * Get a specific resume version
- * @summary Get Resume Version
- */
-export const getResumeVersionApiV1UsersUserIdJobsJobIdResumesVersionGet = (
-  userId: string,
-  jobId: string,
-  version: string
-) => {
-  return customAxiosInstance<Resume>({
-    url: `/api/v1/users/${userId}/jobs/${jobId}/resumes/${version}`,
-    method: "GET",
-  });
-};
-
-/**
- * Get the latest resume version (backward compatibility)
- * @summary Get Latest Resume
- */
-export const getLatestResumeApiV1UsersUserIdJobsJobIdResumeGet = (
-  userId: string,
-  jobId: string
-) => {
-  return customAxiosInstance<Resume>({
-    url: `/api/v1/users/${userId}/jobs/${jobId}/resume`,
-    method: "GET",
-  });
-};
-
-/**
+ * Create a new job and process it in the background.
  * @summary Create Job
  */
 export const createJobApiV1JobsCreatePost = (
@@ -266,6 +244,21 @@ export const createJobApiV1JobsCreatePost = (
 };
 
 /**
+ * Get a specific job by ID.
+ * @summary Get Job
+ */
+export const getJobApiV1UsersUserIdJobsJobIdGet = (
+  userId: string,
+  jobId: string
+) => {
+  return customAxiosInstance<JobSchema>({
+    url: `/api/v1/users/${userId}/jobs/${jobId}`,
+    method: "GET",
+  });
+};
+
+/**
+ * Select relevant information from user's resume for the job.
  * @summary Select Relevant Info
  */
 export const selectRelevantInfoApiV1JobsJobIdSelectRelevantInfoPost = (
@@ -280,13 +273,14 @@ export const selectRelevantInfoApiV1JobsJobIdSelectRelevantInfoPost = (
 };
 
 /**
+ * Refine user's resume for the specific job.
  * @summary Refine Resume
  */
 export const refineResumeApiV1JobsJobIdRefinePost = (
   jobId: string,
   params?: RefineResumeApiV1JobsJobIdRefinePostParams
 ) => {
-  return customAxiosInstance<unknown>({
+  return customAxiosInstance<RefineResumeResponse>({
     url: `/api/v1/jobs/${jobId}/refine`,
     method: "POST",
     params,
@@ -294,6 +288,7 @@ export const refineResumeApiV1JobsJobIdRefinePost = (
 };
 
 /**
+ * Stream job processing status via Server-Sent Events.
  * @summary Stream Status
  */
 export const streamStatusApiV1JobsJobIdStatusStreamGet = (
@@ -308,6 +303,7 @@ export const streamStatusApiV1JobsJobIdStatusStreamGet = (
 };
 
 /**
+ * Get current processing status for a job.
  * @summary Get Status
  */
 export const getStatusApiV1JobsJobIdStatusGet = (
@@ -317,6 +313,358 @@ export const getStatusApiV1JobsJobIdStatusGet = (
   return customAxiosInstance<ProcessingStatus>({
     url: `/api/v1/jobs/${jobId}/status`,
     method: "GET",
+    params,
+  });
+};
+
+/**
+ * List all resume versions for the current user with pagination.
+ * @summary List Resume Versions
+ */
+export const listResumeVersionsApiV1ResumesGet = (
+  params?: ListResumeVersionsApiV1ResumesGetParams
+) => {
+  return customAxiosInstance<PaginatedResponse>({
+    url: `/api/v1/resumes/`,
+    method: "GET",
+    params,
+  });
+};
+
+/**
+ * Create a new resume version.
+ * @summary Create Resume Version
+ */
+export const createResumeVersionApiV1ResumesPost = (
+  createResumeVersionRequest: CreateResumeVersionRequest,
+  params?: CreateResumeVersionApiV1ResumesPostParams
+) => {
+  return customAxiosInstance<ResumeVersionResponse>({
+    url: `/api/v1/resumes/`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: createResumeVersionRequest,
+    params,
+  });
+};
+
+/**
+ * Get the latest resume version for the current user.
+ * @summary Get Latest Resume Version
+ */
+export const getLatestResumeVersionApiV1ResumesLatestGet = (
+  params?: GetLatestResumeVersionApiV1ResumesLatestGetParams
+) => {
+  return customAxiosInstance<ResumeVersionResponse>({
+    url: `/api/v1/resumes/latest`,
+    method: "GET",
+    params,
+  });
+};
+
+/**
+ * Get full resume with all sections for a specific version.
+ * @summary Get Full Resume
+ */
+export const getFullResumeApiV1ResumesVersionIdGet = (
+  versionId: string,
+  params?: GetFullResumeApiV1ResumesVersionIdGetParams
+) => {
+  return customAxiosInstance<FullResumeResponse>({
+    url: `/api/v1/resumes/${versionId}`,
+    method: "GET",
+    params,
+  });
+};
+
+/**
+ * Update which sections are pinned to a resume version.
+ * @summary Update Resume Version
+ */
+export const updateResumeVersionApiV1ResumesVersionIdPut = (
+  versionId: string,
+  updateResumeVersionRequest: UpdateResumeVersionRequest,
+  params?: UpdateResumeVersionApiV1ResumesVersionIdPutParams
+) => {
+  return customAxiosInstance<ResumeVersionResponse>({
+    url: `/api/v1/resumes/${versionId}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: updateResumeVersionRequest,
+    params,
+  });
+};
+
+/**
+ * Enhance entire resume version using AI.
+ * @summary Enhance Resume Version
+ */
+export const enhanceResumeVersionApiV1ResumesVersionIdEnhancePost = (
+  versionId: string,
+  aIEnhanceRequest: AIEnhanceRequest,
+  params?: EnhanceResumeVersionApiV1ResumesVersionIdEnhancePostParams
+) => {
+  return customAxiosInstance<ResumeVersionResponse>({
+    url: `/api/v1/resumes/${versionId}/enhance`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: aIEnhanceRequest,
+    params,
+  });
+};
+
+/**
+ * Get specific metadata by ID.
+ * @summary Get Metadata
+ */
+export const getMetadataApiV1ResumesMetadataMetadataIdGet = (
+  metadataId: string,
+  params?: GetMetadataApiV1ResumesMetadataMetadataIdGetParams
+) => {
+  return customAxiosInstance<ResumeMetadataResponse>({
+    url: `/api/v1/resumes/metadata/${metadataId}`,
+    method: "GET",
+    params,
+  });
+};
+
+/**
+ * Update metadata manually.
+ * @summary Update Metadata
+ */
+export const updateMetadataApiV1ResumesMetadataMetadataIdPut = (
+  metadataId: string,
+  resumeMetadataRequest: ResumeMetadataRequest,
+  params?: UpdateMetadataApiV1ResumesMetadataMetadataIdPutParams
+) => {
+  return customAxiosInstance<ResumeMetadataResponse>({
+    url: `/api/v1/resumes/metadata/${metadataId}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: resumeMetadataRequest,
+    params,
+  });
+};
+
+/**
+ * Enhance metadata using AI.
+ * @summary Enhance Metadata
+ */
+export const enhanceMetadataApiV1ResumesMetadataMetadataIdEnhancePost = (
+  metadataId: string,
+  aIEnhanceRequest: AIEnhanceRequest,
+  params?: EnhanceMetadataApiV1ResumesMetadataMetadataIdEnhancePostParams
+) => {
+  return customAxiosInstance<ResumeMetadataResponse>({
+    url: `/api/v1/resumes/metadata/${metadataId}/enhance`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: aIEnhanceRequest,
+    params,
+  });
+};
+
+/**
+ * Get specific education entry by ID.
+ * @summary Get Education
+ */
+export const getEducationApiV1ResumesEducationsEducationIdGet = (
+  educationId: string,
+  params?: GetEducationApiV1ResumesEducationsEducationIdGetParams
+) => {
+  return customAxiosInstance<ResumeEducationResponse>({
+    url: `/api/v1/resumes/educations/${educationId}`,
+    method: "GET",
+    params,
+  });
+};
+
+/**
+ * Update education entry manually.
+ * @summary Update Education
+ */
+export const updateEducationApiV1ResumesEducationsEducationIdPut = (
+  educationId: string,
+  resumeEducationRequest: ResumeEducationRequest,
+  params?: UpdateEducationApiV1ResumesEducationsEducationIdPutParams
+) => {
+  return customAxiosInstance<ResumeEducationResponse>({
+    url: `/api/v1/resumes/educations/${educationId}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: resumeEducationRequest,
+    params,
+  });
+};
+
+/**
+ * Enhance education entry using AI.
+ * @summary Enhance Education
+ */
+export const enhanceEducationApiV1ResumesEducationsEducationIdEnhancePost = (
+  educationId: string,
+  aIEnhanceRequest: AIEnhanceRequest,
+  params?: EnhanceEducationApiV1ResumesEducationsEducationIdEnhancePostParams
+) => {
+  return customAxiosInstance<ResumeEducationResponse>({
+    url: `/api/v1/resumes/educations/${educationId}/enhance`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: aIEnhanceRequest,
+    params,
+  });
+};
+
+/**
+ * Get specific work experience by ID.
+ * @summary Get Work Experience
+ */
+export const getWorkExperienceApiV1ResumesWorkExperiencesWorkIdGet = (
+  workId: string,
+  params?: GetWorkExperienceApiV1ResumesWorkExperiencesWorkIdGetParams
+) => {
+  return customAxiosInstance<ResumeWorkExperienceResponse>({
+    url: `/api/v1/resumes/work_experiences/${workId}`,
+    method: "GET",
+    params,
+  });
+};
+
+/**
+ * Update work experience manually.
+ * @summary Update Work Experience
+ */
+export const updateWorkExperienceApiV1ResumesWorkExperiencesWorkIdPut = (
+  workId: string,
+  resumeWorkExperienceRequest: ResumeWorkExperienceRequest,
+  params?: UpdateWorkExperienceApiV1ResumesWorkExperiencesWorkIdPutParams
+) => {
+  return customAxiosInstance<ResumeWorkExperienceResponse>({
+    url: `/api/v1/resumes/work_experiences/${workId}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: resumeWorkExperienceRequest,
+    params,
+  });
+};
+
+/**
+ * Enhance work experience using AI.
+ * @summary Enhance Work Experience
+ */
+export const enhanceWorkExperienceApiV1ResumesWorkExperiencesWorkIdEnhancePost =
+  (
+    workId: string,
+    aIEnhanceRequest: AIEnhanceRequest,
+    params?: EnhanceWorkExperienceApiV1ResumesWorkExperiencesWorkIdEnhancePostParams
+  ) => {
+    return customAxiosInstance<ResumeWorkExperienceResponse>({
+      url: `/api/v1/resumes/work_experiences/${workId}/enhance`,
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      data: aIEnhanceRequest,
+      params,
+    });
+  };
+
+/**
+ * Get specific project by ID.
+ * @summary Get Project
+ */
+export const getProjectApiV1ResumesProjectsProjectIdGet = (
+  projectId: string,
+  params?: GetProjectApiV1ResumesProjectsProjectIdGetParams
+) => {
+  return customAxiosInstance<ResumeProjectResponse>({
+    url: `/api/v1/resumes/projects/${projectId}`,
+    method: "GET",
+    params,
+  });
+};
+
+/**
+ * Update project manually.
+ * @summary Update Project
+ */
+export const updateProjectApiV1ResumesProjectsProjectIdPut = (
+  projectId: string,
+  resumeProjectRequest: ResumeProjectRequest,
+  params?: UpdateProjectApiV1ResumesProjectsProjectIdPutParams
+) => {
+  return customAxiosInstance<ResumeProjectResponse>({
+    url: `/api/v1/resumes/projects/${projectId}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: resumeProjectRequest,
+    params,
+  });
+};
+
+/**
+ * Enhance project using AI.
+ * @summary Enhance Project
+ */
+export const enhanceProjectApiV1ResumesProjectsProjectIdEnhancePost = (
+  projectId: string,
+  aIEnhanceRequest: AIEnhanceRequest,
+  params?: EnhanceProjectApiV1ResumesProjectsProjectIdEnhancePostParams
+) => {
+  return customAxiosInstance<ResumeProjectResponse>({
+    url: `/api/v1/resumes/projects/${projectId}/enhance`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: aIEnhanceRequest,
+    params,
+  });
+};
+
+/**
+ * Get specific skill by ID.
+ * @summary Get Skill
+ */
+export const getSkillApiV1ResumesSkillsSkillIdGet = (
+  skillId: string,
+  params?: GetSkillApiV1ResumesSkillsSkillIdGetParams
+) => {
+  return customAxiosInstance<ResumeSkillResponse>({
+    url: `/api/v1/resumes/skills/${skillId}`,
+    method: "GET",
+    params,
+  });
+};
+
+/**
+ * Update skill manually.
+ * @summary Update Skill
+ */
+export const updateSkillApiV1ResumesSkillsSkillIdPut = (
+  skillId: string,
+  resumeSkillRequest: ResumeSkillRequest,
+  params?: UpdateSkillApiV1ResumesSkillsSkillIdPutParams
+) => {
+  return customAxiosInstance<ResumeSkillResponse>({
+    url: `/api/v1/resumes/skills/${skillId}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: resumeSkillRequest,
+    params,
+  });
+};
+
+/**
+ * Enhance skill using AI.
+ * @summary Enhance Skill
+ */
+export const enhanceSkillApiV1ResumesSkillsSkillIdEnhancePost = (
+  skillId: string,
+  aIEnhanceRequest: AIEnhanceRequest,
+  params?: EnhanceSkillApiV1ResumesSkillsSkillIdEnhancePostParams
+) => {
+  return customAxiosInstance<ResumeSkillResponse>({
+    url: `/api/v1/resumes/skills/${skillId}/enhance`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: aIEnhanceRequest,
     params,
   });
 };
@@ -359,34 +707,11 @@ export type VerifyTokenApiV1AuthVerifyTokenGetResult = NonNullable<
 export type TestApiKeyApiV1AuthTestApiKeyGetResult = NonNullable<
   Awaited<ReturnType<typeof testApiKeyApiV1AuthTestApiKeyGet>>
 >;
-export type ListResumeVersionsApiV1UsersUserIdJobsJobIdResumesGetResult =
-  NonNullable<
-    Awaited<
-      ReturnType<typeof listResumeVersionsApiV1UsersUserIdJobsJobIdResumesGet>
-    >
-  >;
-export type CreateResumeVersionApiV1UsersUserIdJobsJobIdResumesPostResult =
-  NonNullable<
-    Awaited<
-      ReturnType<typeof createResumeVersionApiV1UsersUserIdJobsJobIdResumesPost>
-    >
-  >;
-export type GetResumeVersionApiV1UsersUserIdJobsJobIdResumesVersionGetResult =
-  NonNullable<
-    Awaited<
-      ReturnType<
-        typeof getResumeVersionApiV1UsersUserIdJobsJobIdResumesVersionGet
-      >
-    >
-  >;
-export type GetLatestResumeApiV1UsersUserIdJobsJobIdResumeGetResult =
-  NonNullable<
-    Awaited<
-      ReturnType<typeof getLatestResumeApiV1UsersUserIdJobsJobIdResumeGet>
-    >
-  >;
 export type CreateJobApiV1JobsCreatePostResult = NonNullable<
   Awaited<ReturnType<typeof createJobApiV1JobsCreatePost>>
+>;
+export type GetJobApiV1UsersUserIdJobsJobIdGetResult = NonNullable<
+  Awaited<ReturnType<typeof getJobApiV1UsersUserIdJobsJobIdGet>>
 >;
 export type SelectRelevantInfoApiV1JobsJobIdSelectRelevantInfoPostResult =
   NonNullable<
@@ -403,6 +728,103 @@ export type StreamStatusApiV1JobsJobIdStatusStreamGetResult = NonNullable<
 export type GetStatusApiV1JobsJobIdStatusGetResult = NonNullable<
   Awaited<ReturnType<typeof getStatusApiV1JobsJobIdStatusGet>>
 >;
+export type ListResumeVersionsApiV1ResumesGetResult = NonNullable<
+  Awaited<ReturnType<typeof listResumeVersionsApiV1ResumesGet>>
+>;
+export type CreateResumeVersionApiV1ResumesPostResult = NonNullable<
+  Awaited<ReturnType<typeof createResumeVersionApiV1ResumesPost>>
+>;
+export type GetLatestResumeVersionApiV1ResumesLatestGetResult = NonNullable<
+  Awaited<ReturnType<typeof getLatestResumeVersionApiV1ResumesLatestGet>>
+>;
+export type GetFullResumeApiV1ResumesVersionIdGetResult = NonNullable<
+  Awaited<ReturnType<typeof getFullResumeApiV1ResumesVersionIdGet>>
+>;
+export type UpdateResumeVersionApiV1ResumesVersionIdPutResult = NonNullable<
+  Awaited<ReturnType<typeof updateResumeVersionApiV1ResumesVersionIdPut>>
+>;
+export type EnhanceResumeVersionApiV1ResumesVersionIdEnhancePostResult =
+  NonNullable<
+    Awaited<
+      ReturnType<typeof enhanceResumeVersionApiV1ResumesVersionIdEnhancePost>
+    >
+  >;
+export type GetMetadataApiV1ResumesMetadataMetadataIdGetResult = NonNullable<
+  Awaited<ReturnType<typeof getMetadataApiV1ResumesMetadataMetadataIdGet>>
+>;
+export type UpdateMetadataApiV1ResumesMetadataMetadataIdPutResult = NonNullable<
+  Awaited<ReturnType<typeof updateMetadataApiV1ResumesMetadataMetadataIdPut>>
+>;
+export type EnhanceMetadataApiV1ResumesMetadataMetadataIdEnhancePostResult =
+  NonNullable<
+    Awaited<
+      ReturnType<
+        typeof enhanceMetadataApiV1ResumesMetadataMetadataIdEnhancePost
+      >
+    >
+  >;
+export type GetEducationApiV1ResumesEducationsEducationIdGetResult =
+  NonNullable<
+    Awaited<ReturnType<typeof getEducationApiV1ResumesEducationsEducationIdGet>>
+  >;
+export type UpdateEducationApiV1ResumesEducationsEducationIdPutResult =
+  NonNullable<
+    Awaited<
+      ReturnType<typeof updateEducationApiV1ResumesEducationsEducationIdPut>
+    >
+  >;
+export type EnhanceEducationApiV1ResumesEducationsEducationIdEnhancePostResult =
+  NonNullable<
+    Awaited<
+      ReturnType<
+        typeof enhanceEducationApiV1ResumesEducationsEducationIdEnhancePost
+      >
+    >
+  >;
+export type GetWorkExperienceApiV1ResumesWorkExperiencesWorkIdGetResult =
+  NonNullable<
+    Awaited<
+      ReturnType<typeof getWorkExperienceApiV1ResumesWorkExperiencesWorkIdGet>
+    >
+  >;
+export type UpdateWorkExperienceApiV1ResumesWorkExperiencesWorkIdPutResult =
+  NonNullable<
+    Awaited<
+      ReturnType<
+        typeof updateWorkExperienceApiV1ResumesWorkExperiencesWorkIdPut
+      >
+    >
+  >;
+export type EnhanceWorkExperienceApiV1ResumesWorkExperiencesWorkIdEnhancePostResult =
+  NonNullable<
+    Awaited<
+      ReturnType<
+        typeof enhanceWorkExperienceApiV1ResumesWorkExperiencesWorkIdEnhancePost
+      >
+    >
+  >;
+export type GetProjectApiV1ResumesProjectsProjectIdGetResult = NonNullable<
+  Awaited<ReturnType<typeof getProjectApiV1ResumesProjectsProjectIdGet>>
+>;
+export type UpdateProjectApiV1ResumesProjectsProjectIdPutResult = NonNullable<
+  Awaited<ReturnType<typeof updateProjectApiV1ResumesProjectsProjectIdPut>>
+>;
+export type EnhanceProjectApiV1ResumesProjectsProjectIdEnhancePostResult =
+  NonNullable<
+    Awaited<
+      ReturnType<typeof enhanceProjectApiV1ResumesProjectsProjectIdEnhancePost>
+    >
+  >;
+export type GetSkillApiV1ResumesSkillsSkillIdGetResult = NonNullable<
+  Awaited<ReturnType<typeof getSkillApiV1ResumesSkillsSkillIdGet>>
+>;
+export type UpdateSkillApiV1ResumesSkillsSkillIdPutResult = NonNullable<
+  Awaited<ReturnType<typeof updateSkillApiV1ResumesSkillsSkillIdPut>>
+>;
+export type EnhanceSkillApiV1ResumesSkillsSkillIdEnhancePostResult =
+  NonNullable<
+    Awaited<ReturnType<typeof enhanceSkillApiV1ResumesSkillsSkillIdEnhancePost>>
+  >;
 export type RootGetResult = NonNullable<Awaited<ReturnType<typeof rootGet>>>;
 export type HealthCheckHealthGetResult = NonNullable<
   Awaited<ReturnType<typeof healthCheckHealthGet>>
