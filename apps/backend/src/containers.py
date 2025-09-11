@@ -6,8 +6,6 @@ from sqlalchemy.orm import sessionmaker, Session
 import redis.asyncio as redis
 from instructor import AsyncInstructor, Instructor, from_openai
 
-from src.repositories.job_repository import JobRepository
-from src.services.job_service import JobService
 from src.services.status_service import StatusService
 
 
