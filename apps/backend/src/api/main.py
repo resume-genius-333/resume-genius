@@ -4,22 +4,20 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
+from src.core.db_config import (
+    is_docker_environment,
+    get_async_database_url,
+    get_sync_database_url,
+    get_redis_url,
+)
 
 from src.containers import container
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
-from src.core.db_config import (
-    is_docker_environment,
-    get_async_database_url,
-    get_sync_database_url,
-    get_redis_url
-)
-
 # Load environment variables
 load_dotenv()
 
@@ -78,15 +76,17 @@ container.config.redis.health_check_interval.from_value(
 )
 
 # Wire dependencies - MUST be done before importing routers
-container.wire(modules=[
-    "src.api.dependencies",
-    "src.api.routers.auth", 
-    "src.api.routers.jobs",
-    "src.api.routers.resume"
-])
+container.wire(
+    modules=[
+        "src.api.dependencies",
+        "src.api.routers.auth",
+        "src.api.routers.jobs",
+        "src.api.routers.resumes",
+    ]
+)
 
 # Import routers AFTER wiring
-from .routers import resume, auth, jobs  # noqa: E402
+from .routers import auth, jobs, resumes  # noqa: E402
 
 # OAuth2 scheme for Swagger UI
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
@@ -97,7 +97,7 @@ app = FastAPI(
     swagger_ui_parameters={
         "persistAuthorization": True,
         "displayRequestDuration": True,
-    }
+    },
 )
 
 app.add_middleware(
@@ -109,8 +109,8 @@ app.add_middleware(
 )
 
 app.include_router(auth.router, prefix="/api/v1", tags=["authentication"])
-app.include_router(resume.router, prefix="/api/v1", tags=["resume"])
 app.include_router(jobs.router, prefix="/api/v1", tags=["jobs"])
+app.include_router(resumes.router, prefix="/api/v1", tags=["resumes"])
 
 
 @app.get("/")
