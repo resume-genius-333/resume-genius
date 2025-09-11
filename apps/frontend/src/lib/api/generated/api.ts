@@ -7,39 +7,18 @@
 import type {
   AIEnhanceRequest,
   BodyTokenApiV1AuthTokenPost,
-  CreateJobApiV1JobsCreatePostParams,
   CreateJobRequest,
   CreateJobResponse,
-  CreateResumeVersionApiV1ResumesPostParams,
   CreateResumeVersionRequest,
-  EnhanceEducationApiV1ResumesEducationsEducationIdEnhancePostParams,
-  EnhanceMetadataApiV1ResumesMetadataMetadataIdEnhancePostParams,
-  EnhanceProjectApiV1ResumesProjectsProjectIdEnhancePostParams,
-  EnhanceResumeVersionApiV1ResumesVersionIdEnhancePostParams,
-  EnhanceSkillApiV1ResumesSkillsSkillIdEnhancePostParams,
-  EnhanceWorkExperienceApiV1ResumesWorkExperiencesWorkIdEnhancePostParams,
   FullResumeResponse,
-  GetEducationApiV1ResumesEducationsEducationIdGetParams,
-  GetFullResumeApiV1ResumesVersionIdGetParams,
   GetLatestResumeVersionApiV1ResumesLatestGetParams,
-  GetMeApiV1AuthMeGetParams,
-  GetMetadataApiV1ResumesMetadataMetadataIdGetParams,
-  GetProjectApiV1ResumesProjectsProjectIdGetParams,
-  GetSkillApiV1ResumesSkillsSkillIdGetParams,
-  GetStatusApiV1JobsJobIdStatusGetParams,
-  GetWorkExperienceApiV1ResumesWorkExperiencesWorkIdGetParams,
   JobSchema,
   ListResumeVersionsApiV1ResumesGetParams,
-  LoginApiV1AuthLoginPostParams,
-  LogoutApiV1AuthLogoutPostParams,
   PaginatedResponse,
   ProcessingStatus,
-  RefineResumeApiV1JobsJobIdRefinePostParams,
   RefineResumeResponse,
-  RefreshTokenApiV1AuthRefreshPostParams,
   RefreshTokenRequest,
   RefreshTokenResponse,
-  RegisterApiV1AuthRegisterPostParams,
   ResumeEducationRequest,
   ResumeEducationResponse,
   ResumeMetadataRequest,
@@ -51,25 +30,14 @@ import type {
   ResumeVersionResponse,
   ResumeWorkExperienceRequest,
   ResumeWorkExperienceResponse,
-  SelectRelevantInfoApiV1JobsJobIdSelectRelevantInfoPostParams,
-  StreamStatusApiV1JobsJobIdStatusStreamGetParams,
   TestApiKeyApiV1AuthTestApiKeyGet200,
-  TestApiKeyApiV1AuthTestApiKeyGetParams,
-  TokenApiV1AuthTokenPostParams,
-  UpdateEducationApiV1ResumesEducationsEducationIdPutParams,
-  UpdateMetadataApiV1ResumesMetadataMetadataIdPutParams,
-  UpdateProjectApiV1ResumesProjectsProjectIdPutParams,
-  UpdateResumeVersionApiV1ResumesVersionIdPutParams,
   UpdateResumeVersionRequest,
-  UpdateSkillApiV1ResumesSkillsSkillIdPutParams,
-  UpdateWorkExperienceApiV1ResumesWorkExperiencesWorkIdPutParams,
   UserLoginRequest,
   UserLoginResponse,
   UserRegisterRequest,
   UserRegisterResponse,
   UserResponse,
   VerifyTokenApiV1AuthVerifyTokenGet200,
-  VerifyTokenApiV1AuthVerifyTokenGetParams,
 } from "./schemas";
 
 import { customAxiosInstance } from "../orval-axios";
@@ -78,15 +46,13 @@ import { customAxiosInstance } from "../orval-axios";
  * @summary Register
  */
 export const registerApiV1AuthRegisterPost = (
-  userRegisterRequest: UserRegisterRequest,
-  params?: RegisterApiV1AuthRegisterPostParams
+  userRegisterRequest: UserRegisterRequest
 ) => {
   return customAxiosInstance<UserRegisterResponse>({
     url: `/api/v1/auth/register`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
     data: userRegisterRequest,
-    params,
   });
 };
 
@@ -94,16 +60,12 @@ export const registerApiV1AuthRegisterPost = (
  * Login user and create session.
  * @summary Login
  */
-export const loginApiV1AuthLoginPost = (
-  userLoginRequest: UserLoginRequest,
-  params?: LoginApiV1AuthLoginPostParams
-) => {
+export const loginApiV1AuthLoginPost = (userLoginRequest: UserLoginRequest) => {
   return customAxiosInstance<UserLoginResponse>({
     url: `/api/v1/auth/login`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
     data: userLoginRequest,
-    params,
   });
 };
 
@@ -115,8 +77,7 @@ and returns an access token in OAuth2 format.
  * @summary Token
  */
 export const tokenApiV1AuthTokenPost = (
-  bodyTokenApiV1AuthTokenPost: BodyTokenApiV1AuthTokenPost,
-  params?: TokenApiV1AuthTokenPostParams
+  bodyTokenApiV1AuthTokenPost: BodyTokenApiV1AuthTokenPost
 ) => {
   const formUrlEncoded = new URLSearchParams();
   if (
@@ -151,7 +112,6 @@ export const tokenApiV1AuthTokenPost = (
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     data: formUrlEncoded,
-    params,
   });
 };
 
@@ -160,15 +120,13 @@ export const tokenApiV1AuthTokenPost = (
  * @summary Refresh Token
  */
 export const refreshTokenApiV1AuthRefreshPost = (
-  refreshTokenRequest: RefreshTokenRequest,
-  params?: RefreshTokenApiV1AuthRefreshPostParams
+  refreshTokenRequest: RefreshTokenRequest
 ) => {
   return customAxiosInstance<RefreshTokenResponse>({
     url: `/api/v1/auth/refresh`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
     data: refreshTokenRequest,
-    params,
   });
 };
 
@@ -176,13 +134,10 @@ export const refreshTokenApiV1AuthRefreshPost = (
  * Logout user by revoking tokens.
  * @summary Logout
  */
-export const logoutApiV1AuthLogoutPost = (
-  params?: LogoutApiV1AuthLogoutPostParams
-) => {
+export const logoutApiV1AuthLogoutPost = () => {
   return customAxiosInstance<null>({
     url: `/api/v1/auth/logout`,
     method: "POST",
-    params,
   });
 };
 
@@ -190,11 +145,10 @@ export const logoutApiV1AuthLogoutPost = (
  * Get current user information.
  * @summary Get Me
  */
-export const getMeApiV1AuthMeGet = (params?: GetMeApiV1AuthMeGetParams) => {
+export const getMeApiV1AuthMeGet = () => {
   return customAxiosInstance<UserResponse>({
     url: `/api/v1/auth/me`,
     method: "GET",
-    params,
   });
 };
 
@@ -202,13 +156,10 @@ export const getMeApiV1AuthMeGet = (params?: GetMeApiV1AuthMeGetParams) => {
  * Verify if token is valid.
  * @summary Verify Token
  */
-export const verifyTokenApiV1AuthVerifyTokenGet = (
-  params?: VerifyTokenApiV1AuthVerifyTokenGetParams
-) => {
+export const verifyTokenApiV1AuthVerifyTokenGet = () => {
   return customAxiosInstance<VerifyTokenApiV1AuthVerifyTokenGet200>({
     url: `/api/v1/auth/verify-token`,
     method: "GET",
-    params,
   });
 };
 
@@ -216,13 +167,10 @@ export const verifyTokenApiV1AuthVerifyTokenGet = (
  * Test endpoint that requires API key authentication.
  * @summary Test Api Key
  */
-export const testApiKeyApiV1AuthTestApiKeyGet = (
-  params?: TestApiKeyApiV1AuthTestApiKeyGetParams
-) => {
+export const testApiKeyApiV1AuthTestApiKeyGet = () => {
   return customAxiosInstance<TestApiKeyApiV1AuthTestApiKeyGet200>({
     url: `/api/v1/auth/test-api-key`,
     method: "GET",
-    params,
   });
 };
 
@@ -231,15 +179,13 @@ export const testApiKeyApiV1AuthTestApiKeyGet = (
  * @summary Create Job
  */
 export const createJobApiV1JobsCreatePost = (
-  createJobRequest: CreateJobRequest,
-  params?: CreateJobApiV1JobsCreatePostParams
+  createJobRequest: CreateJobRequest
 ) => {
   return customAxiosInstance<CreateJobResponse>({
     url: `/api/v1/jobs/create`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
     data: createJobRequest,
-    params,
   });
 };
 
@@ -247,12 +193,9 @@ export const createJobApiV1JobsCreatePost = (
  * Get a specific job by ID.
  * @summary Get Job
  */
-export const getJobApiV1UsersUserIdJobsJobIdGet = (
-  userId: string,
-  jobId: string
-) => {
+export const getJobApiV1JobsJobIdGet = (jobId: string) => {
   return customAxiosInstance<JobSchema>({
-    url: `/api/v1/users/${userId}/jobs/${jobId}`,
+    url: `/api/v1/jobs/${jobId}`,
     method: "GET",
   });
 };
@@ -262,13 +205,11 @@ export const getJobApiV1UsersUserIdJobsJobIdGet = (
  * @summary Select Relevant Info
  */
 export const selectRelevantInfoApiV1JobsJobIdSelectRelevantInfoPost = (
-  jobId: string,
-  params?: SelectRelevantInfoApiV1JobsJobIdSelectRelevantInfoPostParams
+  jobId: string
 ) => {
   return customAxiosInstance<unknown>({
     url: `/api/v1/jobs/${jobId}/select_relevant_info`,
     method: "POST",
-    params,
   });
 };
 
@@ -276,14 +217,10 @@ export const selectRelevantInfoApiV1JobsJobIdSelectRelevantInfoPost = (
  * Refine user's resume for the specific job.
  * @summary Refine Resume
  */
-export const refineResumeApiV1JobsJobIdRefinePost = (
-  jobId: string,
-  params?: RefineResumeApiV1JobsJobIdRefinePostParams
-) => {
+export const refineResumeApiV1JobsJobIdRefinePost = (jobId: string) => {
   return customAxiosInstance<RefineResumeResponse>({
     url: `/api/v1/jobs/${jobId}/refine`,
     method: "POST",
-    params,
   });
 };
 
@@ -291,14 +228,10 @@ export const refineResumeApiV1JobsJobIdRefinePost = (
  * Stream job processing status via Server-Sent Events.
  * @summary Stream Status
  */
-export const streamStatusApiV1JobsJobIdStatusStreamGet = (
-  jobId: string,
-  params?: StreamStatusApiV1JobsJobIdStatusStreamGetParams
-) => {
+export const streamStatusApiV1JobsJobIdStatusStreamGet = (jobId: string) => {
   return customAxiosInstance<unknown>({
     url: `/api/v1/jobs/${jobId}/status-stream`,
     method: "GET",
-    params,
   });
 };
 
@@ -306,14 +239,10 @@ export const streamStatusApiV1JobsJobIdStatusStreamGet = (
  * Get current processing status for a job.
  * @summary Get Status
  */
-export const getStatusApiV1JobsJobIdStatusGet = (
-  jobId: string,
-  params?: GetStatusApiV1JobsJobIdStatusGetParams
-) => {
+export const getStatusApiV1JobsJobIdStatusGet = (jobId: string) => {
   return customAxiosInstance<ProcessingStatus>({
     url: `/api/v1/jobs/${jobId}/status`,
     method: "GET",
-    params,
   });
 };
 
@@ -336,15 +265,13 @@ export const listResumeVersionsApiV1ResumesGet = (
  * @summary Create Resume Version
  */
 export const createResumeVersionApiV1ResumesPost = (
-  createResumeVersionRequest: CreateResumeVersionRequest,
-  params?: CreateResumeVersionApiV1ResumesPostParams
+  createResumeVersionRequest: CreateResumeVersionRequest
 ) => {
   return customAxiosInstance<ResumeVersionResponse>({
     url: `/api/v1/resumes/`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
     data: createResumeVersionRequest,
-    params,
   });
 };
 
@@ -366,14 +293,10 @@ export const getLatestResumeVersionApiV1ResumesLatestGet = (
  * Get full resume with all sections for a specific version.
  * @summary Get Full Resume
  */
-export const getFullResumeApiV1ResumesVersionIdGet = (
-  versionId: string,
-  params?: GetFullResumeApiV1ResumesVersionIdGetParams
-) => {
+export const getFullResumeApiV1ResumesVersionIdGet = (versionId: string) => {
   return customAxiosInstance<FullResumeResponse>({
     url: `/api/v1/resumes/${versionId}`,
     method: "GET",
-    params,
   });
 };
 
@@ -383,15 +306,13 @@ export const getFullResumeApiV1ResumesVersionIdGet = (
  */
 export const updateResumeVersionApiV1ResumesVersionIdPut = (
   versionId: string,
-  updateResumeVersionRequest: UpdateResumeVersionRequest,
-  params?: UpdateResumeVersionApiV1ResumesVersionIdPutParams
+  updateResumeVersionRequest: UpdateResumeVersionRequest
 ) => {
   return customAxiosInstance<ResumeVersionResponse>({
     url: `/api/v1/resumes/${versionId}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     data: updateResumeVersionRequest,
-    params,
   });
 };
 
@@ -401,15 +322,13 @@ export const updateResumeVersionApiV1ResumesVersionIdPut = (
  */
 export const enhanceResumeVersionApiV1ResumesVersionIdEnhancePost = (
   versionId: string,
-  aIEnhanceRequest: AIEnhanceRequest,
-  params?: EnhanceResumeVersionApiV1ResumesVersionIdEnhancePostParams
+  aIEnhanceRequest: AIEnhanceRequest
 ) => {
   return customAxiosInstance<ResumeVersionResponse>({
     url: `/api/v1/resumes/${versionId}/enhance`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
     data: aIEnhanceRequest,
-    params,
   });
 };
 
@@ -418,13 +337,11 @@ export const enhanceResumeVersionApiV1ResumesVersionIdEnhancePost = (
  * @summary Get Metadata
  */
 export const getMetadataApiV1ResumesMetadataMetadataIdGet = (
-  metadataId: string,
-  params?: GetMetadataApiV1ResumesMetadataMetadataIdGetParams
+  metadataId: string
 ) => {
   return customAxiosInstance<ResumeMetadataResponse>({
     url: `/api/v1/resumes/metadata/${metadataId}`,
     method: "GET",
-    params,
   });
 };
 
@@ -434,15 +351,13 @@ export const getMetadataApiV1ResumesMetadataMetadataIdGet = (
  */
 export const updateMetadataApiV1ResumesMetadataMetadataIdPut = (
   metadataId: string,
-  resumeMetadataRequest: ResumeMetadataRequest,
-  params?: UpdateMetadataApiV1ResumesMetadataMetadataIdPutParams
+  resumeMetadataRequest: ResumeMetadataRequest
 ) => {
   return customAxiosInstance<ResumeMetadataResponse>({
     url: `/api/v1/resumes/metadata/${metadataId}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     data: resumeMetadataRequest,
-    params,
   });
 };
 
@@ -452,15 +367,13 @@ export const updateMetadataApiV1ResumesMetadataMetadataIdPut = (
  */
 export const enhanceMetadataApiV1ResumesMetadataMetadataIdEnhancePost = (
   metadataId: string,
-  aIEnhanceRequest: AIEnhanceRequest,
-  params?: EnhanceMetadataApiV1ResumesMetadataMetadataIdEnhancePostParams
+  aIEnhanceRequest: AIEnhanceRequest
 ) => {
   return customAxiosInstance<ResumeMetadataResponse>({
     url: `/api/v1/resumes/metadata/${metadataId}/enhance`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
     data: aIEnhanceRequest,
-    params,
   });
 };
 
@@ -469,13 +382,11 @@ export const enhanceMetadataApiV1ResumesMetadataMetadataIdEnhancePost = (
  * @summary Get Education
  */
 export const getEducationApiV1ResumesEducationsEducationIdGet = (
-  educationId: string,
-  params?: GetEducationApiV1ResumesEducationsEducationIdGetParams
+  educationId: string
 ) => {
   return customAxiosInstance<ResumeEducationResponse>({
     url: `/api/v1/resumes/educations/${educationId}`,
     method: "GET",
-    params,
   });
 };
 
@@ -485,15 +396,13 @@ export const getEducationApiV1ResumesEducationsEducationIdGet = (
  */
 export const updateEducationApiV1ResumesEducationsEducationIdPut = (
   educationId: string,
-  resumeEducationRequest: ResumeEducationRequest,
-  params?: UpdateEducationApiV1ResumesEducationsEducationIdPutParams
+  resumeEducationRequest: ResumeEducationRequest
 ) => {
   return customAxiosInstance<ResumeEducationResponse>({
     url: `/api/v1/resumes/educations/${educationId}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     data: resumeEducationRequest,
-    params,
   });
 };
 
@@ -503,15 +412,13 @@ export const updateEducationApiV1ResumesEducationsEducationIdPut = (
  */
 export const enhanceEducationApiV1ResumesEducationsEducationIdEnhancePost = (
   educationId: string,
-  aIEnhanceRequest: AIEnhanceRequest,
-  params?: EnhanceEducationApiV1ResumesEducationsEducationIdEnhancePostParams
+  aIEnhanceRequest: AIEnhanceRequest
 ) => {
   return customAxiosInstance<ResumeEducationResponse>({
     url: `/api/v1/resumes/educations/${educationId}/enhance`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
     data: aIEnhanceRequest,
-    params,
   });
 };
 
@@ -520,13 +427,11 @@ export const enhanceEducationApiV1ResumesEducationsEducationIdEnhancePost = (
  * @summary Get Work Experience
  */
 export const getWorkExperienceApiV1ResumesWorkExperiencesWorkIdGet = (
-  workId: string,
-  params?: GetWorkExperienceApiV1ResumesWorkExperiencesWorkIdGetParams
+  workId: string
 ) => {
   return customAxiosInstance<ResumeWorkExperienceResponse>({
     url: `/api/v1/resumes/work_experiences/${workId}`,
     method: "GET",
-    params,
   });
 };
 
@@ -536,15 +441,13 @@ export const getWorkExperienceApiV1ResumesWorkExperiencesWorkIdGet = (
  */
 export const updateWorkExperienceApiV1ResumesWorkExperiencesWorkIdPut = (
   workId: string,
-  resumeWorkExperienceRequest: ResumeWorkExperienceRequest,
-  params?: UpdateWorkExperienceApiV1ResumesWorkExperiencesWorkIdPutParams
+  resumeWorkExperienceRequest: ResumeWorkExperienceRequest
 ) => {
   return customAxiosInstance<ResumeWorkExperienceResponse>({
     url: `/api/v1/resumes/work_experiences/${workId}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     data: resumeWorkExperienceRequest,
-    params,
   });
 };
 
@@ -553,17 +456,12 @@ export const updateWorkExperienceApiV1ResumesWorkExperiencesWorkIdPut = (
  * @summary Enhance Work Experience
  */
 export const enhanceWorkExperienceApiV1ResumesWorkExperiencesWorkIdEnhancePost =
-  (
-    workId: string,
-    aIEnhanceRequest: AIEnhanceRequest,
-    params?: EnhanceWorkExperienceApiV1ResumesWorkExperiencesWorkIdEnhancePostParams
-  ) => {
+  (workId: string, aIEnhanceRequest: AIEnhanceRequest) => {
     return customAxiosInstance<ResumeWorkExperienceResponse>({
       url: `/api/v1/resumes/work_experiences/${workId}/enhance`,
       method: "POST",
       headers: { "Content-Type": "application/json" },
       data: aIEnhanceRequest,
-      params,
     });
   };
 
@@ -572,13 +470,11 @@ export const enhanceWorkExperienceApiV1ResumesWorkExperiencesWorkIdEnhancePost =
  * @summary Get Project
  */
 export const getProjectApiV1ResumesProjectsProjectIdGet = (
-  projectId: string,
-  params?: GetProjectApiV1ResumesProjectsProjectIdGetParams
+  projectId: string
 ) => {
   return customAxiosInstance<ResumeProjectResponse>({
     url: `/api/v1/resumes/projects/${projectId}`,
     method: "GET",
-    params,
   });
 };
 
@@ -588,15 +484,13 @@ export const getProjectApiV1ResumesProjectsProjectIdGet = (
  */
 export const updateProjectApiV1ResumesProjectsProjectIdPut = (
   projectId: string,
-  resumeProjectRequest: ResumeProjectRequest,
-  params?: UpdateProjectApiV1ResumesProjectsProjectIdPutParams
+  resumeProjectRequest: ResumeProjectRequest
 ) => {
   return customAxiosInstance<ResumeProjectResponse>({
     url: `/api/v1/resumes/projects/${projectId}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     data: resumeProjectRequest,
-    params,
   });
 };
 
@@ -606,15 +500,13 @@ export const updateProjectApiV1ResumesProjectsProjectIdPut = (
  */
 export const enhanceProjectApiV1ResumesProjectsProjectIdEnhancePost = (
   projectId: string,
-  aIEnhanceRequest: AIEnhanceRequest,
-  params?: EnhanceProjectApiV1ResumesProjectsProjectIdEnhancePostParams
+  aIEnhanceRequest: AIEnhanceRequest
 ) => {
   return customAxiosInstance<ResumeProjectResponse>({
     url: `/api/v1/resumes/projects/${projectId}/enhance`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
     data: aIEnhanceRequest,
-    params,
   });
 };
 
@@ -622,14 +514,10 @@ export const enhanceProjectApiV1ResumesProjectsProjectIdEnhancePost = (
  * Get specific skill by ID.
  * @summary Get Skill
  */
-export const getSkillApiV1ResumesSkillsSkillIdGet = (
-  skillId: string,
-  params?: GetSkillApiV1ResumesSkillsSkillIdGetParams
-) => {
+export const getSkillApiV1ResumesSkillsSkillIdGet = (skillId: string) => {
   return customAxiosInstance<ResumeSkillResponse>({
     url: `/api/v1/resumes/skills/${skillId}`,
     method: "GET",
-    params,
   });
 };
 
@@ -639,15 +527,13 @@ export const getSkillApiV1ResumesSkillsSkillIdGet = (
  */
 export const updateSkillApiV1ResumesSkillsSkillIdPut = (
   skillId: string,
-  resumeSkillRequest: ResumeSkillRequest,
-  params?: UpdateSkillApiV1ResumesSkillsSkillIdPutParams
+  resumeSkillRequest: ResumeSkillRequest
 ) => {
   return customAxiosInstance<ResumeSkillResponse>({
     url: `/api/v1/resumes/skills/${skillId}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     data: resumeSkillRequest,
-    params,
   });
 };
 
@@ -657,15 +543,13 @@ export const updateSkillApiV1ResumesSkillsSkillIdPut = (
  */
 export const enhanceSkillApiV1ResumesSkillsSkillIdEnhancePost = (
   skillId: string,
-  aIEnhanceRequest: AIEnhanceRequest,
-  params?: EnhanceSkillApiV1ResumesSkillsSkillIdEnhancePostParams
+  aIEnhanceRequest: AIEnhanceRequest
 ) => {
   return customAxiosInstance<ResumeSkillResponse>({
     url: `/api/v1/resumes/skills/${skillId}/enhance`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
     data: aIEnhanceRequest,
-    params,
   });
 };
 
@@ -710,8 +594,8 @@ export type TestApiKeyApiV1AuthTestApiKeyGetResult = NonNullable<
 export type CreateJobApiV1JobsCreatePostResult = NonNullable<
   Awaited<ReturnType<typeof createJobApiV1JobsCreatePost>>
 >;
-export type GetJobApiV1UsersUserIdJobsJobIdGetResult = NonNullable<
-  Awaited<ReturnType<typeof getJobApiV1UsersUserIdJobsJobIdGet>>
+export type GetJobApiV1JobsJobIdGetResult = NonNullable<
+  Awaited<ReturnType<typeof getJobApiV1JobsJobIdGet>>
 >;
 export type SelectRelevantInfoApiV1JobsJobIdSelectRelevantInfoPostResult =
   NonNullable<

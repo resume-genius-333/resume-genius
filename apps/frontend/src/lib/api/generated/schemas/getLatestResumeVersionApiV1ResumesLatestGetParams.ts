@@ -7,12 +7,4 @@
 
 export type GetLatestResumeVersionApiV1ResumesLatestGetParams = {
   job_id?: string | null;
-  jwt_secret_key?: unknown;
-  jwt_algorithm?: unknown;
-  access_token_expire_minutes?: unknown;
-  refresh_token_expire_days?: unknown;
-  password_reset_token_expire_hours?: unknown;
-  email_verification_token_expire_hours?: unknown;
-  session_factory?: unknown;
-  instructor?: unknown;
 };

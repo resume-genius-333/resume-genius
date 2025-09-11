@@ -10,16 +10,6 @@ import { z as zod } from "zod";
  * Register a new user.
  * @summary Register
  */
-export const registerApiV1AuthRegisterPostQueryParams = zod.object({
-  session_factory: zod.any().optional(),
-  jwt_secret_key: zod.any().optional(),
-  jwt_algorithm: zod.any().optional(),
-  access_token_expire_minutes: zod.any().optional(),
-  refresh_token_expire_days: zod.any().optional(),
-  password_reset_token_expire_hours: zod.any().optional(),
-  email_verification_token_expire_hours: zod.any().optional(),
-});
-
 export const registerApiV1AuthRegisterPostBodyPasswordMin = 8;
 export const registerApiV1AuthRegisterPostBodyFirstNameMax = 100;
 export const registerApiV1AuthRegisterPostBodyLastNameMaxOne = 100;
@@ -50,16 +40,6 @@ export const registerApiV1AuthRegisterPostBody = zod
  * Login user and create session.
  * @summary Login
  */
-export const loginApiV1AuthLoginPostQueryParams = zod.object({
-  session_factory: zod.any().optional(),
-  jwt_secret_key: zod.any().optional(),
-  jwt_algorithm: zod.any().optional(),
-  access_token_expire_minutes: zod.any().optional(),
-  refresh_token_expire_days: zod.any().optional(),
-  password_reset_token_expire_hours: zod.any().optional(),
-  email_verification_token_expire_hours: zod.any().optional(),
-});
-
 export const loginApiV1AuthLoginPostBodyRememberMeDefault = false;
 
 export const loginApiV1AuthLoginPostBody = zod
@@ -91,32 +71,12 @@ This endpoint accepts username (email) and password via form data
 and returns an access token in OAuth2 format.
  * @summary Token
  */
-export const tokenApiV1AuthTokenPostQueryParams = zod.object({
-  session_factory: zod.any().optional(),
-  jwt_secret_key: zod.any().optional(),
-  jwt_algorithm: zod.any().optional(),
-  access_token_expire_minutes: zod.any().optional(),
-  refresh_token_expire_days: zod.any().optional(),
-  password_reset_token_expire_hours: zod.any().optional(),
-  email_verification_token_expire_hours: zod.any().optional(),
-});
-
 export const tokenApiV1AuthTokenPostResponse = zod.any();
 
 /**
  * Refresh access token using refresh token.
  * @summary Refresh Token
  */
-export const refreshTokenApiV1AuthRefreshPostQueryParams = zod.object({
-  session_factory: zod.any().optional(),
-  jwt_secret_key: zod.any().optional(),
-  jwt_algorithm: zod.any().optional(),
-  access_token_expire_minutes: zod.any().optional(),
-  refresh_token_expire_days: zod.any().optional(),
-  password_reset_token_expire_hours: zod.any().optional(),
-  email_verification_token_expire_hours: zod.any().optional(),
-});
-
 export const refreshTokenApiV1AuthRefreshPostBody = zod
   .object({
     refresh_token: zod.string().describe("JWT refresh token"),
@@ -138,33 +98,9 @@ export const refreshTokenApiV1AuthRefreshPostResponse = zod
   .describe("Refresh token response schema.");
 
 /**
- * Logout user by revoking tokens.
- * @summary Logout
- */
-export const logoutApiV1AuthLogoutPostQueryParams = zod.object({
-  jwt_secret_key: zod.any().optional(),
-  jwt_algorithm: zod.any().optional(),
-  access_token_expire_minutes: zod.any().optional(),
-  refresh_token_expire_days: zod.any().optional(),
-  password_reset_token_expire_hours: zod.any().optional(),
-  email_verification_token_expire_hours: zod.any().optional(),
-  session_factory: zod.any().optional(),
-});
-
-/**
  * Get current user information.
  * @summary Get Me
  */
-export const getMeApiV1AuthMeGetQueryParams = zod.object({
-  jwt_secret_key: zod.any().optional(),
-  jwt_algorithm: zod.any().optional(),
-  access_token_expire_minutes: zod.any().optional(),
-  refresh_token_expire_days: zod.any().optional(),
-  password_reset_token_expire_hours: zod.any().optional(),
-  email_verification_token_expire_hours: zod.any().optional(),
-  session_factory: zod.any().optional(),
-});
-
 export const getMeApiV1AuthMeGetResponse = zod
   .object({
     id: zod.string().describe("User ID"),
@@ -229,16 +165,6 @@ export const getMeApiV1AuthMeGetResponse = zod
  * Verify if token is valid.
  * @summary Verify Token
  */
-export const verifyTokenApiV1AuthVerifyTokenGetQueryParams = zod.object({
-  jwt_secret_key: zod.any().optional(),
-  jwt_algorithm: zod.any().optional(),
-  access_token_expire_minutes: zod.any().optional(),
-  refresh_token_expire_days: zod.any().optional(),
-  password_reset_token_expire_hours: zod.any().optional(),
-  email_verification_token_expire_hours: zod.any().optional(),
-  session_factory: zod.any().optional(),
-});
-
 export const verifyTokenApiV1AuthVerifyTokenGetResponse = zod.record(
   zod.string(),
   zod.any()
@@ -248,10 +174,6 @@ export const verifyTokenApiV1AuthVerifyTokenGetResponse = zod.record(
  * Test endpoint that requires API key authentication.
  * @summary Test Api Key
  */
-export const testApiKeyApiV1AuthTestApiKeyGetQueryParams = zod.object({
-  session_factory: zod.any().optional(),
-});
-
 export const testApiKeyApiV1AuthTestApiKeyGetHeader = zod.object({
   "X-API-Key": zod.union([zod.string(), zod.null()]).optional(),
 });
@@ -265,16 +187,6 @@ export const testApiKeyApiV1AuthTestApiKeyGetResponse = zod.record(
  * Create a new job and process it in the background.
  * @summary Create Job
  */
-export const createJobApiV1JobsCreatePostQueryParams = zod.object({
-  jwt_secret_key: zod.any().optional(),
-  jwt_algorithm: zod.any().optional(),
-  access_token_expire_minutes: zod.any().optional(),
-  refresh_token_expire_days: zod.any().optional(),
-  password_reset_token_expire_hours: zod.any().optional(),
-  email_verification_token_expire_hours: zod.any().optional(),
-  session_factory: zod.any().optional(),
-});
-
 export const createJobApiV1JobsCreatePostBody = zod
   .object({
     job_description: zod.string(),
@@ -293,12 +205,11 @@ export const createJobApiV1JobsCreatePostResponse = zod
  * Get a specific job by ID.
  * @summary Get Job
  */
-export const getJobApiV1UsersUserIdJobsJobIdGetParams = zod.object({
-  user_id: zod.uuid(),
+export const getJobApiV1JobsJobIdGetParams = zod.object({
   job_id: zod.uuid(),
 });
 
-export const getJobApiV1UsersUserIdJobsJobIdGetResponse = zod.object({
+export const getJobApiV1JobsJobIdGetResponse = zod.object({
   id: zod.uuid(),
   user_id: zod.uuid(),
   company_name: zod.string(),
@@ -316,17 +227,6 @@ export const selectRelevantInfoApiV1JobsJobIdSelectRelevantInfoPostParams =
     job_id: zod.uuid(),
   });
 
-export const selectRelevantInfoApiV1JobsJobIdSelectRelevantInfoPostQueryParams =
-  zod.object({
-    jwt_secret_key: zod.any().optional(),
-    jwt_algorithm: zod.any().optional(),
-    access_token_expire_minutes: zod.any().optional(),
-    refresh_token_expire_days: zod.any().optional(),
-    password_reset_token_expire_hours: zod.any().optional(),
-    email_verification_token_expire_hours: zod.any().optional(),
-    session_factory: zod.any().optional(),
-  });
-
 export const selectRelevantInfoApiV1JobsJobIdSelectRelevantInfoPostResponse =
   zod.any();
 
@@ -336,16 +236,6 @@ export const selectRelevantInfoApiV1JobsJobIdSelectRelevantInfoPostResponse =
  */
 export const refineResumeApiV1JobsJobIdRefinePostParams = zod.object({
   job_id: zod.uuid(),
-});
-
-export const refineResumeApiV1JobsJobIdRefinePostQueryParams = zod.object({
-  jwt_secret_key: zod.any().optional(),
-  jwt_algorithm: zod.any().optional(),
-  access_token_expire_minutes: zod.any().optional(),
-  refresh_token_expire_days: zod.any().optional(),
-  password_reset_token_expire_hours: zod.any().optional(),
-  email_verification_token_expire_hours: zod.any().optional(),
-  session_factory: zod.any().optional(),
 });
 
 export const refineResumeApiV1JobsJobIdRefinePostResponse = zod
@@ -363,16 +253,6 @@ export const streamStatusApiV1JobsJobIdStatusStreamGetParams = zod.object({
   job_id: zod.uuid(),
 });
 
-export const streamStatusApiV1JobsJobIdStatusStreamGetQueryParams = zod.object({
-  jwt_secret_key: zod.any().optional(),
-  jwt_algorithm: zod.any().optional(),
-  access_token_expire_minutes: zod.any().optional(),
-  refresh_token_expire_days: zod.any().optional(),
-  password_reset_token_expire_hours: zod.any().optional(),
-  email_verification_token_expire_hours: zod.any().optional(),
-  session_factory: zod.any().optional(),
-});
-
 export const streamStatusApiV1JobsJobIdStatusStreamGetResponse = zod.any();
 
 /**
@@ -381,16 +261,6 @@ export const streamStatusApiV1JobsJobIdStatusStreamGetResponse = zod.any();
  */
 export const getStatusApiV1JobsJobIdStatusGetParams = zod.object({
   job_id: zod.uuid(),
-});
-
-export const getStatusApiV1JobsJobIdStatusGetQueryParams = zod.object({
-  jwt_secret_key: zod.any().optional(),
-  jwt_algorithm: zod.any().optional(),
-  access_token_expire_minutes: zod.any().optional(),
-  refresh_token_expire_days: zod.any().optional(),
-  password_reset_token_expire_hours: zod.any().optional(),
-  email_verification_token_expire_hours: zod.any().optional(),
-  session_factory: zod.any().optional(),
 });
 
 export const getStatusApiV1JobsJobIdStatusGetResponse = zod
@@ -419,14 +289,6 @@ export const listResumeVersionsApiV1ResumesGetQueryParams = zod.object({
     .number()
     .min(listResumeVersionsApiV1ResumesGetQueryOffsetMin)
     .optional(),
-  jwt_secret_key: zod.any().optional(),
-  jwt_algorithm: zod.any().optional(),
-  access_token_expire_minutes: zod.any().optional(),
-  refresh_token_expire_days: zod.any().optional(),
-  password_reset_token_expire_hours: zod.any().optional(),
-  email_verification_token_expire_hours: zod.any().optional(),
-  session_factory: zod.any().optional(),
-  instructor: zod.any().optional(),
 });
 
 export const listResumeVersionsApiV1ResumesGetResponse = zod
@@ -443,17 +305,6 @@ export const listResumeVersionsApiV1ResumesGetResponse = zod
  * Create a new resume version.
  * @summary Create Resume Version
  */
-export const createResumeVersionApiV1ResumesPostQueryParams = zod.object({
-  jwt_secret_key: zod.any().optional(),
-  jwt_algorithm: zod.any().optional(),
-  access_token_expire_minutes: zod.any().optional(),
-  refresh_token_expire_days: zod.any().optional(),
-  password_reset_token_expire_hours: zod.any().optional(),
-  email_verification_token_expire_hours: zod.any().optional(),
-  session_factory: zod.any().optional(),
-  instructor: zod.any().optional(),
-});
-
 export const createResumeVersionApiV1ResumesPostBody = zod
   .object({
     job_id: zod.uuid(),
@@ -495,14 +346,6 @@ export const createResumeVersionApiV1ResumesPostResponse = zod
 export const getLatestResumeVersionApiV1ResumesLatestGetQueryParams =
   zod.object({
     job_id: zod.union([zod.uuid(), zod.null()]).optional(),
-    jwt_secret_key: zod.any().optional(),
-    jwt_algorithm: zod.any().optional(),
-    access_token_expire_minutes: zod.any().optional(),
-    refresh_token_expire_days: zod.any().optional(),
-    password_reset_token_expire_hours: zod.any().optional(),
-    email_verification_token_expire_hours: zod.any().optional(),
-    session_factory: zod.any().optional(),
-    instructor: zod.any().optional(),
   });
 
 export const getLatestResumeVersionApiV1ResumesLatestGetResponse = zod
@@ -527,17 +370,6 @@ export const getLatestResumeVersionApiV1ResumesLatestGetResponse = zod
  */
 export const getFullResumeApiV1ResumesVersionIdGetParams = zod.object({
   version_id: zod.uuid(),
-});
-
-export const getFullResumeApiV1ResumesVersionIdGetQueryParams = zod.object({
-  jwt_secret_key: zod.any().optional(),
-  jwt_algorithm: zod.any().optional(),
-  access_token_expire_minutes: zod.any().optional(),
-  refresh_token_expire_days: zod.any().optional(),
-  password_reset_token_expire_hours: zod.any().optional(),
-  email_verification_token_expire_hours: zod.any().optional(),
-  session_factory: zod.any().optional(),
-  instructor: zod.any().optional(),
 });
 
 export const getFullResumeApiV1ResumesVersionIdGetResponse = zod
@@ -670,18 +502,6 @@ export const updateResumeVersionApiV1ResumesVersionIdPutParams = zod.object({
   version_id: zod.uuid(),
 });
 
-export const updateResumeVersionApiV1ResumesVersionIdPutQueryParams =
-  zod.object({
-    jwt_secret_key: zod.any().optional(),
-    jwt_algorithm: zod.any().optional(),
-    access_token_expire_minutes: zod.any().optional(),
-    refresh_token_expire_days: zod.any().optional(),
-    password_reset_token_expire_hours: zod.any().optional(),
-    email_verification_token_expire_hours: zod.any().optional(),
-    session_factory: zod.any().optional(),
-    instructor: zod.any().optional(),
-  });
-
 export const updateResumeVersionApiV1ResumesVersionIdPutBody = zod
   .object({
     metadata_id: zod.union([zod.uuid(), zod.null()]).optional(),
@@ -721,18 +541,6 @@ export const updateResumeVersionApiV1ResumesVersionIdPutResponse = zod
 export const enhanceResumeVersionApiV1ResumesVersionIdEnhancePostParams =
   zod.object({
     version_id: zod.uuid(),
-  });
-
-export const enhanceResumeVersionApiV1ResumesVersionIdEnhancePostQueryParams =
-  zod.object({
-    jwt_secret_key: zod.any().optional(),
-    jwt_algorithm: zod.any().optional(),
-    access_token_expire_minutes: zod.any().optional(),
-    refresh_token_expire_days: zod.any().optional(),
-    password_reset_token_expire_hours: zod.any().optional(),
-    email_verification_token_expire_hours: zod.any().optional(),
-    session_factory: zod.any().optional(),
-    instructor: zod.any().optional(),
   });
 
 export const enhanceResumeVersionApiV1ResumesVersionIdEnhancePostBodyPromptMax = 2000;
@@ -782,18 +590,6 @@ export const getMetadataApiV1ResumesMetadataMetadataIdGetParams = zod.object({
   metadata_id: zod.uuid(),
 });
 
-export const getMetadataApiV1ResumesMetadataMetadataIdGetQueryParams =
-  zod.object({
-    jwt_secret_key: zod.any().optional(),
-    jwt_algorithm: zod.any().optional(),
-    access_token_expire_minutes: zod.any().optional(),
-    refresh_token_expire_days: zod.any().optional(),
-    password_reset_token_expire_hours: zod.any().optional(),
-    email_verification_token_expire_hours: zod.any().optional(),
-    session_factory: zod.any().optional(),
-    instructor: zod.any().optional(),
-  });
-
 export const getMetadataApiV1ResumesMetadataMetadataIdGetResponse = zod
   .object({
     id: zod.uuid(),
@@ -822,18 +618,6 @@ export const updateMetadataApiV1ResumesMetadataMetadataIdPutParams = zod.object(
     metadata_id: zod.uuid(),
   }
 );
-
-export const updateMetadataApiV1ResumesMetadataMetadataIdPutQueryParams =
-  zod.object({
-    jwt_secret_key: zod.any().optional(),
-    jwt_algorithm: zod.any().optional(),
-    access_token_expire_minutes: zod.any().optional(),
-    refresh_token_expire_days: zod.any().optional(),
-    password_reset_token_expire_hours: zod.any().optional(),
-    email_verification_token_expire_hours: zod.any().optional(),
-    session_factory: zod.any().optional(),
-    instructor: zod.any().optional(),
-  });
 
 export const updateMetadataApiV1ResumesMetadataMetadataIdPutBody = zod
   .object({
@@ -876,18 +660,6 @@ export const updateMetadataApiV1ResumesMetadataMetadataIdPutResponse = zod
 export const enhanceMetadataApiV1ResumesMetadataMetadataIdEnhancePostParams =
   zod.object({
     metadata_id: zod.uuid(),
-  });
-
-export const enhanceMetadataApiV1ResumesMetadataMetadataIdEnhancePostQueryParams =
-  zod.object({
-    jwt_secret_key: zod.any().optional(),
-    jwt_algorithm: zod.any().optional(),
-    access_token_expire_minutes: zod.any().optional(),
-    refresh_token_expire_days: zod.any().optional(),
-    password_reset_token_expire_hours: zod.any().optional(),
-    email_verification_token_expire_hours: zod.any().optional(),
-    session_factory: zod.any().optional(),
-    instructor: zod.any().optional(),
   });
 
 export const enhanceMetadataApiV1ResumesMetadataMetadataIdEnhancePostBodyPromptMax = 2000;
@@ -947,18 +719,6 @@ export const getEducationApiV1ResumesEducationsEducationIdGetParams =
     education_id: zod.uuid(),
   });
 
-export const getEducationApiV1ResumesEducationsEducationIdGetQueryParams =
-  zod.object({
-    jwt_secret_key: zod.any().optional(),
-    jwt_algorithm: zod.any().optional(),
-    access_token_expire_minutes: zod.any().optional(),
-    refresh_token_expire_days: zod.any().optional(),
-    password_reset_token_expire_hours: zod.any().optional(),
-    email_verification_token_expire_hours: zod.any().optional(),
-    session_factory: zod.any().optional(),
-    instructor: zod.any().optional(),
-  });
-
 export const getEducationApiV1ResumesEducationsEducationIdGetResponse = zod
   .object({
     id: zod.uuid(),
@@ -987,18 +747,6 @@ export const getEducationApiV1ResumesEducationsEducationIdGetResponse = zod
 export const updateEducationApiV1ResumesEducationsEducationIdPutParams =
   zod.object({
     education_id: zod.uuid(),
-  });
-
-export const updateEducationApiV1ResumesEducationsEducationIdPutQueryParams =
-  zod.object({
-    jwt_secret_key: zod.any().optional(),
-    jwt_algorithm: zod.any().optional(),
-    access_token_expire_minutes: zod.any().optional(),
-    refresh_token_expire_days: zod.any().optional(),
-    password_reset_token_expire_hours: zod.any().optional(),
-    email_verification_token_expire_hours: zod.any().optional(),
-    session_factory: zod.any().optional(),
-    instructor: zod.any().optional(),
   });
 
 export const updateEducationApiV1ResumesEducationsEducationIdPutBody = zod
@@ -1044,18 +792,6 @@ export const updateEducationApiV1ResumesEducationsEducationIdPutResponse = zod
 export const enhanceEducationApiV1ResumesEducationsEducationIdEnhancePostParams =
   zod.object({
     education_id: zod.uuid(),
-  });
-
-export const enhanceEducationApiV1ResumesEducationsEducationIdEnhancePostQueryParams =
-  zod.object({
-    jwt_secret_key: zod.any().optional(),
-    jwt_algorithm: zod.any().optional(),
-    access_token_expire_minutes: zod.any().optional(),
-    refresh_token_expire_days: zod.any().optional(),
-    password_reset_token_expire_hours: zod.any().optional(),
-    email_verification_token_expire_hours: zod.any().optional(),
-    session_factory: zod.any().optional(),
-    instructor: zod.any().optional(),
   });
 
 export const enhanceEducationApiV1ResumesEducationsEducationIdEnhancePostBodyPromptMax = 2000;
@@ -1115,18 +851,6 @@ export const getWorkExperienceApiV1ResumesWorkExperiencesWorkIdGetParams =
     work_id: zod.uuid(),
   });
 
-export const getWorkExperienceApiV1ResumesWorkExperiencesWorkIdGetQueryParams =
-  zod.object({
-    jwt_secret_key: zod.any().optional(),
-    jwt_algorithm: zod.any().optional(),
-    access_token_expire_minutes: zod.any().optional(),
-    refresh_token_expire_days: zod.any().optional(),
-    password_reset_token_expire_hours: zod.any().optional(),
-    email_verification_token_expire_hours: zod.any().optional(),
-    session_factory: zod.any().optional(),
-    instructor: zod.any().optional(),
-  });
-
 export const getWorkExperienceApiV1ResumesWorkExperiencesWorkIdGetResponse = zod
   .object({
     id: zod.uuid(),
@@ -1153,18 +877,6 @@ export const getWorkExperienceApiV1ResumesWorkExperiencesWorkIdGetResponse = zod
 export const updateWorkExperienceApiV1ResumesWorkExperiencesWorkIdPutParams =
   zod.object({
     work_id: zod.uuid(),
-  });
-
-export const updateWorkExperienceApiV1ResumesWorkExperiencesWorkIdPutQueryParams =
-  zod.object({
-    jwt_secret_key: zod.any().optional(),
-    jwt_algorithm: zod.any().optional(),
-    access_token_expire_minutes: zod.any().optional(),
-    refresh_token_expire_days: zod.any().optional(),
-    password_reset_token_expire_hours: zod.any().optional(),
-    email_verification_token_expire_hours: zod.any().optional(),
-    session_factory: zod.any().optional(),
-    instructor: zod.any().optional(),
   });
 
 export const updateWorkExperienceApiV1ResumesWorkExperiencesWorkIdPutBody = zod
@@ -1207,18 +919,6 @@ export const updateWorkExperienceApiV1ResumesWorkExperiencesWorkIdPutResponse =
 export const enhanceWorkExperienceApiV1ResumesWorkExperiencesWorkIdEnhancePostParams =
   zod.object({
     work_id: zod.uuid(),
-  });
-
-export const enhanceWorkExperienceApiV1ResumesWorkExperiencesWorkIdEnhancePostQueryParams =
-  zod.object({
-    jwt_secret_key: zod.any().optional(),
-    jwt_algorithm: zod.any().optional(),
-    access_token_expire_minutes: zod.any().optional(),
-    refresh_token_expire_days: zod.any().optional(),
-    password_reset_token_expire_hours: zod.any().optional(),
-    email_verification_token_expire_hours: zod.any().optional(),
-    session_factory: zod.any().optional(),
-    instructor: zod.any().optional(),
   });
 
 export const enhanceWorkExperienceApiV1ResumesWorkExperiencesWorkIdEnhancePostBodyPromptMax = 2000;
@@ -1275,19 +975,6 @@ export const getProjectApiV1ResumesProjectsProjectIdGetParams = zod.object({
   project_id: zod.uuid(),
 });
 
-export const getProjectApiV1ResumesProjectsProjectIdGetQueryParams = zod.object(
-  {
-    jwt_secret_key: zod.any().optional(),
-    jwt_algorithm: zod.any().optional(),
-    access_token_expire_minutes: zod.any().optional(),
-    refresh_token_expire_days: zod.any().optional(),
-    password_reset_token_expire_hours: zod.any().optional(),
-    email_verification_token_expire_hours: zod.any().optional(),
-    session_factory: zod.any().optional(),
-    instructor: zod.any().optional(),
-  }
-);
-
 export const getProjectApiV1ResumesProjectsProjectIdGetResponse = zod
   .object({
     id: zod.uuid(),
@@ -1314,18 +1001,6 @@ export const getProjectApiV1ResumesProjectsProjectIdGetResponse = zod
 export const updateProjectApiV1ResumesProjectsProjectIdPutParams = zod.object({
   project_id: zod.uuid(),
 });
-
-export const updateProjectApiV1ResumesProjectsProjectIdPutQueryParams =
-  zod.object({
-    jwt_secret_key: zod.any().optional(),
-    jwt_algorithm: zod.any().optional(),
-    access_token_expire_minutes: zod.any().optional(),
-    refresh_token_expire_days: zod.any().optional(),
-    password_reset_token_expire_hours: zod.any().optional(),
-    email_verification_token_expire_hours: zod.any().optional(),
-    session_factory: zod.any().optional(),
-    instructor: zod.any().optional(),
-  });
 
 export const updateProjectApiV1ResumesProjectsProjectIdPutBody = zod
   .object({
@@ -1366,18 +1041,6 @@ export const updateProjectApiV1ResumesProjectsProjectIdPutResponse = zod
 export const enhanceProjectApiV1ResumesProjectsProjectIdEnhancePostParams =
   zod.object({
     project_id: zod.uuid(),
-  });
-
-export const enhanceProjectApiV1ResumesProjectsProjectIdEnhancePostQueryParams =
-  zod.object({
-    jwt_secret_key: zod.any().optional(),
-    jwt_algorithm: zod.any().optional(),
-    access_token_expire_minutes: zod.any().optional(),
-    refresh_token_expire_days: zod.any().optional(),
-    password_reset_token_expire_hours: zod.any().optional(),
-    email_verification_token_expire_hours: zod.any().optional(),
-    session_factory: zod.any().optional(),
-    instructor: zod.any().optional(),
   });
 
 export const enhanceProjectApiV1ResumesProjectsProjectIdEnhancePostBodyPromptMax = 2000;
@@ -1431,17 +1094,6 @@ export const getSkillApiV1ResumesSkillsSkillIdGetParams = zod.object({
   skill_id: zod.uuid(),
 });
 
-export const getSkillApiV1ResumesSkillsSkillIdGetQueryParams = zod.object({
-  jwt_secret_key: zod.any().optional(),
-  jwt_algorithm: zod.any().optional(),
-  access_token_expire_minutes: zod.any().optional(),
-  refresh_token_expire_days: zod.any().optional(),
-  password_reset_token_expire_hours: zod.any().optional(),
-  email_verification_token_expire_hours: zod.any().optional(),
-  session_factory: zod.any().optional(),
-  instructor: zod.any().optional(),
-});
-
 export const getSkillApiV1ResumesSkillsSkillIdGetResponse = zod
   .object({
     id: zod.uuid(),
@@ -1463,17 +1115,6 @@ export const getSkillApiV1ResumesSkillsSkillIdGetResponse = zod
  */
 export const updateSkillApiV1ResumesSkillsSkillIdPutParams = zod.object({
   skill_id: zod.uuid(),
-});
-
-export const updateSkillApiV1ResumesSkillsSkillIdPutQueryParams = zod.object({
-  jwt_secret_key: zod.any().optional(),
-  jwt_algorithm: zod.any().optional(),
-  access_token_expire_minutes: zod.any().optional(),
-  refresh_token_expire_days: zod.any().optional(),
-  password_reset_token_expire_hours: zod.any().optional(),
-  email_verification_token_expire_hours: zod.any().optional(),
-  session_factory: zod.any().optional(),
-  instructor: zod.any().optional(),
 });
 
 export const updateSkillApiV1ResumesSkillsSkillIdPutBody = zod
@@ -1507,18 +1148,6 @@ export const updateSkillApiV1ResumesSkillsSkillIdPutResponse = zod
 export const enhanceSkillApiV1ResumesSkillsSkillIdEnhancePostParams =
   zod.object({
     skill_id: zod.uuid(),
-  });
-
-export const enhanceSkillApiV1ResumesSkillsSkillIdEnhancePostQueryParams =
-  zod.object({
-    jwt_secret_key: zod.any().optional(),
-    jwt_algorithm: zod.any().optional(),
-    access_token_expire_minutes: zod.any().optional(),
-    refresh_token_expire_days: zod.any().optional(),
-    password_reset_token_expire_hours: zod.any().optional(),
-    email_verification_token_expire_hours: zod.any().optional(),
-    session_factory: zod.any().optional(),
-    instructor: zod.any().optional(),
   });
 
 export const enhanceSkillApiV1ResumesSkillsSkillIdEnhancePostBodyPromptMax = 2000;
