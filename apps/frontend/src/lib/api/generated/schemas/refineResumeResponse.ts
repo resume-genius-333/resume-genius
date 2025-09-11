@@ -6,9 +6,9 @@
  */
 
 /**
- * Response model for job creation.
+ * Response model for resume refinement.
  */
-export interface CreateJobResponse {
-  job_id: string;
-  sse_url: string;
+export interface RefineResumeResponse {
+  status: string;
+  message: string;
 }

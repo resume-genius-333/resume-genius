@@ -6,6 +6,9 @@
  */
 import type { ProcessingStatusJobParsedAt } from "./processingStatusJobParsedAt";
 
+/**
+ * Processing status model.
+ */
 export interface ProcessingStatus {
   job_parsed_at?: ProcessingStatusJobParsedAt;
 }

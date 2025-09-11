@@ -5,10 +5,4 @@
  * OpenAPI spec version: 1.0.0
  */
 
-/**
- * Response model for job creation.
- */
-export interface CreateJobResponse {
-  job_id: string;
-  sse_url: string;
-}
+export type JobSchemaJobUrl = string | null;
