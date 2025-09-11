@@ -98,11 +98,3 @@ class JobRepository:
         await self.session.commit()
 
         return True
-
-    async def commit(self) -> None:
-        """Commit the current transaction."""
-        await self.session.commit()
-
-    async def rollback(self) -> None:
-        """Rollback the current transaction."""
-        await self.session.rollback()

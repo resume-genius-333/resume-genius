@@ -1,11 +1,11 @@
 """Authentication repository for database operations."""
 
+import logging
 from typing import Optional
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 import uuid
-
 from src.models.db import (
     User,
     AuthProvider,
@@ -14,6 +14,10 @@ from src.models.db import (
     BlacklistedToken,
     ProviderType,
 )
+
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 class AuthRepository:
@@ -25,8 +29,20 @@ class AuthRepository:
 
     async def get_user_by_email(self, email: str) -> Optional[User]:
         """Get user by email address."""
-        result = await self.session.execute(select(User).where(User.email == email))
-        return result.scalar_one_or_none()
+        logger.debug(f"Fetching user by email: {email}")
+        try:
+            result = await self.session.execute(select(User).where(User.email == email))
+            user = result.scalar_one_or_none()
+            if user:
+                logger.debug(f"User found with ID: {user.id}")
+            else:
+                logger.debug(f"No user found with email: {email}")
+            return user
+        except Exception as e:
+            logger.error(
+                f"Error fetching user by email {email}: {str(e)}", exc_info=True
+            )
+            raise
 
     async def get_user_by_id(self, user_id: str) -> Optional[User]:
         """Get user by ID."""
@@ -80,16 +96,31 @@ class AuthRepository:
         self, user_id: uuid.UUID, provider_type: ProviderType
     ) -> Optional[AuthProvider]:
         """Get auth provider for a user."""
-        result = await self.session.execute(
-            select(AuthProvider).where(
-                and_(
-                    AuthProvider.user_id == user_id,
-                    AuthProvider.provider_type == provider_type,
-                    AuthProvider.is_active,
+        logger.debug(
+            f"Fetching auth provider for user_id: {user_id}, provider_type: {provider_type}"
+        )
+        try:
+            result = await self.session.execute(
+                select(AuthProvider).where(
+                    and_(
+                        AuthProvider.user_id == user_id,
+                        AuthProvider.provider_type == provider_type,
+                        AuthProvider.is_active,
+                    )
                 )
             )
-        )
-        return result.scalar_one_or_none()
+            provider = result.scalar_one_or_none()
+            if provider:
+                logger.debug(f"Auth provider found for user_id: {user_id}")
+            else:
+                logger.debug(f"No auth provider found for user_id: {user_id}")
+            return provider
+        except Exception as e:
+            logger.error(
+                f"Error fetching auth provider for user_id {user_id}: {str(e)}",
+                exc_info=True,
+            )
+            raise
 
     async def update_login_attempt(
         self, auth_provider: AuthProvider, success: bool
@@ -105,7 +136,6 @@ class AuthRepository:
                 auth_provider.locked_until = datetime.now(timezone.utc) + timedelta(
                     minutes=30
                 )
-
         await self.session.flush()
 
     async def create_refresh_token(
@@ -152,7 +182,7 @@ class AuthRepository:
         refresh_token = result.scalar_one_or_none()
         if refresh_token:
             refresh_token.is_revoked = True
-            await self.session.flush()
+        await self.session.flush()
 
     async def create_user_session(
         self,
@@ -192,9 +222,9 @@ class AuthRepository:
         result = await self.session.execute(
             select(UserSession).where(UserSession.session_id == session_id)
         )
-        session = result.scalar_one_or_none()
-        if session:
-            session.last_activity_at = datetime.now(timezone.utc)
+        session_activity = result.scalar_one_or_none()
+        if session_activity:
+            session_activity.last_activity_at = datetime.now(timezone.utc)
             await self.session.flush()
 
     async def end_user_session(self, session_id: str) -> None:
@@ -202,10 +232,10 @@ class AuthRepository:
         result = await self.session.execute(
             select(UserSession).where(UserSession.session_id == session_id)
         )
-        session = result.scalar_one_or_none()
-        if session:
-            session.signed_out_at = datetime.now(timezone.utc)
-            await self.session.flush()
+        session_activity = result.scalar_one_or_none()
+        if session_activity:
+            session_activity.signed_out_at = datetime.now(timezone.utc)
+        await self.session.flush()
 
     async def blacklist_token(
         self,
@@ -241,11 +271,3 @@ class AuthRepository:
         if user:
             user.last_login_at = datetime.now(timezone.utc)
             await self.session.flush()
-
-    async def commit(self) -> None:
-        """Commit the current transaction."""
-        await self.session.commit()
-
-    async def rollback(self) -> None:
-        """Rollback the current transaction."""
-        await self.session.rollback()

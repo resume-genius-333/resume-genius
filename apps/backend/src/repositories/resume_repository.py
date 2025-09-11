@@ -45,7 +45,7 @@ class ResumeRepository:
         )
 
         self.session.add(resume)
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(resume)
 
         return resume
@@ -71,7 +71,7 @@ class ResumeRepository:
         if job_id:
             query = query.where(Resume.job_id == job_id)
 
-        query = query.order_by(Resume.created_at.desc()).limit(1)
+        # query = query.order_by(Resume.created_at.desc()).limit(1)
 
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
@@ -98,7 +98,7 @@ class ResumeRepository:
         query = (
             select(Resume)
             .where(base_query)
-            .order_by(Resume.created_at.desc())
+            # .order_by(Resume.created_at.desc())
             .limit(limit)
             .offset(offset)
         )
@@ -121,14 +121,12 @@ class ResumeRepository:
             if hasattr(resume, key):
                 setattr(resume, key, value)
 
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(resume)
 
         return resume
 
-    async def delete_version(
-        self, version_id: uuid.UUID, user_id: uuid.UUID
-    ) -> bool:
+    async def delete_version(self, version_id: uuid.UUID, user_id: uuid.UUID) -> bool:
         """Delete a resume version."""
         resume = await self.get_version(version_id, user_id)
 
@@ -136,7 +134,7 @@ class ResumeRepository:
             return False
 
         await self.session.delete(resume)
-        await self.session.commit()
+        await self.session.flush()
 
         return True
 
@@ -166,7 +164,7 @@ class ResumeMetadataRepository:
         )
 
         self.session.add(metadata)
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(metadata)
 
         return metadata
@@ -196,7 +194,7 @@ class ResumeMetadataRepository:
             if hasattr(metadata, key) and value is not None:
                 setattr(metadata, key, value)
 
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(metadata)
 
         return metadata
@@ -225,7 +223,7 @@ class ResumeMetadataRepository:
         )
 
         self.session.add(new_metadata)
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(new_metadata)
 
         return new_metadata
@@ -260,7 +258,7 @@ class ResumeEducationRepository:
         )
 
         self.session.add(education)
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(education)
 
         return education
@@ -316,7 +314,7 @@ class ResumeEducationRepository:
             if hasattr(education, key) and value is not None:
                 setattr(education, key, value)
 
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(education)
 
         return education
@@ -347,7 +345,7 @@ class ResumeEducationRepository:
         )
 
         self.session.add(new_education)
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(new_education)
 
         return new_education
@@ -380,7 +378,7 @@ class ResumeWorkExperienceRepository:
         )
 
         self.session.add(work_exp)
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(work_exp)
 
         return work_exp
@@ -440,7 +438,7 @@ class ResumeWorkExperienceRepository:
             if hasattr(work_exp, key) and value is not None:
                 setattr(work_exp, key, value)
 
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(work_exp)
 
         return work_exp
@@ -467,7 +465,7 @@ class ResumeWorkExperienceRepository:
         )
 
         self.session.add(new_work)
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(new_work)
 
         return new_work
@@ -498,7 +496,7 @@ class ResumeProjectRepository:
         )
 
         self.session.add(project)
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(project)
 
         return project
@@ -554,7 +552,7 @@ class ResumeProjectRepository:
             if hasattr(project, key) and value is not None:
                 setattr(project, key, value)
 
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(project)
 
         return project
@@ -581,7 +579,7 @@ class ResumeProjectRepository:
         )
 
         self.session.add(new_project)
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(new_project)
 
         return new_project
@@ -612,7 +610,7 @@ class ResumeSkillRepository:
         )
 
         self.session.add(skill)
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(skill)
 
         return skill
@@ -668,7 +666,7 @@ class ResumeSkillRepository:
             if hasattr(skill, key) and value is not None:
                 setattr(skill, key, value)
 
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(skill)
 
         return skill
@@ -692,7 +690,7 @@ class ResumeSkillRepository:
         )
 
         self.session.add(new_skill)
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(new_skill)
 
         return new_skill
