@@ -4,7 +4,7 @@ import uuid
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from dependency_injector.wiring import inject, Provide
-from src.api.dependencies import get_current_user, get_redis_client
+from src.api.dependencies import get_current_user
 from src.containers import Container
 from src.core.unit_of_work import UnitOfWorkFactory
 from src.models.auth.user import UserResponse
