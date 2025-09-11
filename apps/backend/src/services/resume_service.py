@@ -3,16 +3,11 @@
 from typing import Optional, List
 import uuid
 import logging
+from dependency_injector.wiring import Provide, inject
 from instructor import AsyncInstructor
 
-from src.repositories.resume_repository import (
-    ResumeRepository,
-    ResumeMetadataRepository,
-    ResumeEducationRepository,
-    ResumeWorkExperienceRepository,
-    ResumeProjectRepository,
-    ResumeSkillRepository,
-)
+from src.containers import Container, container
+from src.core.unit_of_work import UnitOfWork
 from src.models.api.resume import (
     ResumeVersionResponse,
     ResumeMetadataResponse,
@@ -25,28 +20,20 @@ from src.models.api.resume import (
 )
 
 logger = logging.getLogger(__name__)
+container.wire(modules=[__name__])
 
 
 class ResumeService:
     """Service for resume business logic."""
 
+    @inject
     def __init__(
         self,
-        resume_repo: ResumeRepository,
-        metadata_repo: ResumeMetadataRepository,
-        education_repo: ResumeEducationRepository,
-        work_repo: ResumeWorkExperienceRepository,
-        project_repo: ResumeProjectRepository,
-        skill_repo: ResumeSkillRepository,
-        instructor: AsyncInstructor,
+        uow: UnitOfWork,
+        instructor: AsyncInstructor = Provide[Container.async_instructor],
     ):
         """Initialize resume service with dependencies."""
-        self.resume_repo = resume_repo
-        self.metadata_repo = metadata_repo
-        self.education_repo = education_repo
-        self.work_repo = work_repo
-        self.project_repo = project_repo
-        self.skill_repo = skill_repo
+        self.uow = uow
         self.instructor = instructor
 
     async def create_version(
@@ -61,7 +48,7 @@ class ResumeService:
         pinned_skill_ids: Optional[List[uuid.UUID]] = None,
     ) -> ResumeVersionResponse:
         """Create a new resume version."""
-        resume = await self.resume_repo.create_version(
+        resume = await self.uow.resume_repository.create_version(
             user_id=user_id,
             job_id=job_id,
             metadata_id=metadata_id,
@@ -78,7 +65,7 @@ class ResumeService:
         self, version_id: uuid.UUID, user_id: Optional[uuid.UUID] = None
     ) -> Optional[ResumeVersionResponse]:
         """Get a resume version by ID."""
-        resume = await self.resume_repo.get_version(version_id, user_id)
+        resume = await self.uow.resume_repository.get_version(version_id, user_id)
 
         if not resume:
             return None
@@ -89,7 +76,7 @@ class ResumeService:
         self, user_id: uuid.UUID, job_id: Optional[uuid.UUID] = None
     ) -> Optional[ResumeVersionResponse]:
         """Get the latest resume version for a user."""
-        resume = await self.resume_repo.get_latest_version(user_id, job_id)
+        resume = await self.uow.resume_repository.get_latest_version(user_id, job_id)
 
         if not resume:
             return None
@@ -104,7 +91,7 @@ class ResumeService:
         offset: int = 0,
     ) -> tuple[List[ResumeVersionResponse], int]:
         """List resume versions with pagination."""
-        resumes, total = await self.resume_repo.list_versions(
+        resumes, total = await self.uow.resume_repository.list_versions(
             user_id, job_id, limit, offset
         )
 
@@ -115,7 +102,7 @@ class ResumeService:
         self, version_id: uuid.UUID, user_id: Optional[uuid.UUID] = None
     ) -> Optional[FullResumeResponse]:
         """Get full resume with all sections."""
-        resume = await self.resume_repo.get_version(version_id, user_id)
+        resume = await self.uow.resume_repository.get_version(version_id, user_id)
 
         if not resume:
             return None
@@ -123,7 +110,7 @@ class ResumeService:
         # Get metadata
         metadata = None
         if resume.metadata_id:
-            metadata_obj = await self.metadata_repo.get_by_id(
+            metadata_obj = await self.uow.resume_metadata_repository.get_by_id(
                 resume.metadata_id, user_id
             )
             if metadata_obj:
@@ -132,28 +119,28 @@ class ResumeService:
         # Get pinned sections
         educations = []
         if resume.pinned_education_ids:
-            education_objs = await self.education_repo.get_by_ids(
+            education_objs = await self.uow.resume_education_repository.get_by_ids(
                 resume.pinned_education_ids, user_id
             )
             educations = [self._to_education_response(e) for e in education_objs]
 
         work_experiences = []
         if resume.pinned_experience_ids:
-            work_objs = await self.work_repo.get_by_ids(
+            work_objs = await self.uow.resume_work_experience_repository.get_by_ids(
                 resume.pinned_experience_ids, user_id
             )
             work_experiences = [self._to_work_response(w) for w in work_objs]
 
         projects = []
         if resume.pinned_project_ids:
-            project_objs = await self.project_repo.get_by_ids(
+            project_objs = await self.uow.resume_project_repository.get_by_ids(
                 resume.pinned_project_ids, user_id
             )
             projects = [self._to_project_response(p) for p in project_objs]
 
         skills = []
         if resume.pinned_skill_ids:
-            skill_objs = await self.skill_repo.get_by_ids(
+            skill_objs = await self.uow.resume_skill_repository.get_by_ids(
                 resume.pinned_skill_ids, user_id
             )
             skills = [self._to_skill_response(s) for s in skill_objs]
@@ -191,7 +178,9 @@ class ResumeService:
         if pinned_skill_ids is not None:
             update_data["pinned_skill_ids"] = pinned_skill_ids
 
-        resume = await self.resume_repo.update_version(version_id, user_id, **update_data)
+        resume = await self.uow.resume_repository.update_version(
+            version_id, user_id, **update_data
+        )
 
         if not resume:
             return None
@@ -203,7 +192,9 @@ class ResumeService:
         self, metadata_id: uuid.UUID, user_id: Optional[uuid.UUID] = None
     ) -> Optional[ResumeMetadataResponse]:
         """Get resume metadata by ID."""
-        metadata = await self.metadata_repo.get_by_id(metadata_id, user_id)
+        metadata = await self.uow.resume_metadata_repository.get_by_id(
+            metadata_id, user_id
+        )
 
         if not metadata:
             return None
@@ -214,7 +205,9 @@ class ResumeService:
         self, metadata_id: uuid.UUID, user_id: uuid.UUID, **kwargs
     ) -> Optional[ResumeMetadataResponse]:
         """Update resume metadata."""
-        metadata = await self.metadata_repo.update(metadata_id, user_id, **kwargs)
+        metadata = await self.uow.resume_metadata_repository.update(
+            metadata_id, user_id, **kwargs
+        )
 
         if not metadata:
             return None
@@ -229,12 +222,16 @@ class ResumeService:
     ) -> Optional[ResumeMetadataResponse]:
         """Enhance metadata using AI."""
         # Get current metadata
-        metadata = await self.metadata_repo.get_by_id(metadata_id, user_id)
+        metadata = await self.uow.resume_metadata_repository.get_by_id(
+            metadata_id, user_id
+        )
         if not metadata:
             return None
 
         # Create a fork for AI enhancement
-        new_metadata = await self.metadata_repo.fork(metadata_id, user_id)
+        new_metadata = await self.uow.resume_metadata_repository.fork(
+            metadata_id, user_id
+        )
         if not new_metadata:
             return None
 
@@ -243,7 +240,9 @@ class ResumeService:
             # This is a placeholder for actual AI enhancement
             # You would need to define proper response models for the instructor
             # The prompt would include current metadata and user request
-            logger.info(f"AI enhancement requested for metadata {metadata_id} with prompt: {request.prompt}")
+            logger.info(
+                f"AI enhancement requested for metadata {metadata_id} with prompt: {request.prompt}"
+            )
 
             # For now, just return the forked metadata
             return self._to_metadata_response(new_metadata)
@@ -257,7 +256,9 @@ class ResumeService:
         self, education_id: uuid.UUID, user_id: Optional[uuid.UUID] = None
     ) -> Optional[ResumeEducationResponse]:
         """Get education by ID."""
-        education = await self.education_repo.get_by_id(education_id, user_id)
+        education = await self.uow.resume_education_repository.get_by_id(
+            education_id, user_id
+        )
 
         if not education:
             return None
@@ -268,7 +269,9 @@ class ResumeService:
         self, education_id: uuid.UUID, user_id: uuid.UUID, **kwargs
     ) -> Optional[ResumeEducationResponse]:
         """Update education entry."""
-        education = await self.education_repo.update(education_id, user_id, **kwargs)
+        education = await self.uow.resume_education_repository.update(
+            education_id, user_id, **kwargs
+        )
 
         if not education:
             return None
@@ -283,12 +286,16 @@ class ResumeService:
     ) -> Optional[ResumeEducationResponse]:
         """Enhance education using AI."""
         # Get current education
-        education = await self.education_repo.get_by_id(education_id, user_id)
+        education = await self.uow.resume_education_repository.get_by_id(
+            education_id, user_id
+        )
         if not education:
             return None
 
         # Create a fork for AI enhancement
-        new_education = await self.education_repo.fork(education_id, user_id)
+        new_education = await self.uow.resume_education_repository.fork(
+            education_id, user_id
+        )
         if not new_education:
             return None
 
@@ -302,7 +309,9 @@ class ResumeService:
         self, work_id: uuid.UUID, user_id: Optional[uuid.UUID] = None
     ) -> Optional[ResumeWorkExperienceResponse]:
         """Get work experience by ID."""
-        work = await self.work_repo.get_by_id(work_id, user_id)
+        work = await self.uow.resume_work_experience_repository.get_by_id(
+            work_id, user_id
+        )
 
         if not work:
             return None
@@ -313,7 +322,9 @@ class ResumeService:
         self, work_id: uuid.UUID, user_id: uuid.UUID, **kwargs
     ) -> Optional[ResumeWorkExperienceResponse]:
         """Update work experience entry."""
-        work = await self.work_repo.update(work_id, user_id, **kwargs)
+        work = await self.uow.resume_work_experience_repository.update(
+            work_id, user_id, **kwargs
+        )
 
         if not work:
             return None
@@ -328,12 +339,16 @@ class ResumeService:
     ) -> Optional[ResumeWorkExperienceResponse]:
         """Enhance work experience using AI."""
         # Get current work experience
-        work = await self.work_repo.get_by_id(work_id, user_id)
+        work = await self.uow.resume_work_experience_repository.get_by_id(
+            work_id, user_id
+        )
         if not work:
             return None
 
         # Create a fork for AI enhancement
-        new_work = await self.work_repo.fork(work_id, user_id)
+        new_work = await self.uow.resume_work_experience_repository.fork(
+            work_id, user_id
+        )
         if not new_work:
             return None
 
@@ -347,7 +362,9 @@ class ResumeService:
         self, project_id: uuid.UUID, user_id: Optional[uuid.UUID] = None
     ) -> Optional[ResumeProjectResponse]:
         """Get project by ID."""
-        project = await self.project_repo.get_by_id(project_id, user_id)
+        project = await self.uow.resume_project_repository.get_by_id(
+            project_id, user_id
+        )
 
         if not project:
             return None
@@ -358,7 +375,9 @@ class ResumeService:
         self, project_id: uuid.UUID, user_id: uuid.UUID, **kwargs
     ) -> Optional[ResumeProjectResponse]:
         """Update project entry."""
-        project = await self.project_repo.update(project_id, user_id, **kwargs)
+        project = await self.uow.resume_project_repository.update(
+            project_id, user_id, **kwargs
+        )
 
         if not project:
             return None
@@ -373,12 +392,14 @@ class ResumeService:
     ) -> Optional[ResumeProjectResponse]:
         """Enhance project using AI."""
         # Get current project
-        project = await self.project_repo.get_by_id(project_id, user_id)
+        project = await self.uow.resume_project_repository.get_by_id(
+            project_id, user_id
+        )
         if not project:
             return None
 
         # Create a fork for AI enhancement
-        new_project = await self.project_repo.fork(project_id, user_id)
+        new_project = await self.uow.resume_project_repository.fork(project_id, user_id)
         if not new_project:
             return None
 
@@ -392,7 +413,7 @@ class ResumeService:
         self, skill_id: uuid.UUID, user_id: Optional[uuid.UUID] = None
     ) -> Optional[ResumeSkillResponse]:
         """Get skill by ID."""
-        skill = await self.skill_repo.get_by_id(skill_id, user_id)
+        skill = await self.uow.resume_skill_repository.get_by_id(skill_id, user_id)
 
         if not skill:
             return None
@@ -403,7 +424,9 @@ class ResumeService:
         self, skill_id: uuid.UUID, user_id: uuid.UUID, **kwargs
     ) -> Optional[ResumeSkillResponse]:
         """Update skill entry."""
-        skill = await self.skill_repo.update(skill_id, user_id, **kwargs)
+        skill = await self.uow.resume_skill_repository.update(
+            skill_id, user_id, **kwargs
+        )
 
         if not skill:
             return None
@@ -418,12 +441,12 @@ class ResumeService:
     ) -> Optional[ResumeSkillResponse]:
         """Enhance skill using AI."""
         # Get current skill
-        skill = await self.skill_repo.get_by_id(skill_id, user_id)
+        skill = await self.uow.resume_skill_repository.get_by_id(skill_id, user_id)
         if not skill:
             return None
 
         # Create a fork for AI enhancement
-        new_skill = await self.skill_repo.fork(skill_id, user_id)
+        new_skill = await self.uow.resume_skill_repository.fork(skill_id, user_id)
         if not new_skill:
             return None
 
