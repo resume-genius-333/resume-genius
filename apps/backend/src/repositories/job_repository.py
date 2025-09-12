@@ -3,7 +3,7 @@
 from typing import Optional, List
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from src.models.db.resumes.job import Job
 from src.models.llm.resumes.job import JobLLMSchema
 
@@ -61,13 +61,28 @@ class JobRepository:
         return result.scalar_one_or_none()
 
     async def get_jobs_by_user(
-        self, user_id: uuid.UUID, limit: int = 50, offset: int = 0
+        self,
+        user_id: uuid.UUID,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
     ) -> List[Job]:
         """Get all jobs for a specific user."""
-        query = select(Job).where(Job.user_id == user_id).limit(limit).offset(offset)
+        query = select(Job).where(Job.user_id == user_id)
+        if limit:
+            query = query.limit(limit)
+        if offset:
+            query = query.offset(offset)
 
         result = await self.session.execute(query)
         return list(result.scalars().all())
+
+    async def get_jobs_count(
+        self,
+        user_id: uuid.UUID,
+    ) -> int:
+        query = select(func.count()).select_from(Job).where(Job.user_id == user_id)
+        result = await self.session.scalar(query)
+        return result or 0
 
     async def update_job(
         self, job_id: uuid.UUID, user_id: uuid.UUID, **kwargs
