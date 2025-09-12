@@ -202,6 +202,35 @@ export const createJobApiV1JobsCreatePostResponse = zod
   .describe("Response model for job creation.");
 
 /**
+ * List all jobs for the current user with pagination.
+ * @summary List Jobs
+ */
+export const listJobsApiV1JobsGetQueryPageSizeDefault = 20;
+export const listJobsApiV1JobsGetQueryPageDefault = 0;
+
+export const listJobsApiV1JobsGetQueryParams = zod.object({
+  page_size: zod.number().default(listJobsApiV1JobsGetQueryPageSizeDefault),
+  page: zod.number().optional(),
+});
+
+export const listJobsApiV1JobsGetResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      id: zod.uuid(),
+      user_id: zod.uuid(),
+      company_name: zod.string(),
+      position_title: zod.string(),
+      job_description: zod.string(),
+      job_url: zod.union([zod.string(), zod.null()]).optional(),
+    })
+  ),
+  total: zod.number(),
+  page: zod.number(),
+  page_size: zod.number(),
+  total_pages: zod.number(),
+});
+
+/**
  * Get a specific job by ID.
  * @summary Get Job
  */

@@ -13,8 +13,10 @@ import type {
   FullResumeResponse,
   GetLatestResumeVersionApiV1ResumesLatestGetParams,
   JobSchema,
+  ListJobsApiV1JobsGetParams,
   ListResumeVersionsApiV1ResumesGetParams,
   PaginatedResponse,
+  PaginatedResponseJobSchema,
   ProcessingStatus,
   RefineResumeResponse,
   RefreshTokenRequest,
@@ -186,6 +188,18 @@ export const createJobApiV1JobsCreatePost = (
     method: "POST",
     headers: { "Content-Type": "application/json" },
     data: createJobRequest,
+  });
+};
+
+/**
+ * List all jobs for the current user with pagination.
+ * @summary List Jobs
+ */
+export const listJobsApiV1JobsGet = (params?: ListJobsApiV1JobsGetParams) => {
+  return customAxiosInstance<PaginatedResponseJobSchema>({
+    url: `/api/v1/jobs`,
+    method: "GET",
+    params,
   });
 };
 
@@ -593,6 +607,9 @@ export type TestApiKeyApiV1AuthTestApiKeyGetResult = NonNullable<
 >;
 export type CreateJobApiV1JobsCreatePostResult = NonNullable<
   Awaited<ReturnType<typeof createJobApiV1JobsCreatePost>>
+>;
+export type ListJobsApiV1JobsGetResult = NonNullable<
+  Awaited<ReturnType<typeof listJobsApiV1JobsGet>>
 >;
 export type GetJobApiV1JobsJobIdGetResult = NonNullable<
   Awaited<ReturnType<typeof getJobApiV1JobsJobIdGet>>
