@@ -7,6 +7,7 @@ from dependency_injector.wiring import inject, Provide
 from src.api.dependencies import get_current_user
 from src.containers import Container
 from src.core.unit_of_work import UnitOfWorkFactory
+from src.models.api.core import PaginatedResponse
 from src.models.auth.user import UserResponse
 from src.models.api.job import (
     CreateJobRequest,
@@ -33,16 +34,12 @@ def get_status_service(
 
 @inject
 async def _create_job_background(
-    user_id: uuid.UUID,
-    job_id: uuid.UUID,
-    request: CreateJobRequest,
-    status_service: StatusService = Provide[Container.status_service],
-    instructor=Provide[Container.async_instructor],
+    user_id: uuid.UUID, job_id: uuid.UUID, request: CreateJobRequest
 ):
     """Background task for creating a job."""
     try:
         async with UnitOfWorkFactory() as uow:
-            job_service = JobService(uow, status_service, instructor)
+            job_service = JobService(uow)
             await job_service.create_job(
                 user_id=user_id,
                 job_id=job_id,
@@ -77,6 +74,22 @@ async def create_job(
         job_id=job_id,
         sse_url=f"http://localhost:8000/api/v1/jobs/{job_id}/status-stream",
     )
+
+
+@router.get("/jobs", response_model=PaginatedResponse[JobSchema])
+async def list_jobs(
+    page_size: int = 20,
+    page: int = 0,
+    current_user: UserResponse = Depends(get_current_user),
+):
+    """List all jobs for the current user with pagination."""
+    logger.info(f"page_size: {page_size}, page: {page}")
+    async with UnitOfWorkFactory() as uow:
+        job_service = JobService(uow)
+        jobs = await job_service.get_user_jobs(
+            user_id=uuid.UUID(current_user.id), page_size=page_size, page=page
+        )
+        return jobs
 
 
 @router.get("/jobs/{job_id}", response_model=JobSchema)

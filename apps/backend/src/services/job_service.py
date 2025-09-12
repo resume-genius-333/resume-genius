@@ -1,5 +1,6 @@
 """Service for job-related business logic."""
 
+import asyncio
 from typing import Optional
 import uuid
 import logging
@@ -8,6 +9,7 @@ from instructor import AsyncInstructor
 
 from src.containers import Container
 from src.core.unit_of_work import UnitOfWork
+from src.models.api.core import PaginatedResponse
 from src.services.status_service import StatusService
 from src.models.db.resumes.job import Job, JobSchema
 from src.models.llm.resumes.job import JobLLMSchema
@@ -92,11 +94,36 @@ class JobService:
         return None
 
     async def get_user_jobs(
-        self, user_id: uuid.UUID, limit: int = 50, offset: int = 0
-    ) -> list[JobSchema]:
+        self,
+        user_id: uuid.UUID,
+        page_size: int,
+        page: int,
+    ) -> PaginatedResponse[JobSchema]:
         """Get all jobs for a user."""
-        jobs = await self.uow.job_repository.get_jobs_by_user(user_id, limit, offset)
-        return [job.schema for job in jobs]
+        # jobs, jobs_count = await asyncio.gather(
+        #     self.uow.job_repository.get_jobs_by_user(
+        #         user_id, limit=page_size, offset=page * page_size
+        #     ),
+        #     self.uow.job_repository.get_jobs_count(
+        #         user_id,
+        #     ),
+        # )
+        jobs = await self.uow.job_repository.get_jobs_by_user(
+            user_id, limit=page_size, offset=page * page_size
+        )
+
+        jobs = [job.schema for job in jobs]
+
+        jobs_count = await self.uow.job_repository.get_jobs_count(
+            user_id,
+        )
+        return PaginatedResponse(
+            items=jobs,
+            total=jobs_count,
+            page=page,
+            page_size=page_size,
+            total_pages=(jobs_count + page_size - 1) // page_size,
+        )
 
     async def select_relevant_info(
         self,
