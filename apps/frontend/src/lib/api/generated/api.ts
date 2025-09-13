@@ -42,7 +42,7 @@ import type {
   VerifyTokenApiV1AuthVerifyTokenGet200,
 } from "./schemas";
 
-import { customAxiosInstance } from "../orval-axios";
+import { customAxiosInstance } from "../client";
 /**
  * Register a new user.
  * @summary Register
@@ -246,7 +246,6 @@ export const streamStatusApiV1JobsJobIdStatusStreamGet = (jobId: string) => {
   return customAxiosInstance<unknown>({
     url: `/api/v1/jobs/${jobId}/status-stream`,
     method: "GET",
-    responseType: "stream",
   });
 };
 

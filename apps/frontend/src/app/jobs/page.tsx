@@ -1,12 +1,12 @@
 "use client";
 
-import { listJobsApiV1JobsGet } from "@/lib/api/generated/api";
 import { PaginatedResponseJobSchema } from "@/lib/api/generated/schemas";
 import { useEffect, useState } from "react";
 import { JobsDataTable } from "./jobs-data-table";
 import { Button } from "@/components/ui/button";
 import { Plus, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { listJobsApiV1JobsGet } from "@/lib/api/generated/api";
 
 export default function JobsPage() {
   const [paginatedData, setPaginatedData] =
