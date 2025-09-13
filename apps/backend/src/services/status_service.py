@@ -102,7 +102,7 @@ class StatusService:
                 if message["type"] == "message":
                     data = message["data"]
                     info = ProcessingStatusUpdate.model_validate_json(data)
-                    logger.debug(f"Received update: {info.model_dump_json(indent=2)}")
+                    logger.info(f"Received update: {info.model_dump_json(indent=2)}")
 
                     # Send current status after update
                     result = await self.get_processing_status(user_id, job_id)
