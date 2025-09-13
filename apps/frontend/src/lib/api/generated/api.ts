@@ -246,6 +246,7 @@ export const streamStatusApiV1JobsJobIdStatusStreamGet = (jobId: string) => {
   return customAxiosInstance<unknown>({
     url: `/api/v1/jobs/${jobId}/status-stream`,
     method: "GET",
+    responseType: "stream",
   });
 };
 
