@@ -15,11 +15,13 @@ ProcessingStatusType = Literal["job-parsed-at"]
 
 class ProcessingStatus(BaseModel):
     """Processing status model."""
+
     job_parsed_at: Optional[datetime] = None
 
 
 class ProcessingStatusUpdate(BaseModel):
     """Status update for SSE streaming."""
+
     timestamp: datetime
     tag: ProcessingStatusType
 
@@ -48,10 +50,10 @@ class StatusService:
         job_parsed_at = await self.redis_client.get(
             self._status_key(user_id, job_id, "job-parsed-at")
         )
-        
+
         if job_parsed_at:
             return ProcessingStatus(job_parsed_at=datetime.fromisoformat(job_parsed_at))
-        
+
         return ProcessingStatus()
 
     async def set_and_publish_status(
@@ -64,21 +66,21 @@ class StatusService:
         """Set status in Redis and publish update to subscribers."""
         if not timestamp:
             timestamp = datetime.now(timezone.utc)
-        
+
         # Store status
         await self.redis_client.set(
-            self._status_key(user_id, job_id, tag), 
-            timestamp.isoformat()
+            self._status_key(user_id, job_id, tag), timestamp.isoformat()
         )
-        
+
         # Publish update
         update = ProcessingStatusUpdate(timestamp=timestamp, tag=tag)
         await self.redis_client.publish(
-            self._status_channel(user_id, job_id), 
-            update.model_dump_json()
+            self._status_channel(user_id, job_id), update.model_dump_json()
         )
-        
-        logger.info(f"Published status update: user_id={user_id}, job_id={job_id}, tag={tag}")
+
+        logger.info(
+            f"Published status update: user_id={user_id}, job_id={job_id}, tag={tag}"
+        )
 
     async def stream_status(
         self, user_id: uuid.UUID, job_id: uuid.UUID
@@ -86,7 +88,7 @@ class StatusService:
         """Stream status updates via Server-Sent Events."""
         channel = self._status_channel(user_id, job_id)
         pubsub = self.redis_client.pubsub()
-        
+
         await pubsub.subscribe(channel)
         logger.info(f"SSE: Subscribed to channel {channel}")
 
@@ -101,13 +103,17 @@ class StatusService:
                     data = message["data"]
                     info = ProcessingStatusUpdate.model_validate_json(data)
                     logger.debug(f"Received update: {info.model_dump_json(indent=2)}")
-                    
+
                     # Send current status after update
                     result = await self.get_processing_status(user_id, job_id)
                     yield f"data: {result.model_dump_json()}\n\n"
 
                 elif message["type"] == "subscribe":
                     logger.info("SSE: Successfully subscribed to channel")
+
+                elif message["type"] == "unsubscribe":
+                    logger.info("SSE: Successfully unsubscribed from channel")
+                    break
 
         except Exception as e:
             logger.error(f"SSE: Error in stream: {str(e)}")
