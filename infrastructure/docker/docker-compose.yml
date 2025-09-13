@@ -10,9 +10,10 @@ services:
       - "4000:4000"
     volumes:
       - ./litellm-config.yaml:/app/config.yaml
-    command: [ "--config", "/app/config.yaml", "--port", "4000", "--num_workers", "1" ]
+    command:
+      ["--config", "/app/config.yaml", "--port", "4000", "--num_workers", "1"]
     environment:
-      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:-sk-1234}  # CHANGEME
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:-sk-1234} # CHANGEME
       - DATABASE_URL=postgresql://${LITELLM_POSTGRES_USER}:${LITELLM_POSTGRES_PASSWORD}@litellm-postgres:5432/${LITELLM_POSTGRES_DB}
       # API Keys for providers
       - OPENAI_API_KEY=${OPENAI_API_KEY}
@@ -34,12 +35,12 @@ services:
     restart: always
     environment:
       POSTGRES_USER: ${LITELLM_POSTGRES_USER}
-      POSTGRES_PASSWORD: ${LITELLM_POSTGRES_PASSWORD}  # CHANGEME
+      POSTGRES_PASSWORD: ${LITELLM_POSTGRES_PASSWORD} # CHANGEME
       POSTGRES_DB: ${LITELLM_POSTGRES_DB}
     volumes:
       - litellm_postgres_data:/var/lib/postgresql/data
     ports:
-      - "127.0.0.1:5440:5432"  # Exposed locally on port 5440 for debugging
+      - "127.0.0.1:5440:5432" # Exposed locally on port 5440 for debugging
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -53,12 +54,12 @@ services:
     restart: always
     environment:
       POSTGRES_USER: ${BACKEND_POSTGRES_USER}
-      POSTGRES_PASSWORD: ${BACKEND_POSTGRES_PASSWORD:-postgres}  # CHANGEME
+      POSTGRES_PASSWORD: ${BACKEND_POSTGRES_PASSWORD:-postgres} # CHANGEME
       POSTGRES_DB: ${BACKEND_POSTGRES_DB}
     volumes:
       - resume_genius_postgres_data:/var/lib/postgresql/data
     ports:
-      - "127.0.0.1:5441:5432"  # Exposed locally on port 5441
+      - "127.0.0.1:5441:5432" # Exposed locally on port 5441
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -71,7 +72,7 @@ services:
     container_name: resume-genius-redis
     restart: unless-stopped
     ports:
-      - "127.0.0.1:6380:6379"  # Exposed locally on port 6380
+      - "127.0.0.1:6380:6379" # Exposed locally on port 6380
     volumes:
       - resume_genius_redis_data:/data
     command: redis-server --appendonly yes --appendfsync everysec
@@ -98,6 +99,7 @@ services:
       - /app/.next
     environment:
       - NODE_ENV=development
+      - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}
     depends_on:
       - backend
     restart: unless-stopped
