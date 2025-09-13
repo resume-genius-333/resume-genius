@@ -1,8 +1,8 @@
 import z from "zod";
-import { customAxiosInstance } from "./orval-axios";
+import { customAxiosInstance } from "./client";
 
 export const jobStatusSchema = z.object({
-  job_updated_at: z.iso.datetime().nullish(),
+  job_parsed_at: z.iso.datetime().nullish(),
 });
 
 /**
