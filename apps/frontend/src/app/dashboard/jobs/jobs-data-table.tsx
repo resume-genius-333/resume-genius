@@ -12,7 +12,20 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ArrowUpDown, ChevronDown, MoreHorizontal, Search, Briefcase, Building2, Link2, FileText, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import {
+  ArrowUpDown,
+  ChevronDown,
+  MoreHorizontal,
+  Search,
+  Briefcase,
+  Building2,
+  Link2,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -35,7 +48,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -54,7 +73,7 @@ import {
 
 function ActionsCell({ job }: { job: JobSchema }) {
   const router = useRouter();
-  
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -65,21 +84,21 @@ function ActionsCell({ job }: { job: JobSchema }) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-        <DropdownMenuItem
-          onClick={() => navigator.clipboard.writeText(job.id)}
-        >
+        <DropdownMenuItem onClick={() => navigator.clipboard.writeText(job.id)}>
           Copy job ID
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => router.push(`/jobs/${job.id}`)}>
+        <DropdownMenuItem
+          onClick={() => router.push(`/dashboard/jobs/${job.id}`)}
+        >
           View details
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => router.push(`/jobs/${job.id}/edit`)}>
+        <DropdownMenuItem
+          onClick={() => router.push(`/dashboard/jobs/${job.id}/edit`)}
+        >
           Edit job
         </DropdownMenuItem>
-        <DropdownMenuItem className="text-red-600">
-          Delete job
-        </DropdownMenuItem>
+        <DropdownMenuItem className="text-red-600">Delete job</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -167,10 +186,11 @@ export const columns: ColumnDef<JobSchema>[] = [
     ),
     cell: ({ row }) => {
       const description = row.getValue("job_description") as string;
-      const truncated = description.length > 100 
-        ? description.substring(0, 100) + "..." 
-        : description;
-      
+      const truncated =
+        description.length > 100
+          ? description.substring(0, 100) + "..."
+          : description;
+
       return (
         <TooltipProvider>
           <Tooltip>
@@ -180,7 +200,10 @@ export const columns: ColumnDef<JobSchema>[] = [
               </div>
             </TooltipTrigger>
             <TooltipContent className="max-w-[400px]">
-              <p className="text-sm">{description.substring(0, 500)}{description.length > 500 ? "..." : ""}</p>
+              <p className="text-sm">
+                {description.substring(0, 500)}
+                {description.length > 500 ? "..." : ""}
+              </p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -197,11 +220,11 @@ export const columns: ColumnDef<JobSchema>[] = [
     ),
     cell: ({ row }) => {
       const jobUrl = row.getValue("job_url") as string | undefined;
-      
+
       if (!jobUrl) {
         return <span className="text-sm text-muted-foreground">No link</span>;
       }
-      
+
       return (
         <Button
           variant="ghost"
@@ -237,19 +260,22 @@ interface JobsDataTableProps {
   isLoading: boolean;
 }
 
-export function JobsDataTable({ 
-  data, 
-  totalItems, 
-  currentPage, 
-  pageSize, 
+export function JobsDataTable({
+  data,
+  totalItems,
+  currentPage,
+  pageSize,
   totalPages,
   onPageChange,
   onPageSizeChange,
-  isLoading 
+  isLoading,
 }: JobsDataTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+    []
+  );
+  const [columnVisibility, setColumnVisibility] =
+    React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
   const [globalFilter, setGlobalFilter] = React.useState("");
 
@@ -281,7 +307,9 @@ export function JobsDataTable({
       <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-2xl font-bold">Job Opportunities</CardTitle>
+            <CardTitle className="text-2xl font-bold">
+              Job Opportunities
+            </CardTitle>
             <CardDescription className="mt-1">
               Manage and track your job applications
             </CardDescription>
@@ -334,7 +362,7 @@ export function JobsDataTable({
             </DropdownMenu>
           </div>
         </div>
-        
+
         <div className="relative rounded-lg border bg-white dark:bg-gray-950">
           {isLoading && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/80 dark:bg-gray-950/80 backdrop-blur-sm">
@@ -397,14 +425,19 @@ export function JobsDataTable({
             </TableBody>
           </Table>
         </div>
-        
+
         <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <div className="text-sm text-muted-foreground">
               {table.getFilteredSelectedRowModel().rows.length > 0 && (
-                <span>{table.getFilteredSelectedRowModel().rows.length} selected • </span>
+                <span>
+                  {table.getFilteredSelectedRowModel().rows.length} selected
+                  •{" "}
+                </span>
               )}
-              Showing {currentPage * pageSize + 1}-{Math.min((currentPage + 1) * pageSize, totalItems)} of {totalItems} jobs
+              Showing {currentPage * pageSize + 1}-
+              {Math.min((currentPage + 1) * pageSize, totalItems)} of{" "}
+              {totalItems} jobs
             </div>
             <Select
               value={pageSize.toString()}
