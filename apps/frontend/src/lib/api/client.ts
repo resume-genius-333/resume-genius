@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import axios, { AxiosRequestConfig, ResponseType } from "axios";
 import z, { ZodObject } from "zod";
 
@@ -92,8 +93,15 @@ axiosInstance.interceptors.response.use(
   }
 );
 
-type MaybeZodObject<T> = T extends ZodObject ? z.output<T> : T;
-type MaybeZodInput<T> = T extends ZodObject ? { responseSchema: T } : {};
+interface ZodOutputable {
+  _zod: {
+    output: any;
+  };
+}
+type MaybeZodObject<T> = T extends ZodOutputable ? z.output<T> : T;
+type MaybeZodInput<T> = T extends ZodOutputable
+  ? { responseSchema: T }
+  : unknown;
 
 type CustomAxiosRequestConfig<D = any> = Omit<
   AxiosRequestConfig<D>,

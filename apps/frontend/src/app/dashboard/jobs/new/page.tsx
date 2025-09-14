@@ -44,7 +44,7 @@ export default function NewJobPage() {
       job_description: input.jobDescription,
       job_url: input.jobUrl,
     });
-    router.push(`/jobs/${result.job_id}`);
+    router.push(`/dashboard/jobs/${result.job_id}`);
   }
   return (
     <div className="flex items-center justify-center h-screen">

@@ -50,7 +50,7 @@ class JobService:
                 messages=[
                     {
                         "role": "user",
-                        "content": f"Extract information from the job description. \n\n{job_description}",
+                        "content": f"Extract information from the job description. For the job description, extract in Github Flavored Markdown. \n\n{job_description}",
                     }
                 ],
             )
