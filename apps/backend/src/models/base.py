@@ -81,7 +81,7 @@ class BaseFrontendSchema(BaseModel):
             Validation result with missing fields and status
         """
         missing_fields = []
-        field_errors = {}
+        field_errors: dict[str, str] = {}
 
         for field_name, field_info in cls.model_fields.items():
             if field_info.is_required():

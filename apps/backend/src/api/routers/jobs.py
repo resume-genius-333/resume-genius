@@ -1,5 +1,6 @@
 """Jobs router using service layer architecture."""
 
+from typing import Optional
 import uuid
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
@@ -7,7 +8,7 @@ from dependency_injector.wiring import inject, Provide
 from src.api.dependencies import get_current_user
 from src.containers import Container
 from src.core.unit_of_work import UnitOfWorkFactory
-from src.models.api.core import PaginatedResponse
+from src.models.api.core import OptionalResponse, PaginatedResponse
 from src.models.auth.user import UserResponse
 from src.models.api.job import (
     CreateJobRequest,
@@ -16,6 +17,7 @@ from src.models.api.job import (
 )
 from src.models.db.resumes.job import JobSchema
 from src.services.job_service import JobService
+from src.services.selection_service import SelectionResult, SelectionService
 from src.services.status_service import StatusService, ProcessingStatus
 import logging
 
@@ -24,15 +26,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@inject
-def get_status_service(
-    status_service: StatusService = Provide[Container.status_service],
-) -> StatusService:
-    """Get status service."""
-    return status_service
-
-
-@inject
 async def _create_job_background(
     user_id: uuid.UUID, job_id: uuid.UUID, request: CreateJobRequest
 ):
@@ -40,11 +33,15 @@ async def _create_job_background(
     try:
         async with UnitOfWorkFactory() as uow:
             job_service = JobService(uow)
+            selection_service = SelectionService(uow)
             await job_service.create_job(
                 user_id=user_id,
                 job_id=job_id,
                 job_description=request.job_description,
                 job_url=request.job_url,
+            )
+            await selection_service.select_educations(
+                user_id=user_id, job_id=job_id, job_description=request.job_description
             )
             await uow.commit()
     except Exception as e:
@@ -108,9 +105,102 @@ async def get_job(
         return job
 
 
-@router.post("/jobs/{job_id}/select_relevant_info")
-@inject
-async def select_relevant_info(
+# We don't choose this option because this makes the code more coupled with
+# implementation detail
+#
+# def create_experience_getter(
+#     experience_name: str,
+#     get_get_fn: Callable[[JobService], Callable[[uuid.UUID, uuid.UUID], Any]],
+# ):
+#     path = r"/jobs/{job_id}" + f"/selected_{experience_name}"
+
+#     @router.get(path)
+#     async def getter(
+#         job_id: uuid.UUID,
+#         current_user: UserResponse = Depends(get_current_user),
+#     ):
+#         """Select relevant information from user's resume for the job."""
+#         async with UnitOfWorkFactory() as uow:
+#             job_service = JobService(uow)
+#             user_id = uuid.UUID(current_user.id)
+#             get_fn = get_get_fn(job_service)
+#             # job_id: uuid, user_id: uuid -> result
+#             result = await get_fn(job_id, user_id)
+#             await uow.commit()
+#             return result
+
+#     return getter
+
+
+# get_selected_educations = create_experience_getter(
+#     experience_name='educations',
+#     get_get_fn=lambda service: service.get_selected_educations
+# )
+
+
+@router.get(
+    "/jobs/{job_id}/selected_educations",
+    response_model=SelectionResult,
+)
+async def get_selected_educations(
+    job_id: uuid.UUID,
+    current_user: UserResponse = Depends(get_current_user),
+) -> SelectionResult:
+    """Select relevant information from user's resume for the job."""
+    async with UnitOfWorkFactory() as uow:
+        selection_service = SelectionService(uow)
+        user_id = uuid.UUID(current_user.id)
+        result = await selection_service.get_selected_educations(job_id, user_id)
+        await uow.commit()
+        if not result:
+            raise Exception("No education selection available.")
+        return result
+
+
+@router.get("/jobs/{job_id}/selected_work_experiences")
+async def get_selected_work_experiences(
+    job_id: uuid.UUID,
+    current_user: UserResponse = Depends(get_current_user),
+):
+    """Select relevant information from user's resume for the job."""
+    # async with UnitOfWorkFactory() as uow:
+    #     job_service = JobService(uow)
+    #     user_id = uuid.UUID(current_user.id)
+    #     result = await job_service.get_selected_work_experiences(job_id, user_id)
+    #     await uow.commit()
+    #     return result
+
+
+@router.get("/jobs/{job_id}/selected_projects")
+async def get_selected_projects(
+    job_id: uuid.UUID,
+    current_user: UserResponse = Depends(get_current_user),
+):
+    """Select relevant information from user's resume for the job."""
+    # async with UnitOfWorkFactory() as uow:
+    #     job_service = JobService(uow)
+    #     user_id = uuid.UUID(current_user.id)
+    #     result = await job_service.get_selected_projects(job_id, user_id)
+    #     await uow.commit()
+    #     return result
+
+
+@router.get("/jobs/{job_id}/selected_skills")
+async def get_selected_skills(
+    job_id: uuid.UUID,
+    current_user: UserResponse = Depends(get_current_user),
+):
+    """Select relevant information from user's resume for the job."""
+    # async with UnitOfWorkFactory() as uow:
+    #     job_service = JobService(uow)
+    #     user_id = uuid.UUID(current_user.id)
+    #     result = await job_service.get_selected_skills(job_id, user_id)
+    #     await uow.commit()
+    #     return result
+
+
+@router.post("/jobs/{job_id}/confirm_experience_selection")
+async def confirm_experience_selection(
     job_id: uuid.UUID,
     current_user: UserResponse = Depends(get_current_user),
 ):
@@ -118,7 +208,7 @@ async def select_relevant_info(
     async with UnitOfWorkFactory() as uow:
         job_service = JobService(uow)
         user_id = uuid.UUID(current_user.id)
-        result = await job_service.select_relevant_info(job_id, user_id)
+        result = await job_service.confirm_experience_selection(job_id, user_id)
         await uow.commit()
         return result
 
@@ -145,7 +235,7 @@ async def stream_status(
 ):
     """Stream job processing status via Server-Sent Events."""
     user_id = uuid.UUID(current_user.id)
-    status_service = get_status_service()
+    status_service = StatusService()
     return StreamingResponse(
         status_service.stream_status(user_id, job_id),
         media_type="text/event-stream",
@@ -164,5 +254,5 @@ async def get_status(
 ) -> ProcessingStatus:
     """Get current processing status for a job."""
     user_id = uuid.UUID(current_user.id)
-    status_service = get_status_service()
+    status_service = StatusService()
     return await status_service.get_processing_status(user_id, job_id)

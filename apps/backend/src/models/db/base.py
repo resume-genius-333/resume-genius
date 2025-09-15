@@ -16,7 +16,3 @@ metadata = MetaData(naming_convention=convention)
 
 class Base(DeclarativeBase):
     metadata = metadata
-    
-    # This helps with type checking
-    id: Any
-    __name__: str

@@ -32,6 +32,7 @@ import type {
   ResumeVersionResponse,
   ResumeWorkExperienceRequest,
   ResumeWorkExperienceResponse,
+  SelectionResult,
   TestApiKeyApiV1AuthTestApiKeyGet200,
   UpdateResumeVersionRequest,
   UserLoginRequest,
@@ -216,16 +217,66 @@ export const getJobApiV1JobsJobIdGet = (jobId: string) => {
 
 /**
  * Select relevant information from user's resume for the job.
- * @summary Select Relevant Info
+ * @summary Get Selected Educations
  */
-export const selectRelevantInfoApiV1JobsJobIdSelectRelevantInfoPost = (
+export const getSelectedEducationsApiV1JobsJobIdSelectedEducationsGet = (
+  jobId: string
+) => {
+  return customAxiosInstance<SelectionResult>({
+    url: `/api/v1/jobs/${jobId}/selected_educations`,
+    method: "GET",
+  });
+};
+
+/**
+ * Select relevant information from user's resume for the job.
+ * @summary Get Selected Work Experiences
+ */
+export const getSelectedWorkExperiencesApiV1JobsJobIdSelectedWorkExperiencesGet =
+  (jobId: string) => {
+    return customAxiosInstance<unknown>({
+      url: `/api/v1/jobs/${jobId}/selected_work_experiences`,
+      method: "GET",
+    });
+  };
+
+/**
+ * Select relevant information from user's resume for the job.
+ * @summary Get Selected Projects
+ */
+export const getSelectedProjectsApiV1JobsJobIdSelectedProjectsGet = (
   jobId: string
 ) => {
   return customAxiosInstance<unknown>({
-    url: `/api/v1/jobs/${jobId}/select_relevant_info`,
-    method: "POST",
+    url: `/api/v1/jobs/${jobId}/selected_projects`,
+    method: "GET",
   });
 };
+
+/**
+ * Select relevant information from user's resume for the job.
+ * @summary Get Selected Skills
+ */
+export const getSelectedSkillsApiV1JobsJobIdSelectedSkillsGet = (
+  jobId: string
+) => {
+  return customAxiosInstance<unknown>({
+    url: `/api/v1/jobs/${jobId}/selected_skills`,
+    method: "GET",
+  });
+};
+
+/**
+ * Select relevant information from user's resume for the job.
+ * @summary Confirm Experience Selection
+ */
+export const confirmExperienceSelectionApiV1JobsJobIdConfirmExperienceSelectionPost =
+  (jobId: string) => {
+    return customAxiosInstance<unknown>({
+      url: `/api/v1/jobs/${jobId}/confirm_experience_selection`,
+      method: "POST",
+    });
+  };
 
 /**
  * Refine user's resume for the specific job.
@@ -614,10 +665,38 @@ export type ListJobsApiV1JobsGetResult = NonNullable<
 export type GetJobApiV1JobsJobIdGetResult = NonNullable<
   Awaited<ReturnType<typeof getJobApiV1JobsJobIdGet>>
 >;
-export type SelectRelevantInfoApiV1JobsJobIdSelectRelevantInfoPostResult =
+export type GetSelectedEducationsApiV1JobsJobIdSelectedEducationsGetResult =
   NonNullable<
     Awaited<
-      ReturnType<typeof selectRelevantInfoApiV1JobsJobIdSelectRelevantInfoPost>
+      ReturnType<
+        typeof getSelectedEducationsApiV1JobsJobIdSelectedEducationsGet
+      >
+    >
+  >;
+export type GetSelectedWorkExperiencesApiV1JobsJobIdSelectedWorkExperiencesGetResult =
+  NonNullable<
+    Awaited<
+      ReturnType<
+        typeof getSelectedWorkExperiencesApiV1JobsJobIdSelectedWorkExperiencesGet
+      >
+    >
+  >;
+export type GetSelectedProjectsApiV1JobsJobIdSelectedProjectsGetResult =
+  NonNullable<
+    Awaited<
+      ReturnType<typeof getSelectedProjectsApiV1JobsJobIdSelectedProjectsGet>
+    >
+  >;
+export type GetSelectedSkillsApiV1JobsJobIdSelectedSkillsGetResult =
+  NonNullable<
+    Awaited<ReturnType<typeof getSelectedSkillsApiV1JobsJobIdSelectedSkillsGet>>
+  >;
+export type ConfirmExperienceSelectionApiV1JobsJobIdConfirmExperienceSelectionPostResult =
+  NonNullable<
+    Awaited<
+      ReturnType<
+        typeof confirmExperienceSelectionApiV1JobsJobIdConfirmExperienceSelectionPost
+      >
     >
   >;
 export type RefineResumeApiV1JobsJobIdRefinePostResult = NonNullable<

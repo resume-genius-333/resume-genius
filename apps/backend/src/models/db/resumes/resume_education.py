@@ -11,12 +11,42 @@ if TYPE_CHECKING:
     from .job import Job
 
 
+from pydantic import BaseModel, PrivateAttr
+
+
+class ResumeEducationSchema(BaseModel):
+    id: uuid.UUID
+    user_id: uuid.UUID
+    job_id: uuid.UUID
+    parent_id: uuid.UUID | None = None
+    institution_name: str
+    degree: str
+    field_of_study: str
+    focus_area: str | None = None
+    start_date: str | None = None
+    end_date: str | None = None
+    gpa: float | None = None
+    max_gpa: float | None = None
+    city: str | None = None
+    country: str | None = None
+    _orm_entity: Optional["ResumeEducation"] = PrivateAttr(default=None)
+
+    class Config:
+        from_attributes = True
+
+
 class ResumeEducation(Base):
     __tablename__ = "resume_educations"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    job_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("jobs.id"), nullable=False)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+    )
+    job_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("jobs.id"), nullable=False
+    )
     parent_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True), ForeignKey("resume_educations.id"), nullable=True
     )
@@ -32,13 +62,18 @@ class ResumeEducation(Base):
     country: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     __table_args__ = (
-        UniqueConstraint('user_id', 'job_id', name='uq_resume_education_user_job'),
+        UniqueConstraint("user_id", "job_id", name="uq_resume_education_user_job"),
     )
 
     # Relationships
     user: Mapped["User"] = relationship(foreign_keys=[user_id])
     job: Mapped["Job"] = relationship(back_populates="resume_educations")
     parent: Mapped[Optional["ResumeEducation"]] = relationship(
-        remote_side=[id],
-        foreign_keys=[parent_id]
+        remote_side=[id], foreign_keys=[parent_id]
     )
+
+    @property
+    def schema(self):
+        result = ResumeEducationSchema.model_validate(self)
+        result._orm_entity = self
+        return result

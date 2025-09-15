@@ -1,22 +1,36 @@
 """Service for managing processing status and SSE streaming."""
 
+import asyncio
 from datetime import datetime, timezone
 from typing import AsyncGenerator, Literal, Optional
 import uuid
 import redis.asyncio as redis
 from pydantic import BaseModel
 import logging
+from dependency_injector.wiring import Provide, inject
+from src.containers import Container, container
 
 logger = logging.getLogger(__name__)
+container.wire(modules=[__name__])
 
 
-ProcessingStatusType = Literal["job-parsed-at"]
+type ProcessingStatusType = Literal[
+    "job-parsed-at",
+    "educations-selected-at",
+    "work-experiences-selected-at",
+    "projects-selected-at",
+    "skills-selected-at",
+]
 
 
 class ProcessingStatus(BaseModel):
     """Processing status model."""
 
     job_parsed_at: Optional[datetime] = None
+    educations_selected_at: Optional[datetime] = None
+    work_experiences_selected_at: Optional[datetime] = None
+    projects_selected_at: Optional[datetime] = None
+    skills_selected_at: Optional[datetime] = None
 
 
 class ProcessingStatusUpdate(BaseModel):
@@ -29,7 +43,8 @@ class ProcessingStatusUpdate(BaseModel):
 class StatusService:
     """Service for managing job processing status and SSE streaming."""
 
-    def __init__(self, redis_client: redis.Redis):
+    @inject
+    def __init__(self, redis_client: redis.Redis = Provide[Container.redis_client]):
         """Initialize status service with Redis client."""
         self.redis_client = redis_client
 
@@ -47,14 +62,48 @@ class StatusService:
         self, user_id: uuid.UUID, job_id: uuid.UUID
     ) -> ProcessingStatus:
         """Get current processing status for a job."""
-        job_parsed_at = await self.redis_client.get(
+
+        def convert(date: Optional[str]) -> Optional[datetime]:
+            if not date:
+                return None
+            return datetime.fromisoformat(date)
+
+        job_parsed_at = self.redis_client.get(
             self._status_key(user_id, job_id, "job-parsed-at")
         )
+        educations_selected_at = self.redis_client.get(
+            self._status_key(user_id, job_id, "educations-selected-at")
+        )
+        work_experiences_selected_at = self.redis_client.get(
+            self._status_key(user_id, job_id, "work-experiences-selected-at")
+        )
+        projects_selected_at = self.redis_client.get(
+            self._status_key(user_id, job_id, "projects-selected-at")
+        )
+        skills_selected_at = self.redis_client.get(
+            self._status_key(user_id, job_id, "skills-selected-at")
+        )
+        (
+            job_parsed_at,
+            educations_selected_at,
+            work_experiences_selected_at,
+            projects_selected_at,
+            skills_selected_at,
+        ) = await asyncio.gather(
+            job_parsed_at,
+            educations_selected_at,
+            work_experiences_selected_at,
+            projects_selected_at,
+            skills_selected_at,
+        )
 
-        if job_parsed_at:
-            return ProcessingStatus(job_parsed_at=datetime.fromisoformat(job_parsed_at))
-
-        return ProcessingStatus()
+        return ProcessingStatus(
+            job_parsed_at=convert(job_parsed_at),
+            educations_selected_at=convert(educations_selected_at),
+            work_experiences_selected_at=convert(work_experiences_selected_at),
+            projects_selected_at=convert(projects_selected_at),
+            skills_selected_at=convert(skills_selected_at),
+        )
 
     async def set_and_publish_status(
         self,

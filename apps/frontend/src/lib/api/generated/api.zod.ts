@@ -249,14 +249,118 @@ export const getJobApiV1JobsJobIdGetResponse = zod.object({
 
 /**
  * Select relevant information from user's resume for the job.
- * @summary Select Relevant Info
+ * @summary Get Selected Educations
  */
-export const selectRelevantInfoApiV1JobsJobIdSelectRelevantInfoPostParams =
+export const getSelectedEducationsApiV1JobsJobIdSelectedEducationsGetParams =
   zod.object({
     job_id: zod.uuid(),
   });
 
-export const selectRelevantInfoApiV1JobsJobIdSelectRelevantInfoPostResponse =
+export const getSelectedEducationsApiV1JobsJobIdSelectedEducationsGetResponseSelectedItemsItemJustificationMin = 20;
+
+export const getSelectedEducationsApiV1JobsJobIdSelectedEducationsGetResponseSelectedItemsItemJustificationMax = 400;
+export const getSelectedEducationsApiV1JobsJobIdSelectedEducationsGetResponseNotSelectedItemsItemJustificationMin = 10;
+
+export const getSelectedEducationsApiV1JobsJobIdSelectedEducationsGetResponseNotSelectedItemsItemJustificationMax = 240;
+
+export const getSelectedEducationsApiV1JobsJobIdSelectedEducationsGetResponse =
+  zod.object({
+    selected_items: zod
+      .array(
+        zod.object({
+          id: zod
+            .uuid()
+            .describe(
+              "UUID of a profile entity to INCLUDE (education, work, project, skill, certification, award, publication, volunteer, coursework, etc.). Must exist in the source dataset."
+            ),
+          justification: zod
+            .string()
+            .min(
+              getSelectedEducationsApiV1JobsJobIdSelectedEducationsGetResponseSelectedItemsItemJustificationMin
+            )
+            .max(
+              getSelectedEducationsApiV1JobsJobIdSelectedEducationsGetResponseSelectedItemsItemJustificationMax
+            )
+            .describe(
+              "2–3 sentences explaining why this entity improves fit for the TARGET ROLE. Tie to 1–3 job requirements/keywords and include concrete evidence (scope, metrics, tech, outcomes). Guidance by type: • Education: degree/level match, recency, key coursework/capstone. • Work/Project: responsibilities, impact/metrics, stack/tools. • Skill/Certification: proficiency/level, recency, where it was applied."
+            ),
+        })
+      )
+      .describe(
+        "Entities to INCLUDE in the final resume, ordered by relevance (most relevant first) to the target role. IDs must be unique and must NOT appear in not_selected_items."
+      ),
+    not_selected_items: zod
+      .array(
+        zod.object({
+          id: zod
+            .uuid()
+            .describe(
+              "UUID of a profile entity to OMIT (education, work, project, skill, certification, etc.). Must exist in the source dataset."
+            ),
+          justification: zod
+            .string()
+            .min(
+              getSelectedEducationsApiV1JobsJobIdSelectedEducationsGetResponseNotSelectedItemsItemJustificationMin
+            )
+            .max(
+              getSelectedEducationsApiV1JobsJobIdSelectedEducationsGetResponseNotSelectedItemsItemJustificationMax
+            )
+            .describe(
+              "One clear reason for omission such as: irrelevant to core requirements, outdated, low impact, duplicative/overlaps with a stronger included entity, or space constraints. Reference the mismatched requirement or the overlapping included entity when applicable."
+            ),
+        })
+      )
+      .describe(
+        "Entities to OMIT from the final resume, each with a concise reason. IDs must be unique and must NOT overlap with selected_items."
+      ),
+  });
+
+/**
+ * Select relevant information from user's resume for the job.
+ * @summary Get Selected Work Experiences
+ */
+export const getSelectedWorkExperiencesApiV1JobsJobIdSelectedWorkExperiencesGetParams =
+  zod.object({
+    job_id: zod.uuid(),
+  });
+
+export const getSelectedWorkExperiencesApiV1JobsJobIdSelectedWorkExperiencesGetResponse =
+  zod.any();
+
+/**
+ * Select relevant information from user's resume for the job.
+ * @summary Get Selected Projects
+ */
+export const getSelectedProjectsApiV1JobsJobIdSelectedProjectsGetParams =
+  zod.object({
+    job_id: zod.uuid(),
+  });
+
+export const getSelectedProjectsApiV1JobsJobIdSelectedProjectsGetResponse =
+  zod.any();
+
+/**
+ * Select relevant information from user's resume for the job.
+ * @summary Get Selected Skills
+ */
+export const getSelectedSkillsApiV1JobsJobIdSelectedSkillsGetParams =
+  zod.object({
+    job_id: zod.uuid(),
+  });
+
+export const getSelectedSkillsApiV1JobsJobIdSelectedSkillsGetResponse =
+  zod.any();
+
+/**
+ * Select relevant information from user's resume for the job.
+ * @summary Confirm Experience Selection
+ */
+export const confirmExperienceSelectionApiV1JobsJobIdConfirmExperienceSelectionPostParams =
+  zod.object({
+    job_id: zod.uuid(),
+  });
+
+export const confirmExperienceSelectionApiV1JobsJobIdConfirmExperienceSelectionPostResponse =
   zod.any();
 
 /**
@@ -295,6 +399,18 @@ export const getStatusApiV1JobsJobIdStatusGetParams = zod.object({
 export const getStatusApiV1JobsJobIdStatusGetResponse = zod
   .object({
     job_parsed_at: zod.union([zod.iso.datetime({}), zod.null()]).optional(),
+    educations_selected_at: zod
+      .union([zod.iso.datetime({}), zod.null()])
+      .optional(),
+    work_experiences_selected_at: zod
+      .union([zod.iso.datetime({}), zod.null()])
+      .optional(),
+    projects_selected_at: zod
+      .union([zod.iso.datetime({}), zod.null()])
+      .optional(),
+    skills_selected_at: zod
+      .union([zod.iso.datetime({}), zod.null()])
+      .optional(),
   })
   .describe("Processing status model.");
 

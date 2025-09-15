@@ -6,8 +6,6 @@ from sqlalchemy.orm import sessionmaker, Session
 import redis.asyncio as redis
 from instructor import AsyncInstructor, Instructor, from_openai
 
-from src.services.status_service import StatusService
-
 
 class Container(containers.DeclarativeContainer):
     # Configuration provider
@@ -81,12 +79,6 @@ class Container(containers.DeclarativeContainer):
         socket_timeout=config.redis.socket_timeout,
         retry_on_timeout=config.redis.retry_on_timeout,
         health_check_interval=config.redis.health_check_interval,
-    )
-
-    # Status Service
-    status_service = providers.Factory(
-        StatusService,
-        redis_client=redis_client,
     )
 
 

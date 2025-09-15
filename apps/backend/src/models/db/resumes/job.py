@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from .resume_skill import ResumeSkill
 
 
-from pydantic import BaseModel
+from pydantic import BaseModel, PrivateAttr
 
 
 class JobSchema(BaseModel):
@@ -28,6 +28,7 @@ class JobSchema(BaseModel):
     position_title: str
     job_description: str
     job_url: str | None = None
+    _orm_entity: Optional["Job"] = PrivateAttr(default=None)
 
     class Config:
         from_attributes = True  # Pydantic v2 (was orm_mode = True in v1)
@@ -90,4 +91,6 @@ class Job(Base):
 
     @property
     def schema(self):
-        return JobSchema.model_validate(self)
+        result = JobSchema.model_validate(self)
+        result._orm_entity = self
+        return result

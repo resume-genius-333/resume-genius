@@ -1,7 +1,15 @@
 "use client";
 
-import { JobStatusOutput, streamJobStatus } from "@/lib/api/custom";
-import { getJobApiV1JobsJobIdGet } from "@/lib/api/generated/api";
+import {
+  EducationSelectionResult,
+  ProcessingStatusOutput,
+  streamProcessingStatus,
+} from "@/lib/api/custom";
+import {
+  getEducationApiV1ResumesEducationsEducationIdGet,
+  getJobApiV1JobsJobIdGet,
+  getSelectedEducationsApiV1JobsJobIdSelectedEducationsGet,
+} from "@/lib/api/generated/api";
 import { JobSchema } from "@/lib/api/generated/schemas";
 import { useEffect, useState, use, useCallback, useRef } from "react";
 import rehypeStringify from "rehype-stringify";
@@ -11,6 +19,7 @@ import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
 import { unified } from "unified";
 import "@/markdown.css";
+import z from "zod";
 
 interface JobPageInput {
   params: Promise<{ jobId: string }>;
@@ -18,21 +27,32 @@ interface JobPageInput {
 
 export default function JobPage({ params }: JobPageInput) {
   const { jobId } = use(params);
-  const [status, _setStatus] = useState<JobStatusOutput>({ jobParsedAt: null });
-  const statusRef = useRef<JobStatusOutput>(status);
+  const [status, _setStatus] = useState<ProcessingStatusOutput>({
+    jobParsedAt: null,
+    educationsSelectedAt: null,
+    workExperiencesSelectedAt: null,
+    projectsSelectedAt: null,
+    skillsSelectedAt: null,
+  });
+  const statusRef = useRef<ProcessingStatusOutput>(status);
   const [reader, setReader] =
-    useState<ReadableStreamDefaultReader<JobStatusOutput> | null>(null);
+    useState<ReadableStreamDefaultReader<ProcessingStatusOutput> | null>(null);
   const [job, setJob] = useState<JobSchema | null>(null);
   const [jobDescription, setJobDescription] = useState<string | null>(null);
+  const [educationSelected, setEducationSelected] =
+    useState<EducationSelectionResult | null>(null);
 
-  const setStatus = useCallback((status: JobStatusOutput) => {
+  const setStatus = useCallback((status: ProcessingStatusOutput) => {
     _setStatus(status);
     statusRef.current = status;
     console.log("status set: ", status);
   }, []);
 
   const checkAndUpdateStatusFor = useCallback(
-    (key: keyof JobStatusOutput, newData: JobStatusOutput): boolean => {
+    (
+      key: keyof ProcessingStatusOutput,
+      newData: ProcessingStatusOutput
+    ): boolean => {
       const currVal = statusRef.current[key];
       const newVal = newData[key];
       if (!newVal) return false;
@@ -70,26 +90,34 @@ export default function JobPage({ params }: JobPageInput) {
     await parseJobDescriptionToHtml(job.job_description);
   }, [jobId, parseJobDescriptionToHtml]);
 
+  const fetchEducation = useCallback(async () => {
+    const education =
+      await getSelectedEducationsApiV1JobsJobIdSelectedEducationsGet(jobId);
+    setEducationSelected(education);
+  }, [jobId]);
+
   const updateStatus = useCallback(
-    async (newStatus: JobStatusOutput) => {
+    async (newStatus: ProcessingStatusOutput) => {
       const promises: Promise<unknown>[] = [];
       if (checkAndUpdateStatusFor("jobParsedAt", newStatus)) {
-        console.log("TODO: Implement fetching job");
         promises.push(fetchJob());
+      }
+      if (checkAndUpdateStatusFor("educationsSelectedAt", newStatus)) {
+        promises.push(fetchEducation());
       }
       await Promise.all(promises);
     },
-    [checkAndUpdateStatusFor, fetchJob]
+    [checkAndUpdateStatusFor, fetchJob, fetchEducation]
   );
 
   async function createReader(jobId: string) {
-    const result = await streamJobStatus(jobId);
+    const result = await streamProcessingStatus(jobId);
     const reader = result.getReader();
     setReader(reader);
   }
 
   const read = useCallback(
-    async (reader: ReadableStreamDefaultReader<JobStatusOutput>) => {
+    async (reader: ReadableStreamDefaultReader<ProcessingStatusOutput>) => {
       while (true) {
         const { done, value } = await reader.read();
         if (value) {
@@ -129,6 +157,22 @@ export default function JobPage({ params }: JobPageInput) {
         <p className="text-sm text-gray-600">
           Check the browser console for detailed SSE debugging information
         </p>
+      </div>
+      <div className="mt-4">
+        <h3>Selected Educations</h3>
+        {educationSelected &&
+          educationSelected.selected_items.map((item) => (
+            <li key={item.id}>
+              {item.id}: {item.justification}
+            </li>
+          ))}
+        <h3>Not Selected Educations</h3>
+        {educationSelected &&
+          educationSelected.not_selected_items.map((item) => (
+            <li key={item.id}>
+              {item.id}: {item.justification}
+            </li>
+          ))}
       </div>
       <div>
         <p>Job Title: {job ? job.position_title : "Not loaded"}</p>
