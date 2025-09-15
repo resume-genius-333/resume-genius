@@ -16,6 +16,10 @@ from src.repositories.resume_repository import (
     ResumeSkillRepository,
 )
 from src.repositories.job_repository import JobRepository
+from src.repositories.education_repository import EducationRepository
+from src.repositories.work_repository import WorkRepository
+from src.repositories.project_repository import ProjectRepository
+from src.repositories.skill_repository import SkillRepository
 
 logger = logging.getLogger(__name__)
 container.wire(modules=[__name__])
@@ -43,6 +47,11 @@ class UnitOfWorkFactory:
         ] = None
         self.resume_project_repository: Optional[ResumeProjectRepository] = None
         self.resume_skill_repository: Optional[ResumeSkillRepository] = None
+        # User profile repositories
+        self.education_repository: Optional[EducationRepository] = None
+        self.work_repository: Optional[WorkRepository] = None
+        self.project_repository: Optional[ProjectRepository] = None
+        self.skill_repository: Optional[SkillRepository] = None
 
     async def __aenter__(self):
         """Enter async context manager - create session and repositories."""
@@ -65,6 +74,12 @@ class UnitOfWorkFactory:
         self.resume_project_repository = ResumeProjectRepository(self._session)
         self.resume_skill_repository = ResumeSkillRepository(self._session)
 
+        # Initialize user profile repositories
+        self.education_repository = EducationRepository(self._session)
+        self.work_repository = WorkRepository(self._session)
+        self.project_repository = ProjectRepository(self._session)
+        self.skill_repository = SkillRepository(self._session)
+
         logger.debug("Unit of Work initialized with repositories")
         return UnitOfWork(
             self._session,
@@ -76,6 +91,10 @@ class UnitOfWorkFactory:
             self.resume_work_experience_repository,
             self.resume_project_repository,
             self.resume_skill_repository,
+            self.education_repository,
+            self.work_repository,
+            self.project_repository,
+            self.skill_repository,
         )
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -131,6 +150,10 @@ class UnitOfWork:
         resume_work_experience_repository: ResumeWorkExperienceRepository,
         resume_project_repository: ResumeProjectRepository,
         resume_skill_repository: ResumeSkillRepository,
+        education_repository: EducationRepository,
+        work_repository: WorkRepository,
+        project_repository: ProjectRepository,
+        skill_repository: SkillRepository,
     ):
         self._session: AsyncSession = session
         self.auth_repository: AuthRepository = auth_repository
@@ -149,6 +172,11 @@ class UnitOfWork:
             resume_project_repository
         )
         self.resume_skill_repository: ResumeSkillRepository = resume_skill_repository
+        # User profile repositories
+        self.education_repository: EducationRepository = education_repository
+        self.work_repository: WorkRepository = work_repository
+        self.project_repository: ProjectRepository = project_repository
+        self.skill_repository: SkillRepository = skill_repository
 
     async def commit(self) -> None:
         await self._session.commit()
