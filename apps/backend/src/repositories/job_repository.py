@@ -4,7 +4,7 @@ from typing import Optional, List
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from src.models.db.resumes.job import Job
+from src.models.db.resumes.job import Job, JobSchema
 from src.models.llm.resumes.job import JobLLMSchema
 
 
@@ -21,7 +21,7 @@ class JobRepository:
         job_id: uuid.UUID,
         llm_schema: JobLLMSchema,
         job_url: Optional[str] = None,
-    ) -> Job:
+    ) -> JobSchema:
         """Create a new job in the database."""
         job = Job.from_llm(
             user_id=user_id,
@@ -34,11 +34,11 @@ class JobRepository:
         await self.session.commit()
         await self.session.refresh(job)
 
-        return job
+        return job.schema
 
     async def get_job_by_id(
         self, job_id: uuid.UUID, user_id: Optional[uuid.UUID] = None
-    ) -> Optional[Job]:
+    ) -> Optional[JobSchema]:
         """Get a job by ID, optionally filtered by user."""
         query = select(Job).where(Job.id == job_id)
 
@@ -46,11 +46,12 @@ class JobRepository:
             query = query.where(Job.user_id == user_id)
 
         result = await self.session.execute(query)
-        return result.scalar_one_or_none()
+        job = result.scalar_one_or_none()
+        return job.schema if job else None
 
     async def get_job_with_relations(
         self, job_id: uuid.UUID, user_id: Optional[uuid.UUID] = None
-    ) -> Optional[Job]:
+    ) -> Optional[JobSchema]:
         """Get a job with lazy loading for related entities."""
         query = select(Job).where(Job.id == job_id)
 
@@ -58,14 +59,15 @@ class JobRepository:
             query = query.where(Job.user_id == user_id)
 
         result = await self.session.execute(query)
-        return result.scalar_one_or_none()
+        job = result.scalar_one_or_none()
+        return job.schema if job else None
 
     async def get_jobs_by_user(
         self,
         user_id: uuid.UUID,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-    ) -> List[Job]:
+    ) -> List[JobSchema]:
         """Get all jobs for a specific user."""
         query = select(Job).where(Job.user_id == user_id)
         if limit:
@@ -74,7 +76,8 @@ class JobRepository:
             query = query.offset(offset)
 
         result = await self.session.execute(query)
-        return list(result.scalars().all())
+        jobs = list(result.scalars().all())
+        return [job.schema for job in jobs]
 
     async def get_jobs_count(
         self,
@@ -86,9 +89,11 @@ class JobRepository:
 
     async def update_job(
         self, job_id: uuid.UUID, user_id: uuid.UUID, **kwargs
-    ) -> Optional[Job]:
+    ) -> Optional[JobSchema]:
         """Update job fields."""
-        job = await self.get_job_by_id(job_id, user_id)
+        query = select(Job).where(Job.id == job_id).where(Job.user_id == user_id)
+        result = await self.session.execute(query)
+        job = result.scalar_one_or_none()
 
         if not job:
             return None
@@ -100,11 +105,13 @@ class JobRepository:
         await self.session.commit()
         await self.session.refresh(job)
 
-        return job
+        return job.schema
 
     async def delete_job(self, job_id: uuid.UUID, user_id: uuid.UUID) -> bool:
         """Delete a job and all related entities."""
-        job = await self.get_job_by_id(job_id, user_id)
+        query = select(Job).where(Job.id == job_id).where(Job.user_id == user_id)
+        result = await self.session.execute(query)
+        job = result.scalar_one_or_none()
 
         if not job:
             return False

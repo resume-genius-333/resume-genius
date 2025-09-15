@@ -1,34 +1,34 @@
 """Service for job-related business logic."""
 
-import asyncio
 from typing import Optional
 import uuid
 import logging
-from dependency_injector.wiring import Provide
+from dependency_injector.wiring import Provide, inject
 from instructor import AsyncInstructor
 
-from src.containers import Container
+from src.containers import Container, container
 from src.core.unit_of_work import UnitOfWork
 from src.models.api.core import PaginatedResponse
 from src.services.status_service import StatusService
-from src.models.db.resumes.job import Job, JobSchema
+from src.models.db.resumes.job import JobSchema
 from src.models.llm.resumes.job import JobLLMSchema
 
 logger = logging.getLogger(__name__)
+container.wire(modules=[__name__])
 
 
 class JobService:
     """Service for job business logic."""
 
+    @inject
     def __init__(
         self,
         uow: UnitOfWork,
-        status_service: StatusService = Provide[Container.status_service],
         instructor: AsyncInstructor = Provide[Container.async_instructor],
     ):
         """Initialize job service with dependencies."""
         self.uow = uow
-        self.status_service = status_service
+        self.status_service = StatusService()
         self.instructor = instructor
 
     async def create_job(
@@ -37,7 +37,7 @@ class JobService:
         job_id: uuid.UUID,
         job_description: str,
         job_url: Optional[str] = None,
-    ) -> Job:
+    ) -> JobSchema:
         """Create a new job by extracting information using LLM."""
         logger.info(f"Starting job creation for user_id={user_id}, job_id={job_id}")
 
@@ -60,7 +60,7 @@ class JobService:
 
             # Create job in database
             logger.info("Creating job in database")
-            job = await self.uow.job_repository.create_job(
+            job_schema = await self.uow.job_repository.create_job(
                 user_id=user_id,
                 job_id=job_id,
                 llm_schema=llm_result,
@@ -75,7 +75,7 @@ class JobService:
                 tag="job-parsed-at",
             )
 
-            return job
+            return job_schema
 
         except Exception as e:
             logger.error(f"Error in create_job: {str(e)}")
@@ -86,12 +86,7 @@ class JobService:
         self, job_id: uuid.UUID, user_id: Optional[uuid.UUID] = None
     ) -> Optional[JobSchema]:
         """Get a job by ID."""
-        job = await self.uow.job_repository.get_job_by_id(job_id, user_id)
-
-        if job:
-            return job.schema
-
-        return None
+        return await self.uow.job_repository.get_job_by_id(job_id, user_id)
 
     async def get_user_jobs(
         self,
@@ -112,8 +107,6 @@ class JobService:
             user_id, limit=page_size, offset=page * page_size
         )
 
-        jobs = [job.schema for job in jobs]
-
         jobs_count = await self.uow.job_repository.get_jobs_count(
             user_id,
         )
@@ -125,7 +118,7 @@ class JobService:
             total_pages=(jobs_count + page_size - 1) // page_size,
         )
 
-    async def select_relevant_info(
+    async def confirm_experience_selection(
         self,
         job_id: uuid.UUID,
         user_id: uuid.UUID,
