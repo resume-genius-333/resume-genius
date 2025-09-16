@@ -10,9 +10,57 @@ import { z as zod } from "zod";
  * Register a new user.
  * @summary Register
  */
+export const registerApiV1AuthRegisterPostBodyLastNameMaxOne = 100;
+export const createEducationApiV1ProfileEducationsPostBodyFocusAreaMaxOne = 200;
+export const createEducationApiV1ProfileEducationsPostBodyStartDateRegExpOne =
+  /^\d{4}-\d{2}$/;
+export const createEducationApiV1ProfileEducationsPostBodyEndDateRegExpOne =
+  /^\d{4}-\d{2}$/;
+export const createEducationApiV1ProfileEducationsPostBodyGpaMinOne = 0;
+export const createEducationApiV1ProfileEducationsPostBodyGpaMaxOne = 5;
+export const createEducationApiV1ProfileEducationsPostBodyMaxGpaMinOne = 0;
+export const createEducationApiV1ProfileEducationsPostBodyMaxGpaMaxOne = 5;
+export const updateEducationApiV1ProfileEducationsEducationIdPutBodyInstitutionNameMaxOne = 200;
+export const updateEducationApiV1ProfileEducationsEducationIdPutBodyFieldOfStudyMaxOne = 200;
+export const updateEducationApiV1ProfileEducationsEducationIdPutBodyFocusAreaMaxOne = 200;
+export const updateEducationApiV1ProfileEducationsEducationIdPutBodyStartDateRegExpOne =
+  /^\d{4}-\d{2}$/;
+export const updateEducationApiV1ProfileEducationsEducationIdPutBodyEndDateRegExpOne =
+  /^\d{4}-\d{2}$/;
+export const updateEducationApiV1ProfileEducationsEducationIdPutBodyGpaMinOne = 0;
+export const updateEducationApiV1ProfileEducationsEducationIdPutBodyGpaMaxOne = 5;
+export const updateEducationApiV1ProfileEducationsEducationIdPutBodyMaxGpaMinOne = 0;
+export const updateEducationApiV1ProfileEducationsEducationIdPutBodyMaxGpaMaxOne = 5;
+export const createWorkExperienceApiV1ProfileWorkExperiencesPostBodyLocationMaxOne = 200;
+export const createWorkExperienceApiV1ProfileWorkExperiencesPostBodyStartDateRegExpOne =
+  /^\d{4}-\d{2}$/;
+export const createWorkExperienceApiV1ProfileWorkExperiencesPostBodyEndDateRegExpOne =
+  /^\d{4}-\d{2}$/;
+export const updateWorkExperienceApiV1ProfileWorkExperiencesWorkIdPutBodyCompanyNameMaxOne = 200;
+export const updateWorkExperienceApiV1ProfileWorkExperiencesWorkIdPutBodyPositionTitleMaxOne = 200;
+export const updateWorkExperienceApiV1ProfileWorkExperiencesWorkIdPutBodyLocationMaxOne = 200;
+export const updateWorkExperienceApiV1ProfileWorkExperiencesWorkIdPutBodyStartDateRegExpOne =
+  /^\d{4}-\d{2}$/;
+export const updateWorkExperienceApiV1ProfileWorkExperiencesWorkIdPutBodyEndDateRegExpOne =
+  /^\d{4}-\d{2}$/;
+export const createProjectApiV1ProfileProjectsPostBodyDescriptionMaxOne = 1000;
+export const createProjectApiV1ProfileProjectsPostBodyStartDateRegExpOne =
+  /^\d{4}-\d{2}$/;
+export const createProjectApiV1ProfileProjectsPostBodyEndDateRegExpOne =
+  /^\d{4}-\d{2}$/;
+export const createProjectApiV1ProfileProjectsPostBodyProjectUrlMaxOne = 2083;
+export const createProjectApiV1ProfileProjectsPostBodyRepositoryUrlMaxOne = 2083;
+export const updateProjectApiV1ProfileProjectsProjectIdPutBodyProjectNameMaxOne = 200;
+export const updateProjectApiV1ProfileProjectsProjectIdPutBodyDescriptionMaxOne = 1000;
+export const updateProjectApiV1ProfileProjectsProjectIdPutBodyStartDateRegExpOne =
+  /^\d{4}-\d{2}$/;
+export const updateProjectApiV1ProfileProjectsProjectIdPutBodyEndDateRegExpOne =
+  /^\d{4}-\d{2}$/;
+export const updateProjectApiV1ProfileProjectsProjectIdPutBodyProjectUrlMaxOne = 2083;
+export const updateProjectApiV1ProfileProjectsProjectIdPutBodyRepositoryUrlMaxOne = 2083;
+
 export const registerApiV1AuthRegisterPostBodyPasswordMin = 8;
 export const registerApiV1AuthRegisterPostBodyFirstNameMax = 100;
-export const registerApiV1AuthRegisterPostBodyLastNameMaxOne = 100;
 
 export const registerApiV1AuthRegisterPostBody = zod
   .object({

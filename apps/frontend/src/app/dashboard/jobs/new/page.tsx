@@ -38,6 +38,10 @@ export default function NewJobPage() {
   const router = useRouter();
   const form = useForm<JobFormSchema>({
     resolver: zodResolver(newJobFormSchema),
+    defaultValues: {
+      jobUrl: "",
+      jobDescription: "",
+    },
   });
   async function onSubmit(input: JobFormSchema) {
     const result = await createJobApiV1JobsCreatePost({

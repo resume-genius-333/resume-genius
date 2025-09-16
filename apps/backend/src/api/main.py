@@ -91,7 +91,6 @@ container.wire(
 
 # Import routers AFTER wiring
 from .routers import auth, jobs, resumes, profile  # noqa: E402
-from .middleware import ValidationErrorLoggingMiddleware  # noqa: E402
 
 # OAuth2 scheme for Swagger UI
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
@@ -113,8 +112,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Add validation error logging middleware
-app.add_middleware(ValidationErrorLoggingMiddleware)
 
 # Add exception handler for validation errors
 @app.exception_handler(RequestValidationError)
@@ -124,7 +121,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     try:
         body = await request.body()
         request_data = json.loads(body.decode()) if body else {}
-    except:
+    except:  # noqa: E722
         request_data = "Could not decode body"
 
     # Log detailed error information
@@ -141,6 +138,7 @@ Validation Errors: {json.dumps(exc.errors(), indent=2)}
         status_code=422,
         content={"detail": exc.errors()},
     )
+
 
 app.include_router(auth.router, prefix="/api/v1", tags=["authentication"])
 app.include_router(jobs.router, prefix="/api/v1", tags=["jobs"])
