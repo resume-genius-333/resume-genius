@@ -5,10 +5,18 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { ProcessingStatusJobParsedAt } from "./processingStatusJobParsedAt";
+import type { ProcessingStatusEducationsSelectedAt } from "./processingStatusEducationsSelectedAt";
+import type { ProcessingStatusWorkExperiencesSelectedAt } from "./processingStatusWorkExperiencesSelectedAt";
+import type { ProcessingStatusProjectsSelectedAt } from "./processingStatusProjectsSelectedAt";
+import type { ProcessingStatusSkillsSelectedAt } from "./processingStatusSkillsSelectedAt";
 
 /**
  * Processing status model.
  */
 export interface ProcessingStatus {
   job_parsed_at?: ProcessingStatusJobParsedAt;
+  educations_selected_at?: ProcessingStatusEducationsSelectedAt;
+  work_experiences_selected_at?: ProcessingStatusWorkExperiencesSelectedAt;
+  projects_selected_at?: ProcessingStatusProjectsSelectedAt;
+  skills_selected_at?: ProcessingStatusSkillsSelectedAt;
 }
