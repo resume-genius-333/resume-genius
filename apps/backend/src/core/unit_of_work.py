@@ -2,10 +2,8 @@
 
 import logging
 from typing import Optional
-from dependency_injector.wiring import Provide, inject
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from src.containers import Container, container
 from src.repositories.auth_repository import AuthRepository
 from src.repositories.resume_repository import (
     ResumeRepository,
@@ -20,6 +18,8 @@ from src.repositories.education_repository import EducationRepository
 from src.repositories.work_repository import WorkRepository
 from src.repositories.project_repository import ProjectRepository
 from src.repositories.skill_repository import SkillRepository
+from dependency_injector.wiring import Provide, inject
+from src.containers import Container, container
 
 logger = logging.getLogger(__name__)
 container.wire(modules=[__name__])

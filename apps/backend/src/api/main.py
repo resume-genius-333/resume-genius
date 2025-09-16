@@ -1,9 +1,12 @@
 import os
 import logging
+import json
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 from src.core.db_config import (
     is_docker_environment,
     get_async_database_url,
@@ -78,6 +81,7 @@ container.config.redis.health_check_interval.from_value(
 # Wire dependencies - MUST be done before importing routers
 container.wire(
     modules=[
+        "src.core.unit_of_work",
         "src.api.dependencies",
         "src.api.routers.auth",
         "src.api.routers.jobs",
@@ -86,7 +90,8 @@ container.wire(
 )
 
 # Import routers AFTER wiring
-from .routers import auth, jobs, resumes  # noqa: E402
+from .routers import auth, jobs, resumes, profile  # noqa: E402
+from .middleware import ValidationErrorLoggingMiddleware  # noqa: E402
 
 # OAuth2 scheme for Swagger UI
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
@@ -108,9 +113,39 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Add validation error logging middleware
+app.add_middleware(ValidationErrorLoggingMiddleware)
+
+# Add exception handler for validation errors
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Log detailed validation errors and return them"""
+    # Get request body if available
+    try:
+        body = await request.body()
+        request_data = json.loads(body.decode()) if body else {}
+    except:
+        request_data = "Could not decode body"
+
+    # Log detailed error information
+    logger.error(f"""
+=== Validation Error Details ===
+Endpoint: {request.method} {request.url.path}
+Request Body: {json.dumps(request_data, indent=2) if isinstance(request_data, dict) else request_data}
+Validation Errors: {json.dumps(exc.errors(), indent=2)}
+================================
+    """)
+
+    # Return the standard validation error response
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors()},
+    )
+
 app.include_router(auth.router, prefix="/api/v1", tags=["authentication"])
 app.include_router(jobs.router, prefix="/api/v1", tags=["jobs"])
 app.include_router(resumes.router, prefix="/api/v1", tags=["resumes"])
+app.include_router(profile.router, prefix="/api/v1", tags=["profile"])
 
 
 @app.get("/")

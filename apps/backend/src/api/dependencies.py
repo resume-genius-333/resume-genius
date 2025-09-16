@@ -1,5 +1,6 @@
 """API dependencies for dependency injection."""
 
+import uuid
 from typing import Optional
 from fastapi import Depends, HTTPException, status, Header
 from fastapi.security import (
@@ -202,6 +203,13 @@ async def get_current_active_user(
             status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user"
         )
     return current_user
+
+
+async def get_current_user_id(
+    current_user: UserResponse = Depends(get_current_user),
+) -> uuid.UUID:
+    """Get current user's ID."""
+    return current_user.id
 
 
 async def get_optional_current_user(
