@@ -44,7 +44,9 @@ export default function EducationPage() {
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedEducation, setSelectedEducation] = useState<Education | null>(null);
+  const [selectedEducation, setSelectedEducation] = useState<Education | null>(
+    null
+  );
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
 
   useEffect(() => {
@@ -66,7 +68,9 @@ export default function EducationPage() {
 
   const handleCreate = async (data: unknown) => {
     try {
-      await createEducationApiV1ProfileEducationsPost(data as EducationCreateRequest);
+      await createEducationApiV1ProfileEducationsPost(
+        data as EducationCreateRequest
+      );
       toast("Education added successfully");
       setFormOpen(false);
       fetchEducations();
@@ -95,7 +99,9 @@ export default function EducationPage() {
   const handleDelete = async () => {
     if (!selectedEducation) return;
     try {
-      await deleteEducationApiV1ProfileEducationsEducationIdDelete(selectedEducation.id);
+      await deleteEducationApiV1ProfileEducationsEducationIdDelete(
+        selectedEducation.id
+      );
       toast("Education deleted successfully");
       setDeleteDialogOpen(false);
       setSelectedEducation(null);
@@ -141,8 +147,18 @@ export default function EducationPage() {
     if (!date) return "Present";
     const [year, month] = date.split("-");
     const monthNames = [
-      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
     ];
     return `${monthNames[parseInt(month) - 1]} ${year}`;
   };
@@ -192,7 +208,8 @@ export default function EducationPage() {
             <GraduationCap className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">No Education Added</h3>
             <p className="text-muted-foreground text-center mb-4">
-              Start building your educational profile by adding your qualifications
+              Start building your educational profile by adding your
+              qualifications
             </p>
             <Button onClick={openCreateForm}>
               <Plus className="h-4 w-4 mr-2" />
@@ -203,7 +220,10 @@ export default function EducationPage() {
       ) : (
         <div className="space-y-4">
           {educations.map((education) => (
-            <Card key={education.id} className="hover:shadow-lg transition-shadow">
+            <Card
+              key={education.id}
+              className="hover:shadow-lg transition-shadow"
+            >
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div className="space-y-1">
@@ -216,7 +236,9 @@ export default function EducationPage() {
                       </Badge>
                       <span>{education.field_of_study}</span>
                       {education.focus_area && (
-                        <span className="text-sm">• {education.focus_area}</span>
+                        <span className="text-sm">
+                          • {education.focus_area}
+                        </span>
                       )}
                     </CardDescription>
                   </div>
@@ -244,8 +266,8 @@ export default function EducationPage() {
                     <div className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
                       <span>
-                        {formatDate(education.start_date)} -{" "}
-                        {formatDate(education.end_date)}
+                        {formatDate(education.start_date || undefined)} -{" "}
+                        {formatDate(education.end_date ?? undefined)}
                       </span>
                     </div>
                   )}
