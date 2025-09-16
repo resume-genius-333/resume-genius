@@ -201,81 +201,131 @@ export default function ProfilePage() {
 
             {/* Professional Information Tab */}
             <TabsContent value="professional" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Professional Information</CardTitle>
-                  <CardDescription>
-                    Manage your professional profile and experience
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="title">Job Title</Label>
-                    <Input
-                      id="title"
-                      placeholder="e.g. Senior Software Engineer"
-                    />
-                  </div>
+              <div className="grid gap-6">
+                {/* Experience Management Cards */}
+                <div className="grid gap-4 md:grid-cols-3">
+                  <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => window.location.href = '/dashboard/profile/education'}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <GraduationCap className="h-5 w-5 text-primary" />
+                          <CardTitle className="text-base">Education</CardTitle>
+                        </div>
+                        <Plus className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground">
+                        Manage your educational background
+                      </p>
+                    </CardContent>
+                  </Card>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="company">Current Company</Label>
-                    <Input
-                      id="company"
-                      placeholder="e.g. Tech Corp"
-                    />
-                  </div>
+                  <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => window.location.href = '/dashboard/profile/work'}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Briefcase className="h-5 w-5 text-primary" />
+                          <CardTitle className="text-base">Work Experience</CardTitle>
+                        </div>
+                        <Plus className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground">
+                        Manage your work history
+                      </p>
+                    </CardContent>
+                  </Card>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="experience">Years of Experience</Label>
-                    <Input
-                      id="experience"
-                      type="number"
-                      placeholder="e.g. 5"
-                    />
-                  </div>
+                  <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => window.location.href = '/dashboard/profile/projects'}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Award className="h-5 w-5 text-primary" />
+                          <CardTitle className="text-base">Projects</CardTitle>
+                        </div>
+                        <Plus className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground">
+                        Showcase your projects
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
 
-                  <div className="space-y-2">
-                    <Label>Skills</Label>
-                    <div className="flex gap-2 mb-2">
-                      <Input
-                        value={newSkill}
-                        onChange={(e) => setNewSkill(e.target.value)}
-                        placeholder="Add a skill"
-                        onKeyPress={(e) => e.key === "Enter" && addSkill()}
-                      />
-                      <Button onClick={addSkill} size="icon">
-                        <Plus className="h-4 w-4" />
-                      </Button>
+                {/* Quick Info Card */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Professional Information</CardTitle>
+                    <CardDescription>
+                      Quick professional details and skills
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="title">Job Title</Label>
+                        <Input
+                          id="title"
+                          placeholder="e.g. Senior Software Engineer"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="company">Current Company</Label>
+                        <Input
+                          id="company"
+                          placeholder="e.g. Tech Corp"
+                        />
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {skills.map((skill) => (
-                        <Badge
-                          key={skill}
-                          variant="secondary"
-                          className="px-3 py-1"
-                        >
-                          {skill}
-                          <button
-                            onClick={() => removeSkill(skill)}
-                            className="ml-2 hover:text-destructive"
+
+                    <div className="space-y-2">
+                      <Label>Skills</Label>
+                      <div className="flex gap-2 mb-2">
+                        <Input
+                          value={newSkill}
+                          onChange={(e) => setNewSkill(e.target.value)}
+                          placeholder="Add a skill"
+                          onKeyPress={(e) => e.key === "Enter" && addSkill()}
+                        />
+                        <Button onClick={addSkill} size="icon">
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {skills.map((skill) => (
+                          <Badge
+                            key={skill}
+                            variant="secondary"
+                            className="px-3 py-1"
                           >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
+                            {skill}
+                            <button
+                              onClick={() => removeSkill(skill)}
+                              className="ml-2 hover:text-destructive"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="summary">Professional Summary</Label>
-                    <Textarea
-                      id="summary"
-                      placeholder="Describe your professional background and expertise..."
-                      className="min-h-[150px]"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+                    <div className="space-y-2">
+                      <Label htmlFor="summary">Professional Summary</Label>
+                      <Textarea
+                        id="summary"
+                        placeholder="Describe your professional background and expertise..."
+                        className="min-h-[100px]"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
             {/* Preferences Tab */}

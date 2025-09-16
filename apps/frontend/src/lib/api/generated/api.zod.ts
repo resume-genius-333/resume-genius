@@ -1332,6 +1332,775 @@ export const enhanceSkillApiV1ResumesSkillsSkillIdEnhancePostResponse = zod
   .describe("Response model for resume skill.");
 
 /**
+ * Get all education entries for the current user.
+ * @summary Get Educations
+ */
+export const getEducationsApiV1ProfileEducationsGetResponse = zod
+  .object({
+    educations: zod.array(
+      zod
+        .object({
+          id: zod.uuid(),
+          user_id: zod.uuid(),
+          institution_name: zod.string(),
+          degree: zod.enum([
+            "high_school",
+            "associate",
+            "bachelor",
+            "master",
+            "doctorate",
+            "professional",
+            "certificate",
+            "diploma",
+            "exchange",
+            "other",
+          ]),
+          field_of_study: zod.string(),
+          focus_area: zod.union([zod.string(), zod.null()]),
+          start_date: zod.union([zod.string(), zod.null()]),
+          end_date: zod.union([zod.string(), zod.null()]),
+          gpa: zod.union([zod.number(), zod.null()]),
+          max_gpa: zod.union([zod.number(), zod.null()]),
+          created_at: zod.iso.datetime({}),
+          updated_at: zod.iso.datetime({}),
+        })
+        .describe("Response model for education entry.")
+    ),
+    total: zod.number(),
+  })
+  .describe("Response model for list of educations.");
+
+/**
+ * Create a new education entry.
+ * @summary Create Education
+ */
+export const createEducationApiV1ProfileEducationsPostBodyInstitutionNameMax = 200;
+export const createEducationApiV1ProfileEducationsPostBodyFieldOfStudyMax = 200;
+
+export const createEducationApiV1ProfileEducationsPostBody = zod
+  .object({
+    institution_name: zod
+      .string()
+      .min(1)
+      .max(createEducationApiV1ProfileEducationsPostBodyInstitutionNameMax),
+    degree: zod.enum([
+      "high_school",
+      "associate",
+      "bachelor",
+      "master",
+      "doctorate",
+      "professional",
+      "certificate",
+      "diploma",
+      "exchange",
+      "other",
+    ]),
+    field_of_study: zod
+      .string()
+      .min(1)
+      .max(createEducationApiV1ProfileEducationsPostBodyFieldOfStudyMax),
+    focus_area: zod
+      .union([
+        zod
+          .string()
+          .max(createEducationApiV1ProfileEducationsPostBodyFocusAreaMaxOne),
+        zod.null(),
+      ])
+      .optional(),
+    start_date: zod
+      .union([
+        zod
+          .string()
+          .regex(
+            createEducationApiV1ProfileEducationsPostBodyStartDateRegExpOne
+          ),
+        zod.null(),
+      ])
+      .optional(),
+    end_date: zod
+      .union([
+        zod
+          .string()
+          .regex(createEducationApiV1ProfileEducationsPostBodyEndDateRegExpOne),
+        zod.null(),
+      ])
+      .optional(),
+    gpa: zod
+      .union([
+        zod
+          .number()
+          .min(createEducationApiV1ProfileEducationsPostBodyGpaMinOne)
+          .max(createEducationApiV1ProfileEducationsPostBodyGpaMaxOne),
+        zod.null(),
+      ])
+      .optional(),
+    max_gpa: zod
+      .union([
+        zod
+          .number()
+          .min(createEducationApiV1ProfileEducationsPostBodyMaxGpaMinOne)
+          .max(createEducationApiV1ProfileEducationsPostBodyMaxGpaMaxOne),
+        zod.null(),
+      ])
+      .optional(),
+  })
+  .describe("Request model for creating education entry.");
+
+/**
+ * Update an education entry.
+ * @summary Update Education
+ */
+export const updateEducationApiV1ProfileEducationsEducationIdPutParams =
+  zod.object({
+    education_id: zod.uuid(),
+  });
+
+export const updateEducationApiV1ProfileEducationsEducationIdPutBody = zod
+  .object({
+    institution_name: zod
+      .union([
+        zod
+          .string()
+          .min(1)
+          .max(
+            updateEducationApiV1ProfileEducationsEducationIdPutBodyInstitutionNameMaxOne
+          ),
+        zod.null(),
+      ])
+      .optional(),
+    degree: zod
+      .union([
+        zod.enum([
+          "high_school",
+          "associate",
+          "bachelor",
+          "master",
+          "doctorate",
+          "professional",
+          "certificate",
+          "diploma",
+          "exchange",
+          "other",
+        ]),
+        zod.null(),
+      ])
+      .optional(),
+    field_of_study: zod
+      .union([
+        zod
+          .string()
+          .min(1)
+          .max(
+            updateEducationApiV1ProfileEducationsEducationIdPutBodyFieldOfStudyMaxOne
+          ),
+        zod.null(),
+      ])
+      .optional(),
+    focus_area: zod
+      .union([
+        zod
+          .string()
+          .max(
+            updateEducationApiV1ProfileEducationsEducationIdPutBodyFocusAreaMaxOne
+          ),
+        zod.null(),
+      ])
+      .optional(),
+    start_date: zod
+      .union([
+        zod
+          .string()
+          .regex(
+            updateEducationApiV1ProfileEducationsEducationIdPutBodyStartDateRegExpOne
+          ),
+        zod.null(),
+      ])
+      .optional(),
+    end_date: zod
+      .union([
+        zod
+          .string()
+          .regex(
+            updateEducationApiV1ProfileEducationsEducationIdPutBodyEndDateRegExpOne
+          ),
+        zod.null(),
+      ])
+      .optional(),
+    gpa: zod
+      .union([
+        zod
+          .number()
+          .min(updateEducationApiV1ProfileEducationsEducationIdPutBodyGpaMinOne)
+          .max(
+            updateEducationApiV1ProfileEducationsEducationIdPutBodyGpaMaxOne
+          ),
+        zod.null(),
+      ])
+      .optional(),
+    max_gpa: zod
+      .union([
+        zod
+          .number()
+          .min(
+            updateEducationApiV1ProfileEducationsEducationIdPutBodyMaxGpaMinOne
+          )
+          .max(
+            updateEducationApiV1ProfileEducationsEducationIdPutBodyMaxGpaMaxOne
+          ),
+        zod.null(),
+      ])
+      .optional(),
+  })
+  .describe("Request model for updating education entry.");
+
+export const updateEducationApiV1ProfileEducationsEducationIdPutResponse = zod
+  .object({
+    id: zod.uuid(),
+    user_id: zod.uuid(),
+    institution_name: zod.string(),
+    degree: zod.enum([
+      "high_school",
+      "associate",
+      "bachelor",
+      "master",
+      "doctorate",
+      "professional",
+      "certificate",
+      "diploma",
+      "exchange",
+      "other",
+    ]),
+    field_of_study: zod.string(),
+    focus_area: zod.union([zod.string(), zod.null()]),
+    start_date: zod.union([zod.string(), zod.null()]),
+    end_date: zod.union([zod.string(), zod.null()]),
+    gpa: zod.union([zod.number(), zod.null()]),
+    max_gpa: zod.union([zod.number(), zod.null()]),
+    created_at: zod.iso.datetime({}),
+    updated_at: zod.iso.datetime({}),
+  })
+  .describe("Response model for education entry.");
+
+/**
+ * Delete an education entry.
+ * @summary Delete Education
+ */
+export const deleteEducationApiV1ProfileEducationsEducationIdDeleteParams =
+  zod.object({
+    education_id: zod.uuid(),
+  });
+
+/**
+ * Get all work experiences for the current user.
+ * @summary Get Work Experiences
+ */
+export const getWorkExperiencesApiV1ProfileWorkExperiencesGetResponse = zod
+  .object({
+    work_experiences: zod.array(
+      zod
+        .object({
+          id: zod.uuid(),
+          user_id: zod.uuid(),
+          company_name: zod.string(),
+          position_title: zod.string(),
+          employment_type: zod.enum([
+            "full_time",
+            "part_time",
+            "contract",
+            "freelance",
+            "internship",
+            "volunteer",
+            "other",
+          ]),
+          location: zod.union([zod.string(), zod.null()]),
+          start_date: zod.union([zod.string(), zod.null()]),
+          end_date: zod.union([zod.string(), zod.null()]),
+          responsibilities: zod.array(
+            zod
+              .object({
+                id: zod.uuid(),
+                work_id: zod.uuid(),
+                user_id: zod.uuid(),
+                description: zod.string(),
+                created_at: zod.iso.datetime({}),
+                updated_at: zod.iso.datetime({}),
+              })
+              .describe("Response model for work responsibility.")
+          ),
+          created_at: zod.iso.datetime({}),
+          updated_at: zod.iso.datetime({}),
+        })
+        .describe("Response model for work experience.")
+    ),
+    total: zod.number(),
+  })
+  .describe("Response model for list of work experiences.");
+
+/**
+ * Create a new work experience entry.
+ * @summary Create Work Experience
+ */
+export const createWorkExperienceApiV1ProfileWorkExperiencesPostBodyCompanyNameMax = 200;
+export const createWorkExperienceApiV1ProfileWorkExperiencesPostBodyPositionTitleMax = 200;
+
+export const createWorkExperienceApiV1ProfileWorkExperiencesPostBody = zod
+  .object({
+    company_name: zod
+      .string()
+      .min(1)
+      .max(
+        createWorkExperienceApiV1ProfileWorkExperiencesPostBodyCompanyNameMax
+      ),
+    position_title: zod
+      .string()
+      .min(1)
+      .max(
+        createWorkExperienceApiV1ProfileWorkExperiencesPostBodyPositionTitleMax
+      ),
+    employment_type: zod.enum([
+      "full_time",
+      "part_time",
+      "contract",
+      "freelance",
+      "internship",
+      "volunteer",
+      "other",
+    ]),
+    location: zod
+      .union([
+        zod
+          .string()
+          .max(
+            createWorkExperienceApiV1ProfileWorkExperiencesPostBodyLocationMaxOne
+          ),
+        zod.null(),
+      ])
+      .optional(),
+    start_date: zod
+      .union([
+        zod
+          .string()
+          .regex(
+            createWorkExperienceApiV1ProfileWorkExperiencesPostBodyStartDateRegExpOne
+          ),
+        zod.null(),
+      ])
+      .optional(),
+    end_date: zod
+      .union([
+        zod
+          .string()
+          .regex(
+            createWorkExperienceApiV1ProfileWorkExperiencesPostBodyEndDateRegExpOne
+          ),
+        zod.null(),
+      ])
+      .optional(),
+    responsibilities: zod
+      .union([zod.array(zod.string()), zod.null()])
+      .optional(),
+  })
+  .describe("Request model for creating work experience.");
+
+/**
+ * Update a work experience entry.
+ * @summary Update Work Experience
+ */
+export const updateWorkExperienceApiV1ProfileWorkExperiencesWorkIdPutParams =
+  zod.object({
+    work_id: zod.uuid(),
+  });
+
+export const updateWorkExperienceApiV1ProfileWorkExperiencesWorkIdPutBody = zod
+  .object({
+    company_name: zod
+      .union([
+        zod
+          .string()
+          .min(1)
+          .max(
+            updateWorkExperienceApiV1ProfileWorkExperiencesWorkIdPutBodyCompanyNameMaxOne
+          ),
+        zod.null(),
+      ])
+      .optional(),
+    position_title: zod
+      .union([
+        zod
+          .string()
+          .min(1)
+          .max(
+            updateWorkExperienceApiV1ProfileWorkExperiencesWorkIdPutBodyPositionTitleMaxOne
+          ),
+        zod.null(),
+      ])
+      .optional(),
+    employment_type: zod
+      .union([
+        zod.enum([
+          "full_time",
+          "part_time",
+          "contract",
+          "freelance",
+          "internship",
+          "volunteer",
+          "other",
+        ]),
+        zod.null(),
+      ])
+      .optional(),
+    location: zod
+      .union([
+        zod
+          .string()
+          .max(
+            updateWorkExperienceApiV1ProfileWorkExperiencesWorkIdPutBodyLocationMaxOne
+          ),
+        zod.null(),
+      ])
+      .optional(),
+    start_date: zod
+      .union([
+        zod
+          .string()
+          .regex(
+            updateWorkExperienceApiV1ProfileWorkExperiencesWorkIdPutBodyStartDateRegExpOne
+          ),
+        zod.null(),
+      ])
+      .optional(),
+    end_date: zod
+      .union([
+        zod
+          .string()
+          .regex(
+            updateWorkExperienceApiV1ProfileWorkExperiencesWorkIdPutBodyEndDateRegExpOne
+          ),
+        zod.null(),
+      ])
+      .optional(),
+  })
+  .describe("Request model for updating work experience.");
+
+export const updateWorkExperienceApiV1ProfileWorkExperiencesWorkIdPutResponse =
+  zod
+    .object({
+      id: zod.uuid(),
+      user_id: zod.uuid(),
+      company_name: zod.string(),
+      position_title: zod.string(),
+      employment_type: zod.enum([
+        "full_time",
+        "part_time",
+        "contract",
+        "freelance",
+        "internship",
+        "volunteer",
+        "other",
+      ]),
+      location: zod.union([zod.string(), zod.null()]),
+      start_date: zod.union([zod.string(), zod.null()]),
+      end_date: zod.union([zod.string(), zod.null()]),
+      responsibilities: zod.array(
+        zod
+          .object({
+            id: zod.uuid(),
+            work_id: zod.uuid(),
+            user_id: zod.uuid(),
+            description: zod.string(),
+            created_at: zod.iso.datetime({}),
+            updated_at: zod.iso.datetime({}),
+          })
+          .describe("Response model for work responsibility.")
+      ),
+      created_at: zod.iso.datetime({}),
+      updated_at: zod.iso.datetime({}),
+    })
+    .describe("Response model for work experience.");
+
+/**
+ * Delete a work experience entry.
+ * @summary Delete Work Experience
+ */
+export const deleteWorkExperienceApiV1ProfileWorkExperiencesWorkIdDeleteParams =
+  zod.object({
+    work_id: zod.uuid(),
+  });
+
+/**
+ * Add a responsibility to a work experience.
+ * @summary Add Work Responsibility
+ */
+export const addWorkResponsibilityApiV1ProfileWorkExperiencesWorkIdResponsibilitiesPostParams =
+  zod.object({
+    work_id: zod.uuid(),
+  });
+
+export const addWorkResponsibilityApiV1ProfileWorkExperiencesWorkIdResponsibilitiesPostBodyDescriptionMax = 500;
+
+export const addWorkResponsibilityApiV1ProfileWorkExperiencesWorkIdResponsibilitiesPostBody =
+  zod
+    .object({
+      description: zod
+        .string()
+        .min(1)
+        .max(
+          addWorkResponsibilityApiV1ProfileWorkExperiencesWorkIdResponsibilitiesPostBodyDescriptionMax
+        ),
+    })
+    .describe("Request model for work responsibility.");
+
+/**
+ * Delete a responsibility from a work experience.
+ * @summary Delete Work Responsibility
+ */
+export const deleteWorkResponsibilityApiV1ProfileWorkExperiencesWorkIdResponsibilitiesResponsibilityIdDeleteParams =
+  zod.object({
+    work_id: zod.uuid(),
+    responsibility_id: zod.uuid(),
+  });
+
+/**
+ * Get all projects for the current user.
+ * @summary Get Projects
+ */
+export const getProjectsApiV1ProfileProjectsGetResponse = zod
+  .object({
+    projects: zod.array(
+      zod
+        .object({
+          id: zod.uuid(),
+          user_id: zod.uuid(),
+          project_name: zod.string(),
+          description: zod.union([zod.string(), zod.null()]),
+          start_date: zod.union([zod.string(), zod.null()]),
+          end_date: zod.union([zod.string(), zod.null()]),
+          project_url: zod.union([zod.string(), zod.null()]),
+          repository_url: zod.union([zod.string(), zod.null()]),
+          tasks: zod.array(
+            zod
+              .object({
+                id: zod.uuid(),
+                project_id: zod.uuid(),
+                user_id: zod.uuid(),
+                description: zod.string(),
+                created_at: zod.iso.datetime({}),
+                updated_at: zod.iso.datetime({}),
+              })
+              .describe("Response model for project task.")
+          ),
+          created_at: zod.iso.datetime({}),
+          updated_at: zod.iso.datetime({}),
+        })
+        .describe("Response model for project.")
+    ),
+    total: zod.number(),
+  })
+  .describe("Response model for list of projects.");
+
+/**
+ * Create a new project.
+ * @summary Create Project
+ */
+export const createProjectApiV1ProfileProjectsPostBodyProjectNameMax = 200;
+
+export const createProjectApiV1ProfileProjectsPostBody = zod
+  .object({
+    project_name: zod
+      .string()
+      .min(1)
+      .max(createProjectApiV1ProfileProjectsPostBodyProjectNameMax),
+    description: zod
+      .union([
+        zod
+          .string()
+          .max(createProjectApiV1ProfileProjectsPostBodyDescriptionMaxOne),
+        zod.null(),
+      ])
+      .optional(),
+    start_date: zod
+      .union([
+        zod
+          .string()
+          .regex(createProjectApiV1ProfileProjectsPostBodyStartDateRegExpOne),
+        zod.null(),
+      ])
+      .optional(),
+    end_date: zod
+      .union([
+        zod
+          .string()
+          .regex(createProjectApiV1ProfileProjectsPostBodyEndDateRegExpOne),
+        zod.null(),
+      ])
+      .optional(),
+    project_url: zod
+      .union([
+        zod
+          .url()
+          .min(1)
+          .max(createProjectApiV1ProfileProjectsPostBodyProjectUrlMaxOne),
+        zod.null(),
+      ])
+      .optional(),
+    repository_url: zod
+      .union([
+        zod
+          .url()
+          .min(1)
+          .max(createProjectApiV1ProfileProjectsPostBodyRepositoryUrlMaxOne),
+        zod.null(),
+      ])
+      .optional(),
+    tasks: zod.union([zod.array(zod.string()), zod.null()]).optional(),
+  })
+  .describe("Request model for creating project.");
+
+/**
+ * Update a project.
+ * @summary Update Project
+ */
+export const updateProjectApiV1ProfileProjectsProjectIdPutParams = zod.object({
+  project_id: zod.uuid(),
+});
+
+export const updateProjectApiV1ProfileProjectsProjectIdPutBody = zod
+  .object({
+    project_name: zod
+      .union([
+        zod
+          .string()
+          .min(1)
+          .max(
+            updateProjectApiV1ProfileProjectsProjectIdPutBodyProjectNameMaxOne
+          ),
+        zod.null(),
+      ])
+      .optional(),
+    description: zod
+      .union([
+        zod
+          .string()
+          .max(
+            updateProjectApiV1ProfileProjectsProjectIdPutBodyDescriptionMaxOne
+          ),
+        zod.null(),
+      ])
+      .optional(),
+    start_date: zod
+      .union([
+        zod
+          .string()
+          .regex(
+            updateProjectApiV1ProfileProjectsProjectIdPutBodyStartDateRegExpOne
+          ),
+        zod.null(),
+      ])
+      .optional(),
+    end_date: zod
+      .union([
+        zod
+          .string()
+          .regex(
+            updateProjectApiV1ProfileProjectsProjectIdPutBodyEndDateRegExpOne
+          ),
+        zod.null(),
+      ])
+      .optional(),
+    project_url: zod
+      .union([
+        zod
+          .url()
+          .min(1)
+          .max(
+            updateProjectApiV1ProfileProjectsProjectIdPutBodyProjectUrlMaxOne
+          ),
+        zod.null(),
+      ])
+      .optional(),
+    repository_url: zod
+      .union([
+        zod
+          .url()
+          .min(1)
+          .max(
+            updateProjectApiV1ProfileProjectsProjectIdPutBodyRepositoryUrlMaxOne
+          ),
+        zod.null(),
+      ])
+      .optional(),
+  })
+  .describe("Request model for updating project.");
+
+export const updateProjectApiV1ProfileProjectsProjectIdPutResponse = zod
+  .object({
+    id: zod.uuid(),
+    user_id: zod.uuid(),
+    project_name: zod.string(),
+    description: zod.union([zod.string(), zod.null()]),
+    start_date: zod.union([zod.string(), zod.null()]),
+    end_date: zod.union([zod.string(), zod.null()]),
+    project_url: zod.union([zod.string(), zod.null()]),
+    repository_url: zod.union([zod.string(), zod.null()]),
+    tasks: zod.array(
+      zod
+        .object({
+          id: zod.uuid(),
+          project_id: zod.uuid(),
+          user_id: zod.uuid(),
+          description: zod.string(),
+          created_at: zod.iso.datetime({}),
+          updated_at: zod.iso.datetime({}),
+        })
+        .describe("Response model for project task.")
+    ),
+    created_at: zod.iso.datetime({}),
+    updated_at: zod.iso.datetime({}),
+  })
+  .describe("Response model for project.");
+
+/**
+ * Delete a project.
+ * @summary Delete Project
+ */
+export const deleteProjectApiV1ProfileProjectsProjectIdDeleteParams =
+  zod.object({
+    project_id: zod.uuid(),
+  });
+
+/**
+ * Add a task to a project.
+ * @summary Add Project Task
+ */
+export const addProjectTaskApiV1ProfileProjectsProjectIdTasksPostParams =
+  zod.object({
+    project_id: zod.uuid(),
+  });
+
+export const addProjectTaskApiV1ProfileProjectsProjectIdTasksPostBodyDescriptionMax = 500;
+
+export const addProjectTaskApiV1ProfileProjectsProjectIdTasksPostBody = zod
+  .object({
+    description: zod
+      .string()
+      .min(1)
+      .max(
+        addProjectTaskApiV1ProfileProjectsProjectIdTasksPostBodyDescriptionMax
+      ),
+  })
+  .describe("Request model for project task.");
+
+/**
+ * Delete a task from a project.
+ * @summary Delete Project Task
+ */
+export const deleteProjectTaskApiV1ProfileProjectsProjectIdTasksTaskIdDeleteParams =
+  zod.object({
+    project_id: zod.uuid(),
+    task_id: zod.uuid(),
+  });
+
+/**
  * @summary Root
  */
 export const rootGetResponse = zod.any();
