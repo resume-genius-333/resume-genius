@@ -95,7 +95,7 @@ async def get_job(
     """Get a specific job by ID."""
     async with UnitOfWorkFactory() as uow:
         job_service = JobService(uow)
-        job = await job_service.get_job(job_id, uuid.UUID(user.id))
+        job = await job_service.get_job(user_id=uuid.UUID(user.id), job_id=job_id)
         if not job:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Job not found"
@@ -104,10 +104,11 @@ async def get_job(
 
 
 # We don't choose this option because this makes the code more coupled with
-# implementation detail
+# implementation detail.
 #
 # def create_experience_getter(
 #     experience_name: str,
+#     service_cls: Type,
 #     get_get_fn: Callable[[JobService], Callable[[uuid.UUID, uuid.UUID], Any]],
 # ):
 #     path = r"/jobs/{job_id}" + f"/selected_{experience_name}"
@@ -119,9 +120,9 @@ async def get_job(
 #     ):
 #         """Select relevant information from user's resume for the job."""
 #         async with UnitOfWorkFactory() as uow:
-#             job_service = JobService(uow)
+#             service = service_cls(uow)
 #             user_id = uuid.UUID(current_user.id)
-#             get_fn = get_get_fn(job_service)
+#             get_fn = get_get_fn(service)
 #             # job_id: uuid, user_id: uuid -> result
 #             result = await get_fn(job_id, user_id)
 #             await uow.commit()
@@ -131,8 +132,9 @@ async def get_job(
 
 
 # get_selected_educations = create_experience_getter(
-#     experience_name='educations',
-#     get_get_fn=lambda service: service.get_selected_educations
+#     experience_name="educations",
+#     service_cls=JobService,
+#     get_get_fn=lambda service: service.get_selected_educations,
 # )
 
 
@@ -148,10 +150,14 @@ async def get_selected_educations(
     async with UnitOfWorkFactory() as uow:
         selection_service = SelectionService(uow)
         user_id = uuid.UUID(current_user.id)
-        result = await selection_service.get_selected_educations(job_id, user_id)
+        result = await selection_service.get_selected_educations(
+            job_id=job_id, user_id=user_id
+        )
         await uow.commit()
         if not result:
-            raise Exception("No education selection available.")
+            raise HTTPException(
+                status_code=404, detail="No education selection available."
+            )
         return result
 
 

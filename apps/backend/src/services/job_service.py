@@ -83,10 +83,14 @@ class JobService:
             raise
 
     async def get_job(
-        self, job_id: uuid.UUID, user_id: Optional[uuid.UUID] = None
+        self,
+        user_id: Optional[uuid.UUID],
+        job_id: uuid.UUID,
     ) -> Optional[JobSchema]:
         """Get a job by ID."""
-        return await self.uow.job_repository.get_job_by_id(job_id, user_id)
+        return await self.uow.job_repository.get_job_by_id(
+            job_id=job_id, user_id=user_id
+        )
 
     async def get_user_jobs(
         self,

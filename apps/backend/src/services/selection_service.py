@@ -136,16 +136,23 @@ class SelectionService:
         target: SelectionServiceTarget,
         selection: SelectionResult,
     ):
-        key = self._get_selection_key(user_id, job_id, target)
+        key = self._get_selection_key(user_id=user_id, job_id=job_id, target=target)
+        logger.info(f"!!!!!!!!!!!!!!!!!!!!!!! SETTING [{key}] !!!!!!!!!!!!!!!!!!!!!!!")
         await self.redis_client.set(key, selection.model_dump_json())
 
     async def _get(
         self, user_id: uuid.UUID, job_id: uuid.UUID, target: SelectionServiceTarget
     ) -> Optional[SelectionResult]:
-        key = self._get_selection_key(user_id, job_id, target)
+        key = self._get_selection_key(user_id=user_id, job_id=job_id, target=target)
+        logger.info(f"!!!!!!!!!!!!!!!!!!!!!!! GETTING [{key}] !!!!!!!!!!!!!!!!!!!!!!!")
         result = await self.redis_client.get(key)
-        if not result or not isinstance(result, str):
+        if result is None:
             logger.warning("No results found for selection.")
+            return None
+        if not isinstance(result, str):
+            logger.warning(
+                f"Received unsupported result type: {type(result)}: {result}"
+            )
             return None
         logger.info("Received selection result: ", result)
         return SelectionResult.model_validate_json(result)
@@ -182,7 +189,12 @@ Here are the educations:
             ],
         )
         logger.info("AI selected the following result: ", selection_result)
-        await self._set(user_id, job_id, "educations", selection_result)
+        await self._set(
+            user_id=user_id,
+            job_id=job_id,
+            target="educations",
+            selection=selection_result,
+        )
         await self.status_service.set_and_publish_status(
             user_id=user_id, job_id=job_id, tag="educations-selected-at"
         )
@@ -193,4 +205,8 @@ Here are the educations:
         user_id: uuid.UUID,
         job_id: uuid.UUID,
     ) -> Optional[SelectionResult]:
-        return await self._get(user_id, job_id, "educations")
+        result = await self._get(user_id=user_id, job_id=job_id, target="educations")
+        logger.info(
+            f"Received result: {result.model_dump_json(indent=2) if result else 'no result'}"
+        )
+        return result
