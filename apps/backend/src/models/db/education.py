@@ -1,8 +1,9 @@
 from typing import Optional, TYPE_CHECKING
-from sqlalchemy import String, Float, ForeignKey, Enum
+from sqlalchemy import String, Float, ForeignKey, Enum, DateTime, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 import uuid
+import datetime
 
 from src.models.llm.education import EducationLLMSchema
 
@@ -27,6 +28,8 @@ class EducationSchema(BaseModel):
     end_date: str | None = None
     gpa: float | None = None
     max_gpa: float | None = None
+    created_at: datetime.datetime
+    updated_at: datetime.datetime
     _orm_entity: Optional["Education"] = PrivateAttr(default=None)
 
     class Config:
@@ -50,6 +53,12 @@ class Education(Base):
     end_date: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     gpa: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     max_gpa: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    )
 
     # Relationships
     user: Mapped["User"] = relationship(back_populates="educations")

@@ -40,7 +40,6 @@ router = APIRouter(prefix="/auth", tags=["authentication"])
     response_model=UserRegisterResponse,
     status_code=status.HTTP_201_CREATED,
 )
-@inject
 async def register(
     request: UserRegisterRequest,
     req: Request,
@@ -70,7 +69,6 @@ async def register(
 
 
 @router.post("/login", response_model=UserLoginResponse)
-@inject
 async def login(
     request: UserLoginRequest,
     req: Request,
@@ -99,7 +97,6 @@ async def login(
 
 
 @router.post("/token")
-@inject
 async def token(
     req: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
@@ -167,7 +164,6 @@ async def token(
 
 
 @router.post("/refresh", response_model=RefreshTokenResponse)
-@inject
 async def refresh_token(
     request: RefreshTokenRequest,
     req: Request,
@@ -197,7 +193,6 @@ async def refresh_token(
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-@inject
 async def logout(
     request: Request,
     _: TokenPayload = Depends(get_current_token),  # Validate token

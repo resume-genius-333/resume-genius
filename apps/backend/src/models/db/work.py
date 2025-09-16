@@ -1,8 +1,9 @@
 from typing import Optional, List, TYPE_CHECKING
-from sqlalchemy import String, ForeignKey, Enum
+import datetime
+import uuid
+from sqlalchemy import String, ForeignKey, Enum, func, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship, Mapped, mapped_column
-import uuid
 
 from src.models.llm.work import WorkExperienceLLMSchema, WorkResponsibilityLLMSchema
 
@@ -26,6 +27,8 @@ class WorkExperienceSchema(BaseModel):
     location: str | None = None
     start_date: str | None = None
     end_date: str | None = None
+    created_at: datetime.datetime
+    updated_at: datetime.datetime
     _orm_entity: Optional["WorkExperience"] = PrivateAttr(default=None)
 
     class Config:
@@ -49,6 +52,12 @@ class WorkExperience(Base):
     location: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     start_date: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     end_date: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    )
 
     # Relationships
     user: Mapped["User"] = relationship(back_populates="work_experiences")
@@ -89,6 +98,8 @@ class WorkResponsibilitySchema(BaseModel):
     work_id: uuid.UUID
     user_id: uuid.UUID
     description: str
+    created_at: datetime.datetime
+    updated_at: datetime.datetime
     _orm_entity: Optional["WorkResponsibility"] = PrivateAttr(default=None)
 
     class Config:
@@ -108,6 +119,12 @@ class WorkResponsibility(Base):
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
     )
     description: Mapped[str] = mapped_column(String, nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    )
 
     # Relationships
     work_experience: Mapped["WorkExperience"] = relationship(

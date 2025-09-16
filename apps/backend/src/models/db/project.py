@@ -1,8 +1,9 @@
 from typing import Optional, List, TYPE_CHECKING
-from sqlalchemy import String, ForeignKey
+import datetime
+import uuid
+from sqlalchemy import String, ForeignKey, func, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship, Mapped, mapped_column
-import uuid
 
 from src.models.llm.project import ProjectLLMSchema, ProjectTaskLLMSchema
 
@@ -25,6 +26,8 @@ class ProjectSchema(BaseModel):
     end_date: str | None = None
     project_url: str | None = None
     repository_url: str | None = None
+    created_at: datetime.datetime
+    updated_at: datetime.datetime
     _orm_entity: Optional["Project"] = PrivateAttr(default=None)
 
     class Config:
@@ -46,6 +49,12 @@ class Project(Base):
     end_date: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     project_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     repository_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    )
 
     # Relationships
     user: Mapped["User"] = relationship(back_populates="projects")
@@ -88,6 +97,8 @@ class ProjectTaskSchema(BaseModel):
     project_id: uuid.UUID
     user_id: uuid.UUID
     description: str
+    created_at: datetime.datetime
+    updated_at: datetime.datetime
     _orm_entity: Optional["ProjectTask"] = PrivateAttr(default=None)
 
     class Config:
@@ -107,6 +118,12 @@ class ProjectTask(Base):
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
     )
     description: Mapped[str] = mapped_column(String, nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    )
 
     # Relationships
     project: Mapped["Project"] = relationship(back_populates="tasks")

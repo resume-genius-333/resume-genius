@@ -10,6 +10,10 @@ import type {
   CreateJobRequest,
   CreateJobResponse,
   CreateResumeVersionRequest,
+  EducationCreateRequest,
+  EducationListResponse,
+  EducationResponse,
+  EducationUpdateRequest,
   FullResumeResponse,
   GetLatestResumeVersionApiV1ResumesLatestGetParams,
   JobSchema,
@@ -18,6 +22,12 @@ import type {
   PaginatedResponse,
   PaginatedResponseJobSchema,
   ProcessingStatus,
+  ProjectCreateRequest,
+  ProjectListResponse,
+  ProjectResponse,
+  ProjectTaskRequest,
+  ProjectTaskResponse,
+  ProjectUpdateRequest,
   RefineResumeResponse,
   RefreshTokenRequest,
   RefreshTokenResponse,
@@ -41,6 +51,12 @@ import type {
   UserRegisterResponse,
   UserResponse,
   VerifyTokenApiV1AuthVerifyTokenGet200,
+  WorkExperienceCreateRequest,
+  WorkExperienceListResponse,
+  WorkExperienceResponse,
+  WorkExperienceUpdateRequest,
+  WorkResponsibilityRequest,
+  WorkResponsibilityResponse,
 } from "./schemas";
 
 import { customAxiosInstance } from "../client";
@@ -619,6 +635,227 @@ export const enhanceSkillApiV1ResumesSkillsSkillIdEnhancePost = (
 };
 
 /**
+ * Get all education entries for the current user.
+ * @summary Get Educations
+ */
+export const getEducationsApiV1ProfileEducationsGet = () => {
+  return customAxiosInstance<EducationListResponse>({
+    url: `/api/v1/profile/educations`,
+    method: "GET",
+  });
+};
+
+/**
+ * Create a new education entry.
+ * @summary Create Education
+ */
+export const createEducationApiV1ProfileEducationsPost = (
+  educationCreateRequest: EducationCreateRequest
+) => {
+  return customAxiosInstance<EducationResponse>({
+    url: `/api/v1/profile/educations`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: educationCreateRequest,
+  });
+};
+
+/**
+ * Update an education entry.
+ * @summary Update Education
+ */
+export const updateEducationApiV1ProfileEducationsEducationIdPut = (
+  educationId: string,
+  educationUpdateRequest: EducationUpdateRequest
+) => {
+  return customAxiosInstance<EducationResponse>({
+    url: `/api/v1/profile/educations/${educationId}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: educationUpdateRequest,
+  });
+};
+
+/**
+ * Delete an education entry.
+ * @summary Delete Education
+ */
+export const deleteEducationApiV1ProfileEducationsEducationIdDelete = (
+  educationId: string
+) => {
+  return customAxiosInstance<null>({
+    url: `/api/v1/profile/educations/${educationId}`,
+    method: "DELETE",
+  });
+};
+
+/**
+ * Get all work experiences for the current user.
+ * @summary Get Work Experiences
+ */
+export const getWorkExperiencesApiV1ProfileWorkExperiencesGet = () => {
+  return customAxiosInstance<WorkExperienceListResponse>({
+    url: `/api/v1/profile/work-experiences`,
+    method: "GET",
+  });
+};
+
+/**
+ * Create a new work experience entry.
+ * @summary Create Work Experience
+ */
+export const createWorkExperienceApiV1ProfileWorkExperiencesPost = (
+  workExperienceCreateRequest: WorkExperienceCreateRequest
+) => {
+  return customAxiosInstance<WorkExperienceResponse>({
+    url: `/api/v1/profile/work-experiences`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: workExperienceCreateRequest,
+  });
+};
+
+/**
+ * Update a work experience entry.
+ * @summary Update Work Experience
+ */
+export const updateWorkExperienceApiV1ProfileWorkExperiencesWorkIdPut = (
+  workId: string,
+  workExperienceUpdateRequest: WorkExperienceUpdateRequest
+) => {
+  return customAxiosInstance<WorkExperienceResponse>({
+    url: `/api/v1/profile/work-experiences/${workId}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: workExperienceUpdateRequest,
+  });
+};
+
+/**
+ * Delete a work experience entry.
+ * @summary Delete Work Experience
+ */
+export const deleteWorkExperienceApiV1ProfileWorkExperiencesWorkIdDelete = (
+  workId: string
+) => {
+  return customAxiosInstance<null>({
+    url: `/api/v1/profile/work-experiences/${workId}`,
+    method: "DELETE",
+  });
+};
+
+/**
+ * Add a responsibility to a work experience.
+ * @summary Add Work Responsibility
+ */
+export const addWorkResponsibilityApiV1ProfileWorkExperiencesWorkIdResponsibilitiesPost =
+  (workId: string, workResponsibilityRequest: WorkResponsibilityRequest) => {
+    return customAxiosInstance<WorkResponsibilityResponse>({
+      url: `/api/v1/profile/work-experiences/${workId}/responsibilities`,
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      data: workResponsibilityRequest,
+    });
+  };
+
+/**
+ * Delete a responsibility from a work experience.
+ * @summary Delete Work Responsibility
+ */
+export const deleteWorkResponsibilityApiV1ProfileWorkExperiencesWorkIdResponsibilitiesResponsibilityIdDelete =
+  (workId: string, responsibilityId: string) => {
+    return customAxiosInstance<null>({
+      url: `/api/v1/profile/work-experiences/${workId}/responsibilities/${responsibilityId}`,
+      method: "DELETE",
+    });
+  };
+
+/**
+ * Get all projects for the current user.
+ * @summary Get Projects
+ */
+export const getProjectsApiV1ProfileProjectsGet = () => {
+  return customAxiosInstance<ProjectListResponse>({
+    url: `/api/v1/profile/projects`,
+    method: "GET",
+  });
+};
+
+/**
+ * Create a new project.
+ * @summary Create Project
+ */
+export const createProjectApiV1ProfileProjectsPost = (
+  projectCreateRequest: ProjectCreateRequest
+) => {
+  return customAxiosInstance<ProjectResponse>({
+    url: `/api/v1/profile/projects`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: projectCreateRequest,
+  });
+};
+
+/**
+ * Update a project.
+ * @summary Update Project
+ */
+export const updateProjectApiV1ProfileProjectsProjectIdPut = (
+  projectId: string,
+  projectUpdateRequest: ProjectUpdateRequest
+) => {
+  return customAxiosInstance<ProjectResponse>({
+    url: `/api/v1/profile/projects/${projectId}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: projectUpdateRequest,
+  });
+};
+
+/**
+ * Delete a project.
+ * @summary Delete Project
+ */
+export const deleteProjectApiV1ProfileProjectsProjectIdDelete = (
+  projectId: string
+) => {
+  return customAxiosInstance<null>({
+    url: `/api/v1/profile/projects/${projectId}`,
+    method: "DELETE",
+  });
+};
+
+/**
+ * Add a task to a project.
+ * @summary Add Project Task
+ */
+export const addProjectTaskApiV1ProfileProjectsProjectIdTasksPost = (
+  projectId: string,
+  projectTaskRequest: ProjectTaskRequest
+) => {
+  return customAxiosInstance<ProjectTaskResponse>({
+    url: `/api/v1/profile/projects/${projectId}/tasks`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: projectTaskRequest,
+  });
+};
+
+/**
+ * Delete a task from a project.
+ * @summary Delete Project Task
+ */
+export const deleteProjectTaskApiV1ProfileProjectsProjectIdTasksTaskIdDelete = (
+  projectId: string,
+  taskId: string
+) => {
+  return customAxiosInstance<null>({
+    url: `/api/v1/profile/projects/${projectId}/tasks/${taskId}`,
+    method: "DELETE",
+  });
+};
+
+/**
  * @summary Root
  */
 export const rootGet = () => {
@@ -804,6 +1041,93 @@ export type UpdateSkillApiV1ResumesSkillsSkillIdPutResult = NonNullable<
 export type EnhanceSkillApiV1ResumesSkillsSkillIdEnhancePostResult =
   NonNullable<
     Awaited<ReturnType<typeof enhanceSkillApiV1ResumesSkillsSkillIdEnhancePost>>
+  >;
+export type GetEducationsApiV1ProfileEducationsGetResult = NonNullable<
+  Awaited<ReturnType<typeof getEducationsApiV1ProfileEducationsGet>>
+>;
+export type CreateEducationApiV1ProfileEducationsPostResult = NonNullable<
+  Awaited<ReturnType<typeof createEducationApiV1ProfileEducationsPost>>
+>;
+export type UpdateEducationApiV1ProfileEducationsEducationIdPutResult =
+  NonNullable<
+    Awaited<
+      ReturnType<typeof updateEducationApiV1ProfileEducationsEducationIdPut>
+    >
+  >;
+export type DeleteEducationApiV1ProfileEducationsEducationIdDeleteResult =
+  NonNullable<
+    Awaited<
+      ReturnType<typeof deleteEducationApiV1ProfileEducationsEducationIdDelete>
+    >
+  >;
+export type GetWorkExperiencesApiV1ProfileWorkExperiencesGetResult =
+  NonNullable<
+    Awaited<ReturnType<typeof getWorkExperiencesApiV1ProfileWorkExperiencesGet>>
+  >;
+export type CreateWorkExperienceApiV1ProfileWorkExperiencesPostResult =
+  NonNullable<
+    Awaited<
+      ReturnType<typeof createWorkExperienceApiV1ProfileWorkExperiencesPost>
+    >
+  >;
+export type UpdateWorkExperienceApiV1ProfileWorkExperiencesWorkIdPutResult =
+  NonNullable<
+    Awaited<
+      ReturnType<
+        typeof updateWorkExperienceApiV1ProfileWorkExperiencesWorkIdPut
+      >
+    >
+  >;
+export type DeleteWorkExperienceApiV1ProfileWorkExperiencesWorkIdDeleteResult =
+  NonNullable<
+    Awaited<
+      ReturnType<
+        typeof deleteWorkExperienceApiV1ProfileWorkExperiencesWorkIdDelete
+      >
+    >
+  >;
+export type AddWorkResponsibilityApiV1ProfileWorkExperiencesWorkIdResponsibilitiesPostResult =
+  NonNullable<
+    Awaited<
+      ReturnType<
+        typeof addWorkResponsibilityApiV1ProfileWorkExperiencesWorkIdResponsibilitiesPost
+      >
+    >
+  >;
+export type DeleteWorkResponsibilityApiV1ProfileWorkExperiencesWorkIdResponsibilitiesResponsibilityIdDeleteResult =
+  NonNullable<
+    Awaited<
+      ReturnType<
+        typeof deleteWorkResponsibilityApiV1ProfileWorkExperiencesWorkIdResponsibilitiesResponsibilityIdDelete
+      >
+    >
+  >;
+export type GetProjectsApiV1ProfileProjectsGetResult = NonNullable<
+  Awaited<ReturnType<typeof getProjectsApiV1ProfileProjectsGet>>
+>;
+export type CreateProjectApiV1ProfileProjectsPostResult = NonNullable<
+  Awaited<ReturnType<typeof createProjectApiV1ProfileProjectsPost>>
+>;
+export type UpdateProjectApiV1ProfileProjectsProjectIdPutResult = NonNullable<
+  Awaited<ReturnType<typeof updateProjectApiV1ProfileProjectsProjectIdPut>>
+>;
+export type DeleteProjectApiV1ProfileProjectsProjectIdDeleteResult =
+  NonNullable<
+    Awaited<ReturnType<typeof deleteProjectApiV1ProfileProjectsProjectIdDelete>>
+  >;
+export type AddProjectTaskApiV1ProfileProjectsProjectIdTasksPostResult =
+  NonNullable<
+    Awaited<
+      ReturnType<typeof addProjectTaskApiV1ProfileProjectsProjectIdTasksPost>
+    >
+  >;
+export type DeleteProjectTaskApiV1ProfileProjectsProjectIdTasksTaskIdDeleteResult =
+  NonNullable<
+    Awaited<
+      ReturnType<
+        typeof deleteProjectTaskApiV1ProfileProjectsProjectIdTasksTaskIdDelete
+      >
+    >
   >;
 export type RootGetResult = NonNullable<Awaited<ReturnType<typeof rootGet>>>;
 export type HealthCheckHealthGetResult = NonNullable<

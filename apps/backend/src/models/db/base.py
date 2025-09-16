@@ -1,6 +1,5 @@
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy import MetaData
-from typing import Any
 
 # Naming convention for constraints
 convention = {

@@ -133,7 +133,7 @@ class JobFlowTester:
                                 
                                 if isinstance(data, dict):
                                     if "title" in data:
-                                        self.log(f"Job extracted successfully!", "SUCCESS")
+                                        self.log("Job extracted successfully!", "SUCCESS")
                                         self.log(f"  Title: {data.get('title')}", "INFO")
                                         self.log(f"  Company: {data.get('company_name', 'N/A')}", "INFO")
                                         if data.get('skills'):
@@ -193,7 +193,7 @@ class JobFlowTester:
             self.log(f"Job ID: {job_id}")
             return True
         else:
-            self.log(f"❌ Test FAILED! Job did not complete", "ERROR")
+            self.log("❌ Test FAILED! Job did not complete", "ERROR")
             self.log(f"Events received: {len(events)}")
             return False
 
