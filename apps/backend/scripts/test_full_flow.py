@@ -49,7 +49,7 @@ def test_full_flow():
     print(f"Job response: {job_data}")
     
     # Start SSE listener
-    print(f"\n1. Starting SSE listener for channel...")
+    print("\n1. Starting SSE listener for channel...")
     sse_url = f"{base_url}/api/v1/users/{user_id}/jobs/{job_id}/status"
     print(f"   SSE URL: {sse_url}")
     
@@ -83,11 +83,11 @@ def test_full_flow():
     time.sleep(2)
     
     # Check what channel the backend published to
-    print(f"\n2. Checking backend logs for this job...")
+    print("\n2. Checking backend logs for this job...")
     # This would need to be done via docker logs
     
     # Manually publish to test
-    print(f"\n3. Manually publishing to Redis channel...")
+    print("\n3. Manually publishing to Redis channel...")
     
     async def manual_publish():
         r = await redis.from_url("redis://localhost:6380")
@@ -111,10 +111,10 @@ def test_full_flow():
     asyncio.run(manual_publish())
     
     # Wait for events
-    print(f"\n4. Waiting 5 seconds for events...")
+    print("\n4. Waiting 5 seconds for events...")
     time.sleep(5)
     
-    print(f"\n5. Results:")
+    print("\n5. Results:")
     print(f"   Events received: {len(received_events)}")
     for event in received_events:
         print(f"   - {event[:100]}...")

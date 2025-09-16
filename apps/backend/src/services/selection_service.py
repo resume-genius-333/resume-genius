@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List, Literal, Optional
+from typing import List, Literal, Optional
 import uuid
 
 from instructor import AsyncInstructor
@@ -7,8 +7,6 @@ from pydantic import BaseModel, Field
 from src.core.unit_of_work import UnitOfWork
 from dependency_injector.wiring import Provide, inject
 from src.containers import Container, container
-from src.models.db.education import EducationSchema
-from src.repositories.education_repository import EducationRepository
 import redis.asyncio as redis
 
 from src.services.status_service import StatusService
