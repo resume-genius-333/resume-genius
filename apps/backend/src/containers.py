@@ -1,10 +1,11 @@
 from dependency_injector import containers, providers
-from openai import OpenAI, AsyncOpenAI
+
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 import redis.asyncio as redis
 from instructor import AsyncInstructor, Instructor, from_openai
+from langfuse.openai import OpenAI, AsyncOpenAI
 
 
 class Container(containers.DeclarativeContainer):
@@ -12,14 +13,14 @@ class Container(containers.DeclarativeContainer):
     config = providers.Configuration()
 
     # OpenAI service singleton
-    openai = providers.Singleton(
+    openai_client = providers.Singleton(
         OpenAI,
         api_key=config.litellm.api_key,
         base_url=config.litellm.base_url,
     )
 
     instructor: providers.Singleton[Instructor] = providers.Singleton(
-        from_openai, openai
+        from_openai, openai_client
     )
 
     async_openai = providers.Singleton(
