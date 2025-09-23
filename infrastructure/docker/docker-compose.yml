@@ -23,6 +23,9 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - PERPLEXITYAI_API_KEY=${PERPLEXITYAI_API_KEY}
       - XAI_API_KEY=${XAI_API_KEY}
+      # - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY}
+      # - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY}
+      # - LANGFUSE_HOST=${LANGFUSE_HOST}
     depends_on:
       litellm-postgres:
         condition: service_healthy
@@ -152,6 +155,10 @@ services:
       - BACKEND_REDIS_RETRY_ON_TIMEOUT=${BACKEND_REDIS_RETRY_ON_TIMEOUT:-true}
       - BACKEND_REDIS_HEALTH_CHECK_INTERVAL=${BACKEND_REDIS_HEALTH_CHECK_INTERVAL:-30}
       - PYTHONUNBUFFERED=1
+      # Langfuse configuration components
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY}
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY}
+      - LANGFUSE_HOST=${LANGFUSE_HOST}
     depends_on:
       resume-genius-postgres:
         condition: service_healthy

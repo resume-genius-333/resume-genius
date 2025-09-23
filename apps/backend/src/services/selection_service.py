@@ -28,8 +28,6 @@ class SelectedItem(BaseModel):
         },
     )
     justification: str = Field(
-        min_length=20,
-        max_length=400,
         description=(
             "2–3 sentences explaining why this entity improves fit for the TARGET ROLE. "
             "Tie to 1–3 job requirements/keywords and include concrete evidence (scope, metrics, tech, outcomes). "
@@ -61,8 +59,6 @@ class NotSelectedItem(BaseModel):
         },
     )
     justification: str = Field(
-        min_length=10,
-        max_length=240,
         description=(
             "One clear reason for omission such as: irrelevant to core requirements, outdated, low impact, "
             "duplicative/overlaps with a stronger included entity, or space constraints. "
