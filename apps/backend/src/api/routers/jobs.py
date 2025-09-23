@@ -1,9 +1,11 @@
 """Jobs router using service layer architecture."""
 
+import asyncio
 import uuid
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from dependency_injector.wiring import inject
+from langfuse import observe
 from src.api.dependencies import get_current_user
 from src.core.unit_of_work import UnitOfWorkFactory
 from src.models.api.core import PaginatedResponse
@@ -24,6 +26,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+@observe(name="create job in background")
 async def _create_job_background(
     user_id: uuid.UUID, job_id: uuid.UUID, request: CreateJobRequest
 ):
@@ -32,15 +35,16 @@ async def _create_job_background(
         async with UnitOfWorkFactory() as uow:
             job_service = JobService(uow)
             selection_service = SelectionService(uow)
-            await job_service.create_job(
+            job_result = job_service.create_job(
                 user_id=user_id,
                 job_id=job_id,
                 job_description=request.job_description,
                 job_url=request.job_url,
             )
-            await selection_service.select_educations(
+            select_education_result = selection_service.select_educations(
                 user_id=user_id, job_id=job_id, job_description=request.job_description
             )
+            await asyncio.gather(job_result, select_education_result)
             await uow.commit()
     except Exception as e:
         logger.error(f"Error in background job creation: {str(e)}")
