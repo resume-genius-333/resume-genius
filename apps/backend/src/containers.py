@@ -1,3 +1,4 @@
+from typing import TYPE_CHECKING
 from dependency_injector import containers, providers
 
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
@@ -5,7 +6,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 import redis.asyncio as redis
 from instructor import AsyncInstructor, Instructor, from_openai
-from langfuse.openai import OpenAI, AsyncOpenAI
+
+if TYPE_CHECKING:
+    from openai import OpenAI, AsyncOpenAI
+else:
+    from langfuse.openai import OpenAI, AsyncOpenAI
 
 
 class Container(containers.DeclarativeContainer):
