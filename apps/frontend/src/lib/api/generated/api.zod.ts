@@ -304,13 +304,6 @@ export const getSelectedEducationsApiV1JobsJobIdSelectedEducationsGetParams =
     job_id: zod.uuid(),
   });
 
-export const getSelectedEducationsApiV1JobsJobIdSelectedEducationsGetResponseSelectedItemsItemJustificationMin = 20;
-
-export const getSelectedEducationsApiV1JobsJobIdSelectedEducationsGetResponseSelectedItemsItemJustificationMax = 400;
-export const getSelectedEducationsApiV1JobsJobIdSelectedEducationsGetResponseNotSelectedItemsItemJustificationMin = 10;
-
-export const getSelectedEducationsApiV1JobsJobIdSelectedEducationsGetResponseNotSelectedItemsItemJustificationMax = 240;
-
 export const getSelectedEducationsApiV1JobsJobIdSelectedEducationsGetResponse =
   zod.object({
     selected_items: zod
@@ -323,12 +316,6 @@ export const getSelectedEducationsApiV1JobsJobIdSelectedEducationsGetResponse =
             ),
           justification: zod
             .string()
-            .min(
-              getSelectedEducationsApiV1JobsJobIdSelectedEducationsGetResponseSelectedItemsItemJustificationMin
-            )
-            .max(
-              getSelectedEducationsApiV1JobsJobIdSelectedEducationsGetResponseSelectedItemsItemJustificationMax
-            )
             .describe(
               "2–3 sentences explaining why this entity improves fit for the TARGET ROLE. Tie to 1–3 job requirements/keywords and include concrete evidence (scope, metrics, tech, outcomes). Guidance by type: • Education: degree/level match, recency, key coursework/capstone. • Work/Project: responsibilities, impact/metrics, stack/tools. • Skill/Certification: proficiency/level, recency, where it was applied."
             ),
@@ -347,12 +334,6 @@ export const getSelectedEducationsApiV1JobsJobIdSelectedEducationsGetResponse =
             ),
           justification: zod
             .string()
-            .min(
-              getSelectedEducationsApiV1JobsJobIdSelectedEducationsGetResponseNotSelectedItemsItemJustificationMin
-            )
-            .max(
-              getSelectedEducationsApiV1JobsJobIdSelectedEducationsGetResponseNotSelectedItemsItemJustificationMax
-            )
             .describe(
               "One clear reason for omission such as: irrelevant to core requirements, outdated, low impact, duplicative/overlaps with a stronger included entity, or space constraints. Reference the mismatched requirement or the overlapping included entity when applicable."
             ),
@@ -905,33 +886,34 @@ export const enhanceMetadataApiV1ResumesMetadataMetadataIdEnhancePostResponse =
 
 /**
  * Get specific education entry by ID.
- * @summary Get Education
+ * @summary Get Resume Education
  */
-export const getEducationApiV1ResumesEducationsEducationIdGetParams =
+export const getResumeEducationApiV1ResumesEducationsEducationIdGetParams =
   zod.object({
     education_id: zod.uuid(),
   });
 
-export const getEducationApiV1ResumesEducationsEducationIdGetResponse = zod
-  .object({
-    id: zod.uuid(),
-    user_id: zod.uuid(),
-    job_id: zod.uuid(),
-    parent_id: zod.union([zod.uuid(), zod.null()]),
-    institution_name: zod.string(),
-    degree: zod.string(),
-    field_of_study: zod.string(),
-    focus_area: zod.union([zod.string(), zod.null()]),
-    start_date: zod.union([zod.string(), zod.null()]),
-    end_date: zod.union([zod.string(), zod.null()]),
-    gpa: zod.union([zod.number(), zod.null()]),
-    max_gpa: zod.union([zod.number(), zod.null()]),
-    city: zod.union([zod.string(), zod.null()]),
-    country: zod.union([zod.string(), zod.null()]),
-    created_at: zod.iso.datetime({}),
-    updated_at: zod.iso.datetime({}),
-  })
-  .describe("Response model for resume education.");
+export const getResumeEducationApiV1ResumesEducationsEducationIdGetResponse =
+  zod
+    .object({
+      id: zod.uuid(),
+      user_id: zod.uuid(),
+      job_id: zod.uuid(),
+      parent_id: zod.union([zod.uuid(), zod.null()]),
+      institution_name: zod.string(),
+      degree: zod.string(),
+      field_of_study: zod.string(),
+      focus_area: zod.union([zod.string(), zod.null()]),
+      start_date: zod.union([zod.string(), zod.null()]),
+      end_date: zod.union([zod.string(), zod.null()]),
+      gpa: zod.union([zod.number(), zod.null()]),
+      max_gpa: zod.union([zod.number(), zod.null()]),
+      city: zod.union([zod.string(), zod.null()]),
+      country: zod.union([zod.string(), zod.null()]),
+      created_at: zod.iso.datetime({}),
+      updated_at: zod.iso.datetime({}),
+    })
+    .describe("Response model for resume education.");
 
 /**
  * Update education entry manually.
@@ -1386,33 +1368,31 @@ export const enhanceSkillApiV1ResumesSkillsSkillIdEnhancePostResponse = zod
 export const getEducationsApiV1ProfileEducationsGetResponse = zod
   .object({
     educations: zod.array(
-      zod
-        .object({
-          id: zod.uuid(),
-          user_id: zod.uuid(),
-          institution_name: zod.string(),
-          degree: zod.enum([
-            "high_school",
-            "associate",
-            "bachelor",
-            "master",
-            "doctorate",
-            "professional",
-            "certificate",
-            "diploma",
-            "exchange",
-            "other",
-          ]),
-          field_of_study: zod.string(),
-          focus_area: zod.union([zod.string(), zod.null()]),
-          start_date: zod.union([zod.string(), zod.null()]),
-          end_date: zod.union([zod.string(), zod.null()]),
-          gpa: zod.union([zod.number(), zod.null()]),
-          max_gpa: zod.union([zod.number(), zod.null()]),
-          created_at: zod.iso.datetime({}),
-          updated_at: zod.iso.datetime({}),
-        })
-        .describe("Response model for education entry.")
+      zod.object({
+        id: zod.uuid(),
+        user_id: zod.uuid(),
+        institution_name: zod.string(),
+        degree: zod.enum([
+          "high_school",
+          "associate",
+          "bachelor",
+          "master",
+          "doctorate",
+          "professional",
+          "certificate",
+          "diploma",
+          "exchange",
+          "other",
+        ]),
+        field_of_study: zod.string(),
+        focus_area: zod.union([zod.string(), zod.null()]).optional(),
+        start_date: zod.union([zod.string(), zod.null()]).optional(),
+        end_date: zod.union([zod.string(), zod.null()]).optional(),
+        gpa: zod.union([zod.number(), zod.null()]).optional(),
+        max_gpa: zod.union([zod.number(), zod.null()]).optional(),
+        created_at: zod.iso.datetime({}),
+        updated_at: zod.iso.datetime({}),
+      })
     ),
     total: zod.number(),
   })
@@ -1493,6 +1473,42 @@ export const createEducationApiV1ProfileEducationsPostBody = zod
       .optional(),
   })
   .describe("Request model for creating education entry.");
+
+/**
+ * Get all education entries for the current user.
+ * @summary Get Profile Education
+ */
+export const getProfileEducationApiV1ProfileEducationsEducationIdGetParams =
+  zod.object({
+    education_id: zod.uuid(),
+  });
+
+export const getProfileEducationApiV1ProfileEducationsEducationIdGetResponse =
+  zod.object({
+    id: zod.uuid(),
+    user_id: zod.uuid(),
+    institution_name: zod.string(),
+    degree: zod.enum([
+      "high_school",
+      "associate",
+      "bachelor",
+      "master",
+      "doctorate",
+      "professional",
+      "certificate",
+      "diploma",
+      "exchange",
+      "other",
+    ]),
+    field_of_study: zod.string(),
+    focus_area: zod.union([zod.string(), zod.null()]).optional(),
+    start_date: zod.union([zod.string(), zod.null()]).optional(),
+    end_date: zod.union([zod.string(), zod.null()]).optional(),
+    gpa: zod.union([zod.number(), zod.null()]).optional(),
+    max_gpa: zod.union([zod.number(), zod.null()]).optional(),
+    created_at: zod.iso.datetime({}),
+    updated_at: zod.iso.datetime({}),
+  });
 
 /**
  * Update an education entry.
@@ -1601,8 +1617,8 @@ export const updateEducationApiV1ProfileEducationsEducationIdPutBody = zod
   })
   .describe("Request model for updating education entry.");
 
-export const updateEducationApiV1ProfileEducationsEducationIdPutResponse = zod
-  .object({
+export const updateEducationApiV1ProfileEducationsEducationIdPutResponse =
+  zod.object({
     id: zod.uuid(),
     user_id: zod.uuid(),
     institution_name: zod.string(),
@@ -1619,15 +1635,14 @@ export const updateEducationApiV1ProfileEducationsEducationIdPutResponse = zod
       "other",
     ]),
     field_of_study: zod.string(),
-    focus_area: zod.union([zod.string(), zod.null()]),
-    start_date: zod.union([zod.string(), zod.null()]),
-    end_date: zod.union([zod.string(), zod.null()]),
-    gpa: zod.union([zod.number(), zod.null()]),
-    max_gpa: zod.union([zod.number(), zod.null()]),
+    focus_area: zod.union([zod.string(), zod.null()]).optional(),
+    start_date: zod.union([zod.string(), zod.null()]).optional(),
+    end_date: zod.union([zod.string(), zod.null()]).optional(),
+    gpa: zod.union([zod.number(), zod.null()]).optional(),
+    max_gpa: zod.union([zod.number(), zod.null()]).optional(),
     created_at: zod.iso.datetime({}),
     updated_at: zod.iso.datetime({}),
-  })
-  .describe("Response model for education entry.");
+  });
 
 /**
  * Delete an education entry.

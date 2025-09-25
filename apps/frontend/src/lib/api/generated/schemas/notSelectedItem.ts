@@ -8,10 +8,6 @@
 export interface NotSelectedItem {
   /** UUID of a profile entity to OMIT (education, work, project, skill, certification, etc.). Must exist in the source dataset. */
   id: string;
-  /**
-   * One clear reason for omission such as: irrelevant to core requirements, outdated, low impact, duplicative/overlaps with a stronger included entity, or space constraints. Reference the mismatched requirement or the overlapping included entity when applicable.
-   * @minLength 10
-   * @maxLength 240
-   */
+  /** One clear reason for omission such as: irrelevant to core requirements, outdated, low impact, duplicative/overlaps with a stronger included entity, or space constraints. Reference the mismatched requirement or the overlapping included entity when applicable. */
   justification: string;
 }
