@@ -30,47 +30,63 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { DegreeType } from "@/lib/api/generated/schemas";
+import { getProfileEducationApiV1ProfileEducationsEducationIdGetResponse } from "@/lib/api/generated/api.zod";
 
-const degreeTypes = [
-  { value: "high_school", label: "High School" },
-  { value: "associate", label: "Associate" },
-  { value: "bachelor", label: "Bachelor's" },
-  { value: "master", label: "Master's" },
-  { value: "doctorate", label: "Doctorate" },
-  { value: "certificate", label: "Certificate" },
-  { value: "bootcamp", label: "Bootcamp" },
-  { value: "other", label: "Other" },
-] as const;
+const degreeTypes: Record<DegreeType, string> = {
+  high_school: "High School",
+  associate: "Associate",
+  bachelor: "Bachelor's",
+  master: "Master's",
+  doctorate: "Doctorate",
+  professional: "Professional",
+  certificate: "Certificate",
+  diploma: "Diploma",
+  exchange: "Exchange",
+  other: "Other",
+};
 
-const dateFormatRegex = /^\d{4}-\d{2}$/;
+const educationFormSchemaWithoutId =
+  getProfileEducationApiV1ProfileEducationsEducationIdGetResponse.omit({
+    id: true,
+    user_id: true,
+    job_id: true,
+    parent_id: true,
+    created_at: true,
+    updated_at: true,
+  });
 
-const educationSchema = z.object({
-  institution_name: z.string().min(1, "Institution name is required"),
-  degree: z.enum([
-    "high_school",
-    "associate",
-    "bachelor",
-    "master",
-    "doctorate",
-    "certificate",
-    "bootcamp",
-    "other",
-  ]),
-  field_of_study: z.string().min(1, "Field of study is required"),
-  focus_area: z.string().optional(),
-  start_date: z.string().regex(dateFormatRegex, "Date must be in YYYY-MM format").optional().or(z.literal("")),
-  end_date: z.string().regex(dateFormatRegex, "Date must be in YYYY-MM format").optional().or(z.literal("")),
-  gpa: z.number().min(0).max(5).optional(),
-  max_gpa: z.number().min(0).max(5).optional(),
+const educationFormSchema = educationFormSchemaWithoutId.extend({
+  focus_area: z.string(),
+  start_date: z.string(),
+  end_date: z.string(),
+  gpa: z.number(),
+  max_gpa: z.number(),
 });
 
-type EducationFormData = z.infer<typeof educationSchema>;
+type EducationFormData = z.infer<typeof educationFormSchema>;
+
+const educationFormInputConverter =
+  educationFormSchemaWithoutId.transform<EducationFormData>((data) => {
+    return {
+      ...data,
+      focus_area: data.focus_area || "",
+      start_date: data.start_date || "",
+      end_date: data.end_date || "",
+      gpa: data.gpa || 0,
+      max_gpa: data.max_gpa || 0,
+    };
+  });
+
+type EducationFormInput = z.input<typeof educationFormInputConverter>;
+
+type EducationFormInput2 = z.input<typeof educationFormSchemaWithoutId>;
 
 interface EducationFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: EducationFormData) => Promise<void>;
-  initialData?: Partial<EducationFormData>;
+  initialData?: EducationFormInput;
   mode: "create" | "edit";
 }
 
@@ -78,13 +94,15 @@ export function EducationForm({
   open,
   onOpenChange,
   onSubmit,
-  initialData,
+  initialData: initialInputData,
   mode,
 }: EducationFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const initialData = initialInputData
+    ? educationFormInputConverter.parse(initialInputData)
+    : null;
   const form = useForm<EducationFormData>({
-    resolver: zodResolver(educationSchema),
+    resolver: zodResolver(educationFormSchema),
     defaultValues: {
       institution_name: initialData?.institution_name || "",
       degree: initialData?.degree || "bachelor",
@@ -136,7 +154,7 @@ export function EducationForm({
         gpa: data.gpa || undefined,
         max_gpa: data.max_gpa || undefined,
       };
-      await onSubmit(filteredData);
+      await onSubmit(educationFormSchema.parse(filteredData));
       form.reset();
       onOpenChange(false);
     } catch (error) {
@@ -161,7 +179,10 @@ export function EducationForm({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="space-y-4"
+          >
             <FormField
               control={form.control}
               name="institution_name"
@@ -183,16 +204,19 @@ export function EducationForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Degree Type</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select degree type" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {degreeTypes.map((type) => (
-                          <SelectItem key={type.value} value={type.value}>
-                            {type.label}
+                        {Object.keys(degreeTypes).map((key) => (
+                          <SelectItem key={key} value={key}>
+                            {degreeTypes[key as DegreeType]}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -274,7 +298,9 @@ export function EducationForm({
                         step="0.01"
                         placeholder="3.85"
                         {...field}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                        onChange={(e) =>
+                          field.onChange(parseFloat(e.target.value))
+                        }
                       />
                     </FormControl>
                     <FormMessage />
@@ -294,7 +320,9 @@ export function EducationForm({
                         step="0.01"
                         placeholder="4.0"
                         {...field}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                        onChange={(e) =>
+                          field.onChange(parseFloat(e.target.value))
+                        }
                       />
                     </FormControl>
                     <FormMessage />
@@ -313,7 +341,9 @@ export function EducationForm({
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSubmitting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 {mode === "create" ? "Add Education" : "Save Changes"}
               </Button>
             </DialogFooter>

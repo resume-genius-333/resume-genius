@@ -30,14 +30,15 @@ import {
   updateEducationApiV1ProfileEducationsEducationIdPut,
   deleteEducationApiV1ProfileEducationsEducationIdDelete,
 } from "@/lib/api/generated/api";
-import type {
-  EducationResponse,
-  EducationCreateRequest,
-  EducationUpdateRequest,
-} from "@/lib/api/generated/schemas";
+import type { EducationSchema } from "@/lib/api/generated/schemas";
+import {
+  createEducationApiV1ProfileEducationsPostBody,
+  updateEducationApiV1ProfileEducationsEducationIdPutBody,
+} from "@/lib/api/generated/api.zod";
+import z from "zod";
 
 // Using the generated EducationResponse type
-type Education = EducationResponse;
+type Education = EducationSchema;
 
 export default function EducationPage() {
   const [educations, setEducations] = useState<Education[]>([]);
@@ -66,10 +67,12 @@ export default function EducationPage() {
     }
   };
 
-  const handleCreate = async (data: unknown) => {
+  const handleCreate = async (
+    data: z.input<typeof createEducationApiV1ProfileEducationsPostBody>
+  ) => {
     try {
       await createEducationApiV1ProfileEducationsPost(
-        data as EducationCreateRequest
+        createEducationApiV1ProfileEducationsPostBody.parse(data)
       );
       toast("Education added successfully");
       setFormOpen(false);
@@ -80,12 +83,19 @@ export default function EducationPage() {
     }
   };
 
-  const handleUpdate = async (data: unknown) => {
+  const handleUpdate = async (
+    data: z.input<
+      typeof updateEducationApiV1ProfileEducationsEducationIdPutBody
+    >
+  ) => {
     if (!selectedEducation) return;
     try {
       await updateEducationApiV1ProfileEducationsEducationIdPut(
         selectedEducation.id,
-        data as EducationUpdateRequest
+        updateEducationApiV1ProfileEducationsEducationIdPutBody.parse({
+          ...selectedEducation,
+          ...data,
+        })
       );
       toast("Education updated successfully");
       setFormOpen(false);

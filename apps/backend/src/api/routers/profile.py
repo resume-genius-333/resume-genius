@@ -11,7 +11,6 @@ from src.core.unit_of_work import UnitOfWorkFactory
 from src.models.api.profile import (
     EducationCreateRequest,
     EducationUpdateRequest,
-    EducationResponse,
     EducationListResponse,
     WorkExperienceCreateRequest,
     WorkExperienceUpdateRequest,
@@ -26,6 +25,7 @@ from src.models.api.profile import (
     ProjectTaskRequest,
     ProjectTaskResponse,
 )
+from src.models.db.education import EducationSchema
 from src.services.profile_service import ProfileService
 
 logger = logging.getLogger(__name__)
@@ -44,7 +44,22 @@ async def get_educations(
         return await profile_service.get_user_educations(current_user_id)
 
 
-@router.post("/educations", response_model=EducationResponse, status_code=status.HTTP_201_CREATED)
+@router.get("/educations/{education_id}", response_model=EducationSchema)
+async def get_profile_education(
+    education_id: UUID,
+    current_user_id: Annotated[UUID, Depends(get_current_user_id)],
+):
+    """Get all education entries for the current user."""
+    async with UnitOfWorkFactory() as uow:
+        profile_service = ProfileService(uow)
+        return await profile_service.get_user_education(
+            user_id=current_user_id, education_id=education_id
+        )
+
+
+@router.post(
+    "/educations", response_model=EducationSchema, status_code=status.HTTP_201_CREATED
+)
 async def create_education(
     request: EducationCreateRequest,
     current_user_id: Annotated[UUID, Depends(get_current_user_id)],
@@ -55,7 +70,7 @@ async def create_education(
         return await profile_service.create_education(current_user_id, request)
 
 
-@router.put("/educations/{education_id}", response_model=EducationResponse)
+@router.put("/educations/{education_id}", response_model=EducationSchema)
 async def update_education(
     education_id: UUID,
     request: EducationUpdateRequest,
@@ -70,7 +85,7 @@ async def update_education(
         if not education:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Education entry not found"
+                detail="Education entry not found",
             )
         return education
 
@@ -87,7 +102,7 @@ async def delete_education(
         if not result:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Education entry not found"
+                detail="Education entry not found",
             )
 
 
@@ -102,7 +117,11 @@ async def get_work_experiences(
         return await profile_service.get_user_work_experiences(current_user_id)
 
 
-@router.post("/work-experiences", response_model=WorkExperienceResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/work-experiences",
+    response_model=WorkExperienceResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_work_experience(
     request: WorkExperienceCreateRequest,
     current_user_id: Annotated[UUID, Depends(get_current_user_id)],
@@ -128,7 +147,7 @@ async def update_work_experience(
         if not work_experience:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Work experience not found"
+                detail="Work experience not found",
             )
         return work_experience
 
@@ -145,11 +164,15 @@ async def delete_work_experience(
         if not result:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Work experience not found"
+                detail="Work experience not found",
             )
 
 
-@router.post("/work-experiences/{work_id}/responsibilities", response_model=WorkResponsibilityResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/work-experiences/{work_id}/responsibilities",
+    response_model=WorkResponsibilityResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def add_work_responsibility(
     work_id: UUID,
     request: WorkResponsibilityRequest,
@@ -164,12 +187,15 @@ async def add_work_responsibility(
         if not responsibility:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Work experience not found"
+                detail="Work experience not found",
             )
         return responsibility
 
 
-@router.delete("/work-experiences/{work_id}/responsibilities/{responsibility_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/work-experiences/{work_id}/responsibilities/{responsibility_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
 async def delete_work_responsibility(
     work_id: UUID,
     responsibility_id: UUID,
@@ -183,8 +209,7 @@ async def delete_work_responsibility(
         )
         if not result:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Responsibility not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Responsibility not found"
             )
 
 
@@ -199,7 +224,9 @@ async def get_projects(
         return await profile_service.get_user_projects(current_user_id)
 
 
-@router.post("/projects", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/projects", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_project(
     request: ProjectCreateRequest,
     current_user_id: Annotated[UUID, Depends(get_current_user_id)],
@@ -224,8 +251,7 @@ async def update_project(
         )
         if not project:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Project not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
             )
         return project
 
@@ -241,12 +267,15 @@ async def delete_project(
         result = await profile_service.delete_project(current_user_id, project_id)
         if not result:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Project not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
             )
 
 
-@router.post("/projects/{project_id}/tasks", response_model=ProjectTaskResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/projects/{project_id}/tasks",
+    response_model=ProjectTaskResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def add_project_task(
     project_id: UUID,
     request: ProjectTaskRequest,
@@ -260,13 +289,14 @@ async def add_project_task(
         )
         if not task:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Project not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
             )
         return task
 
 
-@router.delete("/projects/{project_id}/tasks/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/projects/{project_id}/tasks/{task_id}", status_code=status.HTTP_204_NO_CONTENT
+)
 async def delete_project_task(
     project_id: UUID,
     task_id: UUID,
@@ -280,6 +310,5 @@ async def delete_project_task(
         )
         if not result:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Task not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Task not found"
             )

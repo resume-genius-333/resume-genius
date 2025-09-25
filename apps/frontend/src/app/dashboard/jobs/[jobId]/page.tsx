@@ -6,7 +6,6 @@ import {
   streamProcessingStatus,
 } from "@/lib/api/custom";
 import {
-  getEducationApiV1ResumesEducationsEducationIdGet,
   getJobApiV1JobsJobIdGet,
   getSelectedEducationsApiV1JobsJobIdSelectedEducationsGet,
 } from "@/lib/api/generated/api";
@@ -19,7 +18,6 @@ import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
 import { unified } from "unified";
 import "@/markdown.css";
-import z from "zod";
 
 interface JobPageInput {
   params: Promise<{ jobId: string }>;

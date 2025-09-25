@@ -8,10 +8,6 @@
 export interface SelectedItem {
   /** UUID of a profile entity to INCLUDE (education, work, project, skill, certification, award, publication, volunteer, coursework, etc.). Must exist in the source dataset. */
   id: string;
-  /**
-   * 2–3 sentences explaining why this entity improves fit for the TARGET ROLE. Tie to 1–3 job requirements/keywords and include concrete evidence (scope, metrics, tech, outcomes). Guidance by type: • Education: degree/level match, recency, key coursework/capstone. • Work/Project: responsibilities, impact/metrics, stack/tools. • Skill/Certification: proficiency/level, recency, where it was applied.
-   * @minLength 20
-   * @maxLength 400
-   */
+  /** 2–3 sentences explaining why this entity improves fit for the TARGET ROLE. Tie to 1–3 job requirements/keywords and include concrete evidence (scope, metrics, tech, outcomes). Guidance by type: • Education: degree/level match, recency, key coursework/capstone. • Work/Project: responsibilities, impact/metrics, stack/tools. • Skill/Certification: proficiency/level, recency, where it was applied. */
   justification: string;
 }

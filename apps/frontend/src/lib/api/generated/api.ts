@@ -12,7 +12,7 @@ import type {
   CreateResumeVersionRequest,
   EducationCreateRequest,
   EducationListResponse,
-  EducationResponse,
+  EducationSchema,
   EducationUpdateRequest,
   FullResumeResponse,
   GetLatestResumeVersionApiV1ResumesLatestGetParams,
@@ -460,9 +460,9 @@ export const enhanceMetadataApiV1ResumesMetadataMetadataIdEnhancePost = (
 
 /**
  * Get specific education entry by ID.
- * @summary Get Education
+ * @summary Get Resume Education
  */
-export const getEducationApiV1ResumesEducationsEducationIdGet = (
+export const getResumeEducationApiV1ResumesEducationsEducationIdGet = (
   educationId: string
 ) => {
   return customAxiosInstance<ResumeEducationResponse>({
@@ -652,11 +652,24 @@ export const getEducationsApiV1ProfileEducationsGet = () => {
 export const createEducationApiV1ProfileEducationsPost = (
   educationCreateRequest: EducationCreateRequest
 ) => {
-  return customAxiosInstance<EducationResponse>({
+  return customAxiosInstance<EducationSchema>({
     url: `/api/v1/profile/educations`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
     data: educationCreateRequest,
+  });
+};
+
+/**
+ * Get all education entries for the current user.
+ * @summary Get Profile Education
+ */
+export const getProfileEducationApiV1ProfileEducationsEducationIdGet = (
+  educationId: string
+) => {
+  return customAxiosInstance<EducationSchema>({
+    url: `/api/v1/profile/educations/${educationId}`,
+    method: "GET",
   });
 };
 
@@ -668,7 +681,7 @@ export const updateEducationApiV1ProfileEducationsEducationIdPut = (
   educationId: string,
   educationUpdateRequest: EducationUpdateRequest
 ) => {
-  return customAxiosInstance<EducationResponse>({
+  return customAxiosInstance<EducationSchema>({
     url: `/api/v1/profile/educations/${educationId}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -980,9 +993,11 @@ export type EnhanceMetadataApiV1ResumesMetadataMetadataIdEnhancePostResult =
       >
     >
   >;
-export type GetEducationApiV1ResumesEducationsEducationIdGetResult =
+export type GetResumeEducationApiV1ResumesEducationsEducationIdGetResult =
   NonNullable<
-    Awaited<ReturnType<typeof getEducationApiV1ResumesEducationsEducationIdGet>>
+    Awaited<
+      ReturnType<typeof getResumeEducationApiV1ResumesEducationsEducationIdGet>
+    >
   >;
 export type UpdateEducationApiV1ResumesEducationsEducationIdPutResult =
   NonNullable<
@@ -1048,6 +1063,12 @@ export type GetEducationsApiV1ProfileEducationsGetResult = NonNullable<
 export type CreateEducationApiV1ProfileEducationsPostResult = NonNullable<
   Awaited<ReturnType<typeof createEducationApiV1ProfileEducationsPost>>
 >;
+export type GetProfileEducationApiV1ProfileEducationsEducationIdGetResult =
+  NonNullable<
+    Awaited<
+      ReturnType<typeof getProfileEducationApiV1ProfileEducationsEducationIdGet>
+    >
+  >;
 export type UpdateEducationApiV1ProfileEducationsEducationIdPutResult =
   NonNullable<
     Awaited<

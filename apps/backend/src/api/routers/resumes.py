@@ -263,7 +263,7 @@ async def enhance_metadata(
 @router.get(
     "/resumes/educations/{education_id}", response_model=ResumeEducationResponse
 )
-async def get_education(
+async def get_resume_education(
     education_id: uuid.UUID,
     current_user: UserResponse = Depends(get_current_user),
 ):
