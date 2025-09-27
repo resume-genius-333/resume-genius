@@ -9,9 +9,5 @@
  * Request model for work responsibility.
  */
 export interface WorkResponsibilityRequest {
-  /**
-   * @minLength 1
-   * @maxLength 500
-   */
   description: string;
 }

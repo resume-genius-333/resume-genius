@@ -14,15 +14,7 @@ import type { WorkExperienceCreateRequestResponsibilities } from "./workExperien
  * Request model for creating work experience.
  */
 export interface WorkExperienceCreateRequest {
-  /**
-   * @minLength 1
-   * @maxLength 200
-   */
   company_name: string;
-  /**
-   * @minLength 1
-   * @maxLength 200
-   */
   position_title: string;
   employment_type: EmploymentType;
   location?: WorkExperienceCreateRequestLocation;

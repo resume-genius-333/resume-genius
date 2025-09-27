@@ -4,21 +4,21 @@
  * Resume Genius API
  * OpenAPI spec version: 1.0.0
  */
-import type { ResumeVersionResponse } from "./resumeVersionResponse";
+import type { ResumeSchema } from "./resumeSchema";
 import type { FullResumeResponseMetadata } from "./fullResumeResponseMetadata";
-import type { ResumeEducationResponse } from "./resumeEducationResponse";
-import type { ResumeWorkExperienceResponse } from "./resumeWorkExperienceResponse";
-import type { ResumeProjectResponse } from "./resumeProjectResponse";
-import type { ResumeSkillResponse } from "./resumeSkillResponse";
+import type { ResumeEducationSchema } from "./resumeEducationSchema";
+import type { ResumeWorkExperienceSchema } from "./resumeWorkExperienceSchema";
+import type { ResumeProjectSchema } from "./resumeProjectSchema";
+import type { ResumeSkillSchema } from "./resumeSkillSchema";
 
 /**
  * Response model for full resume with all sections.
  */
 export interface FullResumeResponse {
-  version: ResumeVersionResponse;
+  version: ResumeSchema;
   metadata: FullResumeResponseMetadata;
-  educations: ResumeEducationResponse[];
-  work_experiences: ResumeWorkExperienceResponse[];
-  projects: ResumeProjectResponse[];
-  skills: ResumeSkillResponse[];
+  educations: ResumeEducationSchema[];
+  work_experiences: ResumeWorkExperienceSchema[];
+  projects: ResumeProjectSchema[];
+  skills: ResumeSkillSchema[];
 }

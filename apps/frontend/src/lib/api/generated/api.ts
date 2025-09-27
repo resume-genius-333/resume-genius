@@ -12,7 +12,6 @@ import type {
   CreateResumeVersionRequest,
   EducationCreateRequest,
   EducationListResponse,
-  EducationSchema,
   EducationUpdateRequest,
   FullResumeResponse,
   GetLatestResumeVersionApiV1ResumesLatestGetParams,
@@ -22,26 +21,30 @@ import type {
   PaginatedResponse,
   PaginatedResponseJobSchema,
   ProcessingStatus,
+  ProfileEducationSchema,
+  ProfileProjectSchema,
+  ProfileProjectTaskSchema,
+  ProfileUserSchema,
+  ProfileWorkExperienceSchema,
+  ProfileWorkResponsibilitySchema,
   ProjectCreateRequest,
   ProjectListResponse,
-  ProjectResponse,
   ProjectTaskRequest,
-  ProjectTaskResponse,
   ProjectUpdateRequest,
   RefineResumeResponse,
   RefreshTokenRequest,
   RefreshTokenResponse,
   ResumeEducationRequest,
-  ResumeEducationResponse,
+  ResumeEducationSchema,
   ResumeMetadataRequest,
-  ResumeMetadataResponse,
+  ResumeMetadataSchema,
   ResumeProjectRequest,
-  ResumeProjectResponse,
+  ResumeProjectSchema,
+  ResumeSchema,
   ResumeSkillRequest,
-  ResumeSkillResponse,
-  ResumeVersionResponse,
+  ResumeSkillSchema,
   ResumeWorkExperienceRequest,
-  ResumeWorkExperienceResponse,
+  ResumeWorkExperienceSchema,
   SelectionResult,
   TestApiKeyApiV1AuthTestApiKeyGet200,
   UpdateResumeVersionRequest,
@@ -49,14 +52,11 @@ import type {
   UserLoginResponse,
   UserRegisterRequest,
   UserRegisterResponse,
-  UserResponse,
   VerifyTokenApiV1AuthVerifyTokenGet200,
   WorkExperienceCreateRequest,
   WorkExperienceListResponse,
-  WorkExperienceResponse,
   WorkExperienceUpdateRequest,
   WorkResponsibilityRequest,
-  WorkResponsibilityResponse,
 } from "./schemas";
 
 import { customAxiosInstance } from "../client";
@@ -165,7 +165,7 @@ export const logoutApiV1AuthLogoutPost = () => {
  * @summary Get Me
  */
 export const getMeApiV1AuthMeGet = () => {
-  return customAxiosInstance<UserResponse>({
+  return customAxiosInstance<ProfileUserSchema>({
     url: `/api/v1/auth/me`,
     method: "GET",
   });
@@ -233,9 +233,9 @@ export const getJobApiV1JobsJobIdGet = (jobId: string) => {
 
 /**
  * Select relevant information from user's resume for the job.
- * @summary Get Selected Educations
+ * @summary Get Job Selected Educations
  */
-export const getSelectedEducationsApiV1JobsJobIdSelectedEducationsGet = (
+export const getJobSelectedEducationsApiV1JobsJobIdSelectedEducationsGet = (
   jobId: string
 ) => {
   return customAxiosInstance<SelectionResult>({
@@ -246,9 +246,9 @@ export const getSelectedEducationsApiV1JobsJobIdSelectedEducationsGet = (
 
 /**
  * Select relevant information from user's resume for the job.
- * @summary Get Selected Work Experiences
+ * @summary Get Job Selected Work Experiences
  */
-export const getSelectedWorkExperiencesApiV1JobsJobIdSelectedWorkExperiencesGet =
+export const getJobSelectedWorkExperiencesApiV1JobsJobIdSelectedWorkExperiencesGet =
   (jobId: string) => {
     return customAxiosInstance<unknown>({
       url: `/api/v1/jobs/${jobId}/selected_work_experiences`,
@@ -258,9 +258,9 @@ export const getSelectedWorkExperiencesApiV1JobsJobIdSelectedWorkExperiencesGet 
 
 /**
  * Select relevant information from user's resume for the job.
- * @summary Get Selected Projects
+ * @summary Get Job Selected Projects
  */
-export const getSelectedProjectsApiV1JobsJobIdSelectedProjectsGet = (
+export const getJobSelectedProjectsApiV1JobsJobIdSelectedProjectsGet = (
   jobId: string
 ) => {
   return customAxiosInstance<unknown>({
@@ -271,9 +271,9 @@ export const getSelectedProjectsApiV1JobsJobIdSelectedProjectsGet = (
 
 /**
  * Select relevant information from user's resume for the job.
- * @summary Get Selected Skills
+ * @summary Get Job Selected Skills
  */
-export const getSelectedSkillsApiV1JobsJobIdSelectedSkillsGet = (
+export const getJobSelectedSkillsApiV1JobsJobIdSelectedSkillsGet = (
   jobId: string
 ) => {
   return customAxiosInstance<unknown>({
@@ -284,9 +284,9 @@ export const getSelectedSkillsApiV1JobsJobIdSelectedSkillsGet = (
 
 /**
  * Select relevant information from user's resume for the job.
- * @summary Confirm Experience Selection
+ * @summary Confirm Job Experience Selection
  */
-export const confirmExperienceSelectionApiV1JobsJobIdConfirmExperienceSelectionPost =
+export const confirmJobExperienceSelectionApiV1JobsJobIdConfirmExperienceSelectionPost =
   (jobId: string) => {
     return customAxiosInstance<unknown>({
       url: `/api/v1/jobs/${jobId}/confirm_experience_selection`,
@@ -296,9 +296,9 @@ export const confirmExperienceSelectionApiV1JobsJobIdConfirmExperienceSelectionP
 
 /**
  * Refine user's resume for the specific job.
- * @summary Refine Resume
+ * @summary Refine Job Resume
  */
-export const refineResumeApiV1JobsJobIdRefinePost = (jobId: string) => {
+export const refineJobResumeApiV1JobsJobIdRefinePost = (jobId: string) => {
   return customAxiosInstance<RefineResumeResponse>({
     url: `/api/v1/jobs/${jobId}/refine`,
     method: "POST",
@@ -307,9 +307,9 @@ export const refineResumeApiV1JobsJobIdRefinePost = (jobId: string) => {
 
 /**
  * Stream job processing status via Server-Sent Events.
- * @summary Stream Status
+ * @summary Stream Job Status
  */
-export const streamStatusApiV1JobsJobIdStatusStreamGet = (jobId: string) => {
+export const streamJobStatusApiV1JobsJobIdStatusStreamGet = (jobId: string) => {
   return customAxiosInstance<unknown>({
     url: `/api/v1/jobs/${jobId}/status-stream`,
     method: "GET",
@@ -348,7 +348,7 @@ export const listResumeVersionsApiV1ResumesGet = (
 export const createResumeVersionApiV1ResumesPost = (
   createResumeVersionRequest: CreateResumeVersionRequest
 ) => {
-  return customAxiosInstance<ResumeVersionResponse>({
+  return customAxiosInstance<ResumeSchema>({
     url: `/api/v1/resumes/`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -363,7 +363,7 @@ export const createResumeVersionApiV1ResumesPost = (
 export const getLatestResumeVersionApiV1ResumesLatestGet = (
   params?: GetLatestResumeVersionApiV1ResumesLatestGetParams
 ) => {
-  return customAxiosInstance<ResumeVersionResponse>({
+  return customAxiosInstance<ResumeSchema>({
     url: `/api/v1/resumes/latest`,
     method: "GET",
     params,
@@ -389,7 +389,7 @@ export const updateResumeVersionApiV1ResumesVersionIdPut = (
   versionId: string,
   updateResumeVersionRequest: UpdateResumeVersionRequest
 ) => {
-  return customAxiosInstance<ResumeVersionResponse>({
+  return customAxiosInstance<ResumeSchema>({
     url: `/api/v1/resumes/${versionId}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -405,7 +405,7 @@ export const enhanceResumeVersionApiV1ResumesVersionIdEnhancePost = (
   versionId: string,
   aIEnhanceRequest: AIEnhanceRequest
 ) => {
-  return customAxiosInstance<ResumeVersionResponse>({
+  return customAxiosInstance<ResumeSchema>({
     url: `/api/v1/resumes/${versionId}/enhance`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -415,12 +415,12 @@ export const enhanceResumeVersionApiV1ResumesVersionIdEnhancePost = (
 
 /**
  * Get specific metadata by ID.
- * @summary Get Metadata
+ * @summary Get Resume Metadata
  */
-export const getMetadataApiV1ResumesMetadataMetadataIdGet = (
+export const getResumeMetadataApiV1ResumesMetadataMetadataIdGet = (
   metadataId: string
 ) => {
-  return customAxiosInstance<ResumeMetadataResponse>({
+  return customAxiosInstance<ResumeMetadataSchema>({
     url: `/api/v1/resumes/metadata/${metadataId}`,
     method: "GET",
   });
@@ -428,13 +428,13 @@ export const getMetadataApiV1ResumesMetadataMetadataIdGet = (
 
 /**
  * Update metadata manually.
- * @summary Update Metadata
+ * @summary Update Resume Metadata
  */
-export const updateMetadataApiV1ResumesMetadataMetadataIdPut = (
+export const updateResumeMetadataApiV1ResumesMetadataMetadataIdPut = (
   metadataId: string,
   resumeMetadataRequest: ResumeMetadataRequest
 ) => {
-  return customAxiosInstance<ResumeMetadataResponse>({
+  return customAxiosInstance<ResumeMetadataSchema>({
     url: `/api/v1/resumes/metadata/${metadataId}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -444,13 +444,13 @@ export const updateMetadataApiV1ResumesMetadataMetadataIdPut = (
 
 /**
  * Enhance metadata using AI.
- * @summary Enhance Metadata
+ * @summary Enhance Resume Metadata
  */
-export const enhanceMetadataApiV1ResumesMetadataMetadataIdEnhancePost = (
+export const enhanceResumeMetadataApiV1ResumesMetadataMetadataIdEnhancePost = (
   metadataId: string,
   aIEnhanceRequest: AIEnhanceRequest
 ) => {
-  return customAxiosInstance<ResumeMetadataResponse>({
+  return customAxiosInstance<ResumeMetadataSchema>({
     url: `/api/v1/resumes/metadata/${metadataId}/enhance`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -465,7 +465,7 @@ export const enhanceMetadataApiV1ResumesMetadataMetadataIdEnhancePost = (
 export const getResumeEducationApiV1ResumesEducationsEducationIdGet = (
   educationId: string
 ) => {
-  return customAxiosInstance<ResumeEducationResponse>({
+  return customAxiosInstance<ResumeEducationSchema>({
     url: `/api/v1/resumes/educations/${educationId}`,
     method: "GET",
   });
@@ -473,13 +473,13 @@ export const getResumeEducationApiV1ResumesEducationsEducationIdGet = (
 
 /**
  * Update education entry manually.
- * @summary Update Education
+ * @summary Update Resume Education
  */
-export const updateEducationApiV1ResumesEducationsEducationIdPut = (
+export const updateResumeEducationApiV1ResumesEducationsEducationIdPut = (
   educationId: string,
   resumeEducationRequest: ResumeEducationRequest
 ) => {
-  return customAxiosInstance<ResumeEducationResponse>({
+  return customAxiosInstance<ResumeEducationSchema>({
     url: `/api/v1/resumes/educations/${educationId}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -489,28 +489,26 @@ export const updateEducationApiV1ResumesEducationsEducationIdPut = (
 
 /**
  * Enhance education entry using AI.
- * @summary Enhance Education
+ * @summary Enhance Resume Education
  */
-export const enhanceEducationApiV1ResumesEducationsEducationIdEnhancePost = (
-  educationId: string,
-  aIEnhanceRequest: AIEnhanceRequest
-) => {
-  return customAxiosInstance<ResumeEducationResponse>({
-    url: `/api/v1/resumes/educations/${educationId}/enhance`,
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    data: aIEnhanceRequest,
-  });
-};
+export const enhanceResumeEducationApiV1ResumesEducationsEducationIdEnhancePost =
+  (educationId: string, aIEnhanceRequest: AIEnhanceRequest) => {
+    return customAxiosInstance<ResumeEducationSchema>({
+      url: `/api/v1/resumes/educations/${educationId}/enhance`,
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      data: aIEnhanceRequest,
+    });
+  };
 
 /**
  * Get specific work experience by ID.
- * @summary Get Work Experience
+ * @summary Get Resume Work Experience
  */
-export const getWorkExperienceApiV1ResumesWorkExperiencesWorkIdGet = (
+export const getResumeWorkExperienceApiV1ResumesWorkExperiencesWorkIdGet = (
   workId: string
 ) => {
-  return customAxiosInstance<ResumeWorkExperienceResponse>({
+  return customAxiosInstance<ResumeWorkExperienceSchema>({
     url: `/api/v1/resumes/work_experiences/${workId}`,
     method: "GET",
   });
@@ -518,13 +516,13 @@ export const getWorkExperienceApiV1ResumesWorkExperiencesWorkIdGet = (
 
 /**
  * Update work experience manually.
- * @summary Update Work Experience
+ * @summary Update Resume Work Experience
  */
-export const updateWorkExperienceApiV1ResumesWorkExperiencesWorkIdPut = (
+export const updateResumeWorkExperienceApiV1ResumesWorkExperiencesWorkIdPut = (
   workId: string,
   resumeWorkExperienceRequest: ResumeWorkExperienceRequest
 ) => {
-  return customAxiosInstance<ResumeWorkExperienceResponse>({
+  return customAxiosInstance<ResumeWorkExperienceSchema>({
     url: `/api/v1/resumes/work_experiences/${workId}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -534,11 +532,11 @@ export const updateWorkExperienceApiV1ResumesWorkExperiencesWorkIdPut = (
 
 /**
  * Enhance work experience using AI.
- * @summary Enhance Work Experience
+ * @summary Enhance Resume Work Experience
  */
-export const enhanceWorkExperienceApiV1ResumesWorkExperiencesWorkIdEnhancePost =
+export const enhanceResumeWorkExperienceApiV1ResumesWorkExperiencesWorkIdEnhancePost =
   (workId: string, aIEnhanceRequest: AIEnhanceRequest) => {
-    return customAxiosInstance<ResumeWorkExperienceResponse>({
+    return customAxiosInstance<ResumeWorkExperienceSchema>({
       url: `/api/v1/resumes/work_experiences/${workId}/enhance`,
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -548,12 +546,12 @@ export const enhanceWorkExperienceApiV1ResumesWorkExperiencesWorkIdEnhancePost =
 
 /**
  * Get specific project by ID.
- * @summary Get Project
+ * @summary Get Resume Project
  */
-export const getProjectApiV1ResumesProjectsProjectIdGet = (
+export const getResumeProjectApiV1ResumesProjectsProjectIdGet = (
   projectId: string
 ) => {
-  return customAxiosInstance<ResumeProjectResponse>({
+  return customAxiosInstance<ResumeProjectSchema>({
     url: `/api/v1/resumes/projects/${projectId}`,
     method: "GET",
   });
@@ -561,13 +559,13 @@ export const getProjectApiV1ResumesProjectsProjectIdGet = (
 
 /**
  * Update project manually.
- * @summary Update Project
+ * @summary Update Resume Project
  */
-export const updateProjectApiV1ResumesProjectsProjectIdPut = (
+export const updateResumeProjectApiV1ResumesProjectsProjectIdPut = (
   projectId: string,
   resumeProjectRequest: ResumeProjectRequest
 ) => {
-  return customAxiosInstance<ResumeProjectResponse>({
+  return customAxiosInstance<ResumeProjectSchema>({
     url: `/api/v1/resumes/projects/${projectId}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -577,13 +575,13 @@ export const updateProjectApiV1ResumesProjectsProjectIdPut = (
 
 /**
  * Enhance project using AI.
- * @summary Enhance Project
+ * @summary Enhance Resume Project
  */
-export const enhanceProjectApiV1ResumesProjectsProjectIdEnhancePost = (
+export const enhanceResumeProjectApiV1ResumesProjectsProjectIdEnhancePost = (
   projectId: string,
   aIEnhanceRequest: AIEnhanceRequest
 ) => {
-  return customAxiosInstance<ResumeProjectResponse>({
+  return customAxiosInstance<ResumeProjectSchema>({
     url: `/api/v1/resumes/projects/${projectId}/enhance`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -593,10 +591,10 @@ export const enhanceProjectApiV1ResumesProjectsProjectIdEnhancePost = (
 
 /**
  * Get specific skill by ID.
- * @summary Get Skill
+ * @summary Get Resume Skill
  */
-export const getSkillApiV1ResumesSkillsSkillIdGet = (skillId: string) => {
-  return customAxiosInstance<ResumeSkillResponse>({
+export const getResumeSkillApiV1ResumesSkillsSkillIdGet = (skillId: string) => {
+  return customAxiosInstance<ResumeSkillSchema>({
     url: `/api/v1/resumes/skills/${skillId}`,
     method: "GET",
   });
@@ -604,13 +602,13 @@ export const getSkillApiV1ResumesSkillsSkillIdGet = (skillId: string) => {
 
 /**
  * Update skill manually.
- * @summary Update Skill
+ * @summary Update Resume Skill
  */
-export const updateSkillApiV1ResumesSkillsSkillIdPut = (
+export const updateResumeSkillApiV1ResumesSkillsSkillIdPut = (
   skillId: string,
   resumeSkillRequest: ResumeSkillRequest
 ) => {
-  return customAxiosInstance<ResumeSkillResponse>({
+  return customAxiosInstance<ResumeSkillSchema>({
     url: `/api/v1/resumes/skills/${skillId}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -620,13 +618,13 @@ export const updateSkillApiV1ResumesSkillsSkillIdPut = (
 
 /**
  * Enhance skill using AI.
- * @summary Enhance Skill
+ * @summary Enhance Resume Skill
  */
-export const enhanceSkillApiV1ResumesSkillsSkillIdEnhancePost = (
+export const enhanceResumeSkillApiV1ResumesSkillsSkillIdEnhancePost = (
   skillId: string,
   aIEnhanceRequest: AIEnhanceRequest
 ) => {
-  return customAxiosInstance<ResumeSkillResponse>({
+  return customAxiosInstance<ResumeSkillSchema>({
     url: `/api/v1/resumes/skills/${skillId}/enhance`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -636,9 +634,9 @@ export const enhanceSkillApiV1ResumesSkillsSkillIdEnhancePost = (
 
 /**
  * Get all education entries for the current user.
- * @summary Get Educations
+ * @summary Get Profile Educations
  */
-export const getEducationsApiV1ProfileEducationsGet = () => {
+export const getProfileEducationsApiV1ProfileEducationsGet = () => {
   return customAxiosInstance<EducationListResponse>({
     url: `/api/v1/profile/educations`,
     method: "GET",
@@ -647,12 +645,12 @@ export const getEducationsApiV1ProfileEducationsGet = () => {
 
 /**
  * Create a new education entry.
- * @summary Create Education
+ * @summary Create Profile Education
  */
-export const createEducationApiV1ProfileEducationsPost = (
+export const createProfileEducationApiV1ProfileEducationsPost = (
   educationCreateRequest: EducationCreateRequest
 ) => {
-  return customAxiosInstance<EducationSchema>({
+  return customAxiosInstance<ProfileEducationSchema>({
     url: `/api/v1/profile/educations`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -667,7 +665,7 @@ export const createEducationApiV1ProfileEducationsPost = (
 export const getProfileEducationApiV1ProfileEducationsEducationIdGet = (
   educationId: string
 ) => {
-  return customAxiosInstance<EducationSchema>({
+  return customAxiosInstance<ProfileEducationSchema>({
     url: `/api/v1/profile/educations/${educationId}`,
     method: "GET",
   });
@@ -675,13 +673,13 @@ export const getProfileEducationApiV1ProfileEducationsEducationIdGet = (
 
 /**
  * Update an education entry.
- * @summary Update Education
+ * @summary Update Profile Education
  */
-export const updateEducationApiV1ProfileEducationsEducationIdPut = (
+export const updateProfileEducationApiV1ProfileEducationsEducationIdPut = (
   educationId: string,
   educationUpdateRequest: EducationUpdateRequest
 ) => {
-  return customAxiosInstance<EducationSchema>({
+  return customAxiosInstance<ProfileEducationSchema>({
     url: `/api/v1/profile/educations/${educationId}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -691,9 +689,9 @@ export const updateEducationApiV1ProfileEducationsEducationIdPut = (
 
 /**
  * Delete an education entry.
- * @summary Delete Education
+ * @summary Delete Profile Education
  */
-export const deleteEducationApiV1ProfileEducationsEducationIdDelete = (
+export const deleteProfileEducationApiV1ProfileEducationsEducationIdDelete = (
   educationId: string
 ) => {
   return customAxiosInstance<null>({
@@ -704,9 +702,9 @@ export const deleteEducationApiV1ProfileEducationsEducationIdDelete = (
 
 /**
  * Get all work experiences for the current user.
- * @summary Get Work Experiences
+ * @summary Get Profile Work Experiences
  */
-export const getWorkExperiencesApiV1ProfileWorkExperiencesGet = () => {
+export const getProfileWorkExperiencesApiV1ProfileWorkExperiencesGet = () => {
   return customAxiosInstance<WorkExperienceListResponse>({
     url: `/api/v1/profile/work-experiences`,
     method: "GET",
@@ -715,12 +713,12 @@ export const getWorkExperiencesApiV1ProfileWorkExperiencesGet = () => {
 
 /**
  * Create a new work experience entry.
- * @summary Create Work Experience
+ * @summary Create Profile Work Experience
  */
-export const createWorkExperienceApiV1ProfileWorkExperiencesPost = (
+export const createProfileWorkExperienceApiV1ProfileWorkExperiencesPost = (
   workExperienceCreateRequest: WorkExperienceCreateRequest
 ) => {
-  return customAxiosInstance<WorkExperienceResponse>({
+  return customAxiosInstance<ProfileWorkExperienceSchema>({
     url: `/api/v1/profile/work-experiences`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -729,14 +727,27 @@ export const createWorkExperienceApiV1ProfileWorkExperiencesPost = (
 };
 
 /**
- * Update a work experience entry.
- * @summary Update Work Experience
+ * Get a single work experience entry by ID for the current user.
+ * @summary Get Profile Work Experience
  */
-export const updateWorkExperienceApiV1ProfileWorkExperiencesWorkIdPut = (
+export const getProfileWorkExperienceApiV1ProfileWorkExperiencesWorkIdGet = (
+  workId: string
+) => {
+  return customAxiosInstance<ProfileWorkExperienceSchema>({
+    url: `/api/v1/profile/work-experiences/${workId}`,
+    method: "GET",
+  });
+};
+
+/**
+ * Update a work experience entry.
+ * @summary Update Profile Work Experience
+ */
+export const updateProfileWorkExperienceApiV1ProfileWorkExperiencesWorkIdPut = (
   workId: string,
   workExperienceUpdateRequest: WorkExperienceUpdateRequest
 ) => {
-  return customAxiosInstance<WorkExperienceResponse>({
+  return customAxiosInstance<ProfileWorkExperienceSchema>({
     url: `/api/v1/profile/work-experiences/${workId}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -746,24 +757,23 @@ export const updateWorkExperienceApiV1ProfileWorkExperiencesWorkIdPut = (
 
 /**
  * Delete a work experience entry.
- * @summary Delete Work Experience
+ * @summary Delete Profile Work Experience
  */
-export const deleteWorkExperienceApiV1ProfileWorkExperiencesWorkIdDelete = (
-  workId: string
-) => {
-  return customAxiosInstance<null>({
-    url: `/api/v1/profile/work-experiences/${workId}`,
-    method: "DELETE",
-  });
-};
+export const deleteProfileWorkExperienceApiV1ProfileWorkExperiencesWorkIdDelete =
+  (workId: string) => {
+    return customAxiosInstance<null>({
+      url: `/api/v1/profile/work-experiences/${workId}`,
+      method: "DELETE",
+    });
+  };
 
 /**
  * Add a responsibility to a work experience.
- * @summary Add Work Responsibility
+ * @summary Add Profile Work Responsibility
  */
-export const addWorkResponsibilityApiV1ProfileWorkExperiencesWorkIdResponsibilitiesPost =
+export const addProfileWorkResponsibilityApiV1ProfileWorkExperiencesWorkIdResponsibilitiesPost =
   (workId: string, workResponsibilityRequest: WorkResponsibilityRequest) => {
-    return customAxiosInstance<WorkResponsibilityResponse>({
+    return customAxiosInstance<ProfileWorkResponsibilitySchema>({
       url: `/api/v1/profile/work-experiences/${workId}/responsibilities`,
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -773,9 +783,9 @@ export const addWorkResponsibilityApiV1ProfileWorkExperiencesWorkIdResponsibilit
 
 /**
  * Delete a responsibility from a work experience.
- * @summary Delete Work Responsibility
+ * @summary Delete Profile Work Responsibility
  */
-export const deleteWorkResponsibilityApiV1ProfileWorkExperiencesWorkIdResponsibilitiesResponsibilityIdDelete =
+export const deleteProfileWorkResponsibilityApiV1ProfileWorkExperiencesWorkIdResponsibilitiesResponsibilityIdDelete =
   (workId: string, responsibilityId: string) => {
     return customAxiosInstance<null>({
       url: `/api/v1/profile/work-experiences/${workId}/responsibilities/${responsibilityId}`,
@@ -785,9 +795,9 @@ export const deleteWorkResponsibilityApiV1ProfileWorkExperiencesWorkIdResponsibi
 
 /**
  * Get all projects for the current user.
- * @summary Get Projects
+ * @summary Get Profile Projects
  */
-export const getProjectsApiV1ProfileProjectsGet = () => {
+export const getProfileProjectsApiV1ProfileProjectsGet = () => {
   return customAxiosInstance<ProjectListResponse>({
     url: `/api/v1/profile/projects`,
     method: "GET",
@@ -796,12 +806,12 @@ export const getProjectsApiV1ProfileProjectsGet = () => {
 
 /**
  * Create a new project.
- * @summary Create Project
+ * @summary Create Profile Project
  */
-export const createProjectApiV1ProfileProjectsPost = (
+export const createProfileProjectApiV1ProfileProjectsPost = (
   projectCreateRequest: ProjectCreateRequest
 ) => {
-  return customAxiosInstance<ProjectResponse>({
+  return customAxiosInstance<ProfileProjectSchema>({
     url: `/api/v1/profile/projects`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -810,14 +820,27 @@ export const createProjectApiV1ProfileProjectsPost = (
 };
 
 /**
- * Update a project.
- * @summary Update Project
+ * Get a single project for the current user.
+ * @summary Get Profile Project
  */
-export const updateProjectApiV1ProfileProjectsProjectIdPut = (
+export const getProfileProjectApiV1ProfileProjectsProjectIdGet = (
+  projectId: string
+) => {
+  return customAxiosInstance<ProfileProjectSchema>({
+    url: `/api/v1/profile/projects/${projectId}`,
+    method: "GET",
+  });
+};
+
+/**
+ * Update a project.
+ * @summary Update Profile Project
+ */
+export const updateProfileProjectApiV1ProfileProjectsProjectIdPut = (
   projectId: string,
   projectUpdateRequest: ProjectUpdateRequest
 ) => {
-  return customAxiosInstance<ProjectResponse>({
+  return customAxiosInstance<ProfileProjectSchema>({
     url: `/api/v1/profile/projects/${projectId}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -827,9 +850,9 @@ export const updateProjectApiV1ProfileProjectsProjectIdPut = (
 
 /**
  * Delete a project.
- * @summary Delete Project
+ * @summary Delete Profile Project
  */
-export const deleteProjectApiV1ProfileProjectsProjectIdDelete = (
+export const deleteProfileProjectApiV1ProfileProjectsProjectIdDelete = (
   projectId: string
 ) => {
   return customAxiosInstance<null>({
@@ -840,13 +863,13 @@ export const deleteProjectApiV1ProfileProjectsProjectIdDelete = (
 
 /**
  * Add a task to a project.
- * @summary Add Project Task
+ * @summary Add Profile Project Task
  */
-export const addProjectTaskApiV1ProfileProjectsProjectIdTasksPost = (
+export const addProfileProjectTaskApiV1ProfileProjectsProjectIdTasksPost = (
   projectId: string,
   projectTaskRequest: ProjectTaskRequest
 ) => {
-  return customAxiosInstance<ProjectTaskResponse>({
+  return customAxiosInstance<ProfileProjectTaskSchema>({
     url: `/api/v1/profile/projects/${projectId}/tasks`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -856,17 +879,15 @@ export const addProjectTaskApiV1ProfileProjectsProjectIdTasksPost = (
 
 /**
  * Delete a task from a project.
- * @summary Delete Project Task
+ * @summary Delete Profile Project Task
  */
-export const deleteProjectTaskApiV1ProfileProjectsProjectIdTasksTaskIdDelete = (
-  projectId: string,
-  taskId: string
-) => {
-  return customAxiosInstance<null>({
-    url: `/api/v1/profile/projects/${projectId}/tasks/${taskId}`,
-    method: "DELETE",
-  });
-};
+export const deleteProfileProjectTaskApiV1ProfileProjectsProjectIdTasksTaskIdDelete =
+  (projectId: string, taskId: string) => {
+    return customAxiosInstance<null>({
+      url: `/api/v1/profile/projects/${projectId}/tasks/${taskId}`,
+      method: "DELETE",
+    });
+  };
 
 /**
  * @summary Root
@@ -915,45 +936,47 @@ export type ListJobsApiV1JobsGetResult = NonNullable<
 export type GetJobApiV1JobsJobIdGetResult = NonNullable<
   Awaited<ReturnType<typeof getJobApiV1JobsJobIdGet>>
 >;
-export type GetSelectedEducationsApiV1JobsJobIdSelectedEducationsGetResult =
+export type GetJobSelectedEducationsApiV1JobsJobIdSelectedEducationsGetResult =
   NonNullable<
     Awaited<
       ReturnType<
-        typeof getSelectedEducationsApiV1JobsJobIdSelectedEducationsGet
+        typeof getJobSelectedEducationsApiV1JobsJobIdSelectedEducationsGet
       >
     >
   >;
-export type GetSelectedWorkExperiencesApiV1JobsJobIdSelectedWorkExperiencesGetResult =
+export type GetJobSelectedWorkExperiencesApiV1JobsJobIdSelectedWorkExperiencesGetResult =
   NonNullable<
     Awaited<
       ReturnType<
-        typeof getSelectedWorkExperiencesApiV1JobsJobIdSelectedWorkExperiencesGet
+        typeof getJobSelectedWorkExperiencesApiV1JobsJobIdSelectedWorkExperiencesGet
       >
     >
   >;
-export type GetSelectedProjectsApiV1JobsJobIdSelectedProjectsGetResult =
+export type GetJobSelectedProjectsApiV1JobsJobIdSelectedProjectsGetResult =
   NonNullable<
     Awaited<
-      ReturnType<typeof getSelectedProjectsApiV1JobsJobIdSelectedProjectsGet>
+      ReturnType<typeof getJobSelectedProjectsApiV1JobsJobIdSelectedProjectsGet>
     >
   >;
-export type GetSelectedSkillsApiV1JobsJobIdSelectedSkillsGetResult =
+export type GetJobSelectedSkillsApiV1JobsJobIdSelectedSkillsGetResult =
   NonNullable<
-    Awaited<ReturnType<typeof getSelectedSkillsApiV1JobsJobIdSelectedSkillsGet>>
+    Awaited<
+      ReturnType<typeof getJobSelectedSkillsApiV1JobsJobIdSelectedSkillsGet>
+    >
   >;
-export type ConfirmExperienceSelectionApiV1JobsJobIdConfirmExperienceSelectionPostResult =
+export type ConfirmJobExperienceSelectionApiV1JobsJobIdConfirmExperienceSelectionPostResult =
   NonNullable<
     Awaited<
       ReturnType<
-        typeof confirmExperienceSelectionApiV1JobsJobIdConfirmExperienceSelectionPost
+        typeof confirmJobExperienceSelectionApiV1JobsJobIdConfirmExperienceSelectionPost
       >
     >
   >;
-export type RefineResumeApiV1JobsJobIdRefinePostResult = NonNullable<
-  Awaited<ReturnType<typeof refineResumeApiV1JobsJobIdRefinePost>>
+export type RefineJobResumeApiV1JobsJobIdRefinePostResult = NonNullable<
+  Awaited<ReturnType<typeof refineJobResumeApiV1JobsJobIdRefinePost>>
 >;
-export type StreamStatusApiV1JobsJobIdStatusStreamGetResult = NonNullable<
-  Awaited<ReturnType<typeof streamStatusApiV1JobsJobIdStatusStreamGet>>
+export type StreamJobStatusApiV1JobsJobIdStatusStreamGetResult = NonNullable<
+  Awaited<ReturnType<typeof streamJobStatusApiV1JobsJobIdStatusStreamGet>>
 >;
 export type GetStatusApiV1JobsJobIdStatusGetResult = NonNullable<
   Awaited<ReturnType<typeof getStatusApiV1JobsJobIdStatusGet>>
@@ -979,17 +1002,23 @@ export type EnhanceResumeVersionApiV1ResumesVersionIdEnhancePostResult =
       ReturnType<typeof enhanceResumeVersionApiV1ResumesVersionIdEnhancePost>
     >
   >;
-export type GetMetadataApiV1ResumesMetadataMetadataIdGetResult = NonNullable<
-  Awaited<ReturnType<typeof getMetadataApiV1ResumesMetadataMetadataIdGet>>
->;
-export type UpdateMetadataApiV1ResumesMetadataMetadataIdPutResult = NonNullable<
-  Awaited<ReturnType<typeof updateMetadataApiV1ResumesMetadataMetadataIdPut>>
->;
-export type EnhanceMetadataApiV1ResumesMetadataMetadataIdEnhancePostResult =
+export type GetResumeMetadataApiV1ResumesMetadataMetadataIdGetResult =
+  NonNullable<
+    Awaited<
+      ReturnType<typeof getResumeMetadataApiV1ResumesMetadataMetadataIdGet>
+    >
+  >;
+export type UpdateResumeMetadataApiV1ResumesMetadataMetadataIdPutResult =
+  NonNullable<
+    Awaited<
+      ReturnType<typeof updateResumeMetadataApiV1ResumesMetadataMetadataIdPut>
+    >
+  >;
+export type EnhanceResumeMetadataApiV1ResumesMetadataMetadataIdEnhancePostResult =
   NonNullable<
     Awaited<
       ReturnType<
-        typeof enhanceMetadataApiV1ResumesMetadataMetadataIdEnhancePost
+        typeof enhanceResumeMetadataApiV1ResumesMetadataMetadataIdEnhancePost
       >
     >
   >;
@@ -999,154 +1028,196 @@ export type GetResumeEducationApiV1ResumesEducationsEducationIdGetResult =
       ReturnType<typeof getResumeEducationApiV1ResumesEducationsEducationIdGet>
     >
   >;
-export type UpdateEducationApiV1ResumesEducationsEducationIdPutResult =
-  NonNullable<
-    Awaited<
-      ReturnType<typeof updateEducationApiV1ResumesEducationsEducationIdPut>
-    >
-  >;
-export type EnhanceEducationApiV1ResumesEducationsEducationIdEnhancePostResult =
+export type UpdateResumeEducationApiV1ResumesEducationsEducationIdPutResult =
   NonNullable<
     Awaited<
       ReturnType<
-        typeof enhanceEducationApiV1ResumesEducationsEducationIdEnhancePost
+        typeof updateResumeEducationApiV1ResumesEducationsEducationIdPut
       >
     >
   >;
-export type GetWorkExperienceApiV1ResumesWorkExperiencesWorkIdGetResult =
-  NonNullable<
-    Awaited<
-      ReturnType<typeof getWorkExperienceApiV1ResumesWorkExperiencesWorkIdGet>
-    >
-  >;
-export type UpdateWorkExperienceApiV1ResumesWorkExperiencesWorkIdPutResult =
+export type EnhanceResumeEducationApiV1ResumesEducationsEducationIdEnhancePostResult =
   NonNullable<
     Awaited<
       ReturnType<
-        typeof updateWorkExperienceApiV1ResumesWorkExperiencesWorkIdPut
+        typeof enhanceResumeEducationApiV1ResumesEducationsEducationIdEnhancePost
       >
     >
   >;
-export type EnhanceWorkExperienceApiV1ResumesWorkExperiencesWorkIdEnhancePostResult =
+export type GetResumeWorkExperienceApiV1ResumesWorkExperiencesWorkIdGetResult =
   NonNullable<
     Awaited<
       ReturnType<
-        typeof enhanceWorkExperienceApiV1ResumesWorkExperiencesWorkIdEnhancePost
+        typeof getResumeWorkExperienceApiV1ResumesWorkExperiencesWorkIdGet
       >
     >
   >;
-export type GetProjectApiV1ResumesProjectsProjectIdGetResult = NonNullable<
-  Awaited<ReturnType<typeof getProjectApiV1ResumesProjectsProjectIdGet>>
->;
-export type UpdateProjectApiV1ResumesProjectsProjectIdPutResult = NonNullable<
-  Awaited<ReturnType<typeof updateProjectApiV1ResumesProjectsProjectIdPut>>
->;
-export type EnhanceProjectApiV1ResumesProjectsProjectIdEnhancePostResult =
+export type UpdateResumeWorkExperienceApiV1ResumesWorkExperiencesWorkIdPutResult =
   NonNullable<
     Awaited<
-      ReturnType<typeof enhanceProjectApiV1ResumesProjectsProjectIdEnhancePost>
+      ReturnType<
+        typeof updateResumeWorkExperienceApiV1ResumesWorkExperiencesWorkIdPut
+      >
     >
   >;
-export type GetSkillApiV1ResumesSkillsSkillIdGetResult = NonNullable<
-  Awaited<ReturnType<typeof getSkillApiV1ResumesSkillsSkillIdGet>>
->;
-export type UpdateSkillApiV1ResumesSkillsSkillIdPutResult = NonNullable<
-  Awaited<ReturnType<typeof updateSkillApiV1ResumesSkillsSkillIdPut>>
->;
-export type EnhanceSkillApiV1ResumesSkillsSkillIdEnhancePostResult =
+export type EnhanceResumeWorkExperienceApiV1ResumesWorkExperiencesWorkIdEnhancePostResult =
   NonNullable<
-    Awaited<ReturnType<typeof enhanceSkillApiV1ResumesSkillsSkillIdEnhancePost>>
+    Awaited<
+      ReturnType<
+        typeof enhanceResumeWorkExperienceApiV1ResumesWorkExperiencesWorkIdEnhancePost
+      >
+    >
   >;
-export type GetEducationsApiV1ProfileEducationsGetResult = NonNullable<
-  Awaited<ReturnType<typeof getEducationsApiV1ProfileEducationsGet>>
+export type GetResumeProjectApiV1ResumesProjectsProjectIdGetResult =
+  NonNullable<
+    Awaited<ReturnType<typeof getResumeProjectApiV1ResumesProjectsProjectIdGet>>
+  >;
+export type UpdateResumeProjectApiV1ResumesProjectsProjectIdPutResult =
+  NonNullable<
+    Awaited<
+      ReturnType<typeof updateResumeProjectApiV1ResumesProjectsProjectIdPut>
+    >
+  >;
+export type EnhanceResumeProjectApiV1ResumesProjectsProjectIdEnhancePostResult =
+  NonNullable<
+    Awaited<
+      ReturnType<
+        typeof enhanceResumeProjectApiV1ResumesProjectsProjectIdEnhancePost
+      >
+    >
+  >;
+export type GetResumeSkillApiV1ResumesSkillsSkillIdGetResult = NonNullable<
+  Awaited<ReturnType<typeof getResumeSkillApiV1ResumesSkillsSkillIdGet>>
 >;
-export type CreateEducationApiV1ProfileEducationsPostResult = NonNullable<
-  Awaited<ReturnType<typeof createEducationApiV1ProfileEducationsPost>>
+export type UpdateResumeSkillApiV1ResumesSkillsSkillIdPutResult = NonNullable<
+  Awaited<ReturnType<typeof updateResumeSkillApiV1ResumesSkillsSkillIdPut>>
 >;
+export type EnhanceResumeSkillApiV1ResumesSkillsSkillIdEnhancePostResult =
+  NonNullable<
+    Awaited<
+      ReturnType<typeof enhanceResumeSkillApiV1ResumesSkillsSkillIdEnhancePost>
+    >
+  >;
+export type GetProfileEducationsApiV1ProfileEducationsGetResult = NonNullable<
+  Awaited<ReturnType<typeof getProfileEducationsApiV1ProfileEducationsGet>>
+>;
+export type CreateProfileEducationApiV1ProfileEducationsPostResult =
+  NonNullable<
+    Awaited<ReturnType<typeof createProfileEducationApiV1ProfileEducationsPost>>
+  >;
 export type GetProfileEducationApiV1ProfileEducationsEducationIdGetResult =
   NonNullable<
     Awaited<
       ReturnType<typeof getProfileEducationApiV1ProfileEducationsEducationIdGet>
     >
   >;
-export type UpdateEducationApiV1ProfileEducationsEducationIdPutResult =
-  NonNullable<
-    Awaited<
-      ReturnType<typeof updateEducationApiV1ProfileEducationsEducationIdPut>
-    >
-  >;
-export type DeleteEducationApiV1ProfileEducationsEducationIdDeleteResult =
-  NonNullable<
-    Awaited<
-      ReturnType<typeof deleteEducationApiV1ProfileEducationsEducationIdDelete>
-    >
-  >;
-export type GetWorkExperiencesApiV1ProfileWorkExperiencesGetResult =
-  NonNullable<
-    Awaited<ReturnType<typeof getWorkExperiencesApiV1ProfileWorkExperiencesGet>>
-  >;
-export type CreateWorkExperienceApiV1ProfileWorkExperiencesPostResult =
-  NonNullable<
-    Awaited<
-      ReturnType<typeof createWorkExperienceApiV1ProfileWorkExperiencesPost>
-    >
-  >;
-export type UpdateWorkExperienceApiV1ProfileWorkExperiencesWorkIdPutResult =
+export type UpdateProfileEducationApiV1ProfileEducationsEducationIdPutResult =
   NonNullable<
     Awaited<
       ReturnType<
-        typeof updateWorkExperienceApiV1ProfileWorkExperiencesWorkIdPut
+        typeof updateProfileEducationApiV1ProfileEducationsEducationIdPut
       >
     >
   >;
-export type DeleteWorkExperienceApiV1ProfileWorkExperiencesWorkIdDeleteResult =
+export type DeleteProfileEducationApiV1ProfileEducationsEducationIdDeleteResult =
   NonNullable<
     Awaited<
       ReturnType<
-        typeof deleteWorkExperienceApiV1ProfileWorkExperiencesWorkIdDelete
+        typeof deleteProfileEducationApiV1ProfileEducationsEducationIdDelete
       >
     >
   >;
-export type AddWorkResponsibilityApiV1ProfileWorkExperiencesWorkIdResponsibilitiesPostResult =
+export type GetProfileWorkExperiencesApiV1ProfileWorkExperiencesGetResult =
+  NonNullable<
+    Awaited<
+      ReturnType<typeof getProfileWorkExperiencesApiV1ProfileWorkExperiencesGet>
+    >
+  >;
+export type CreateProfileWorkExperienceApiV1ProfileWorkExperiencesPostResult =
   NonNullable<
     Awaited<
       ReturnType<
-        typeof addWorkResponsibilityApiV1ProfileWorkExperiencesWorkIdResponsibilitiesPost
+        typeof createProfileWorkExperienceApiV1ProfileWorkExperiencesPost
       >
     >
   >;
-export type DeleteWorkResponsibilityApiV1ProfileWorkExperiencesWorkIdResponsibilitiesResponsibilityIdDeleteResult =
+export type GetProfileWorkExperienceApiV1ProfileWorkExperiencesWorkIdGetResult =
   NonNullable<
     Awaited<
       ReturnType<
-        typeof deleteWorkResponsibilityApiV1ProfileWorkExperiencesWorkIdResponsibilitiesResponsibilityIdDelete
+        typeof getProfileWorkExperienceApiV1ProfileWorkExperiencesWorkIdGet
       >
     >
   >;
-export type GetProjectsApiV1ProfileProjectsGetResult = NonNullable<
-  Awaited<ReturnType<typeof getProjectsApiV1ProfileProjectsGet>>
+export type UpdateProfileWorkExperienceApiV1ProfileWorkExperiencesWorkIdPutResult =
+  NonNullable<
+    Awaited<
+      ReturnType<
+        typeof updateProfileWorkExperienceApiV1ProfileWorkExperiencesWorkIdPut
+      >
+    >
+  >;
+export type DeleteProfileWorkExperienceApiV1ProfileWorkExperiencesWorkIdDeleteResult =
+  NonNullable<
+    Awaited<
+      ReturnType<
+        typeof deleteProfileWorkExperienceApiV1ProfileWorkExperiencesWorkIdDelete
+      >
+    >
+  >;
+export type AddProfileWorkResponsibilityApiV1ProfileWorkExperiencesWorkIdResponsibilitiesPostResult =
+  NonNullable<
+    Awaited<
+      ReturnType<
+        typeof addProfileWorkResponsibilityApiV1ProfileWorkExperiencesWorkIdResponsibilitiesPost
+      >
+    >
+  >;
+export type DeleteProfileWorkResponsibilityApiV1ProfileWorkExperiencesWorkIdResponsibilitiesResponsibilityIdDeleteResult =
+  NonNullable<
+    Awaited<
+      ReturnType<
+        typeof deleteProfileWorkResponsibilityApiV1ProfileWorkExperiencesWorkIdResponsibilitiesResponsibilityIdDelete
+      >
+    >
+  >;
+export type GetProfileProjectsApiV1ProfileProjectsGetResult = NonNullable<
+  Awaited<ReturnType<typeof getProfileProjectsApiV1ProfileProjectsGet>>
 >;
-export type CreateProjectApiV1ProfileProjectsPostResult = NonNullable<
-  Awaited<ReturnType<typeof createProjectApiV1ProfileProjectsPost>>
+export type CreateProfileProjectApiV1ProfileProjectsPostResult = NonNullable<
+  Awaited<ReturnType<typeof createProfileProjectApiV1ProfileProjectsPost>>
 >;
-export type UpdateProjectApiV1ProfileProjectsProjectIdPutResult = NonNullable<
-  Awaited<ReturnType<typeof updateProjectApiV1ProfileProjectsProjectIdPut>>
->;
-export type DeleteProjectApiV1ProfileProjectsProjectIdDeleteResult =
-  NonNullable<
-    Awaited<ReturnType<typeof deleteProjectApiV1ProfileProjectsProjectIdDelete>>
-  >;
-export type AddProjectTaskApiV1ProfileProjectsProjectIdTasksPostResult =
+export type GetProfileProjectApiV1ProfileProjectsProjectIdGetResult =
   NonNullable<
     Awaited<
-      ReturnType<typeof addProjectTaskApiV1ProfileProjectsProjectIdTasksPost>
+      ReturnType<typeof getProfileProjectApiV1ProfileProjectsProjectIdGet>
     >
   >;
-export type DeleteProjectTaskApiV1ProfileProjectsProjectIdTasksTaskIdDeleteResult =
+export type UpdateProfileProjectApiV1ProfileProjectsProjectIdPutResult =
+  NonNullable<
+    Awaited<
+      ReturnType<typeof updateProfileProjectApiV1ProfileProjectsProjectIdPut>
+    >
+  >;
+export type DeleteProfileProjectApiV1ProfileProjectsProjectIdDeleteResult =
+  NonNullable<
+    Awaited<
+      ReturnType<typeof deleteProfileProjectApiV1ProfileProjectsProjectIdDelete>
+    >
+  >;
+export type AddProfileProjectTaskApiV1ProfileProjectsProjectIdTasksPostResult =
   NonNullable<
     Awaited<
       ReturnType<
-        typeof deleteProjectTaskApiV1ProfileProjectsProjectIdTasksTaskIdDelete
+        typeof addProfileProjectTaskApiV1ProfileProjectsProjectIdTasksPost
+      >
+    >
+  >;
+export type DeleteProfileProjectTaskApiV1ProfileProjectsProjectIdTasksTaskIdDeleteResult =
+  NonNullable<
+    Awaited<
+      ReturnType<
+        typeof deleteProfileProjectTaskApiV1ProfileProjectsProjectIdTasksTaskIdDelete
       >
     >
   >;

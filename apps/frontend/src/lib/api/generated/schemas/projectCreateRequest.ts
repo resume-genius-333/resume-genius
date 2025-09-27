@@ -15,10 +15,6 @@ import type { ProjectCreateRequestTasks } from "./projectCreateRequestTasks";
  * Request model for creating project.
  */
 export interface ProjectCreateRequest {
-  /**
-   * @minLength 1
-   * @maxLength 200
-   */
   project_name: string;
   description?: ProjectCreateRequestDescription;
   start_date?: ProjectCreateRequestStartDate;

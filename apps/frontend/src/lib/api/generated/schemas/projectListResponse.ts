@@ -4,12 +4,12 @@
  * Resume Genius API
  * OpenAPI spec version: 1.0.0
  */
-import type { ProjectResponse } from "./projectResponse";
+import type { ProfileProjectSchema } from "./profileProjectSchema";
 
 /**
  * Response model for list of projects.
  */
 export interface ProjectListResponse {
-  projects: ProjectResponse[];
+  projects: ProfileProjectSchema[];
   total: number;
 }
