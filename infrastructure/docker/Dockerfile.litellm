@@ -1,0 +1,7 @@
+FROM ghcr.io/berriai/litellm:main-stable
+
+# Copy LiteLLM configuration into the image
+COPY litellm-config.yaml /app/config.yaml
+
+# Default command can be overridden by ECS task definition
+CMD ["--config", "/app/config.yaml", "--port", "4000", "--num_workers", "2"]
