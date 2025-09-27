@@ -1,9 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useForm, useFieldArray } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { useMemo, useState } from "react";
+import z from "zod";
 import {
   Dialog,
   DialogContent,
@@ -31,44 +29,45 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Plus, X } from "lucide-react";
+import { EmploymentType } from "@/lib/api/generated/schemas";
+import {
+  createProfileWorkExperienceApiV1ProfileWorkExperiencesPostBody,
+  getProfileWorkExperienceApiV1ProfileWorkExperiencesWorkIdGetResponse,
+} from "@/lib/api/generated/api.zod";
+import { NormalizationDefaultValues, useZodForm } from "@/hooks/use-zod-form";
 
-const employmentTypes = [
-  { value: "full_time", label: "Full Time" },
-  { value: "part_time", label: "Part Time" },
-  { value: "contract", label: "Contract" },
-  { value: "freelance", label: "Freelance" },
-  { value: "internship", label: "Internship" },
-  { value: "volunteer", label: "Volunteer" },
-  { value: "other", label: "Other" },
-] as const;
+const employmentTypes: Record<EmploymentType, string> = {
+  full_time: "Full Time",
+  part_time: "Part Time",
+  contract: "Contract",
+  freelance: "Freelance",
+  internship: "Internship",
+  volunteer: "Volunteer",
+  other: "Other",
+};
 
-const dateFormatRegex = /^\d{4}-\d{2}$/;
+const workExperienceFormSchema =
+  createProfileWorkExperienceApiV1ProfileWorkExperiencesPostBody;
 
-const workExperienceSchema = z.object({
-  company_name: z.string().min(1, "Company name is required"),
-  position_title: z.string().min(1, "Position title is required"),
-  employment_type: z.enum([
-    "full_time",
-    "part_time",
-    "contract",
-    "freelance",
-    "internship",
-    "volunteer",
-    "other",
-  ]).optional(),
-  location: z.string().optional(),
-  start_date: z.string().regex(dateFormatRegex, "Date must be in YYYY-MM format").optional().or(z.literal("")),
-  end_date: z.string().regex(dateFormatRegex, "Date must be in YYYY-MM format").optional().or(z.literal("")),
-  responsibilities: z.array(z.string().min(1, "Responsibility cannot be empty")).optional(),
-});
+type WorkExperienceFormValues = z.infer<typeof workExperienceFormSchema>;
 
-type WorkExperienceFormData = z.infer<typeof workExperienceSchema>;
+type WorkExperienceFormInitial = Partial<
+  z.infer<
+    typeof getProfileWorkExperienceApiV1ProfileWorkExperiencesWorkIdGetResponse
+  >
+>;
+
+const WORK_DEFAULTS: NormalizationDefaultValues<WorkExperienceFormValues> = {
+  location: "",
+  start_date: "",
+  end_date: "",
+};
 
 interface WorkExperienceFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: WorkExperienceFormData) => Promise<void>;
-  initialData?: Partial<WorkExperienceFormData>;
+  onSubmit: (data: WorkExperienceFormValues) => Promise<void>;
+  initialData?: Partial<WorkExperienceFormInitial>;
   mode: "create" | "edit";
 }
 
@@ -81,69 +80,85 @@ export function WorkExperienceForm({
 }: WorkExperienceFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm<WorkExperienceFormData>({
-    resolver: zodResolver(workExperienceSchema),
-    defaultValues: {
-      company_name: "",
-      position_title: "",
-      employment_type: "full_time",
-      location: "",
-      start_date: "",
-      end_date: "",
-      responsibilities: [],
+  const initialValues = useMemo<WorkExperienceFormValues>(() => {
+    // Extract responsibility descriptions from the array of objects
+    let responsibilities: string[] = [];
+    if (
+      initialData?.responsibilities &&
+      Array.isArray(initialData.responsibilities)
+    ) {
+      responsibilities = initialData.responsibilities
+        .map((resp) =>
+          typeof resp === "string"
+            ? resp
+            : (resp as { description?: string })?.description || ""
+        )
+        .filter((desc: string) => desc.length > 0);
+    }
+
+    const base: WorkExperienceFormValues = {
+      company_name: initialData?.company_name ?? "",
+      position_title: initialData?.position_title ?? "",
+      employment_type:
+        (initialData?.employment_type as EmploymentType | undefined) ??
+        "full_time",
+      location: initialData?.location ?? undefined,
+      start_date: initialData?.start_date ?? undefined,
+      end_date: initialData?.end_date ?? undefined,
+      responsibilities: responsibilities.length > 0 ? responsibilities : [],
+    };
+
+    return base;
+  }, [initialData]);
+
+  const { form, submit } = useZodForm({
+    zodObject: workExperienceFormSchema,
+    initial: initialValues,
+    defaults: WORK_DEFAULTS,
+    onUpdate: async (values) => {
+      setIsSubmitting(true);
+      try {
+        const cleanedResponsibilities = values.responsibilities
+          ?.map((resp) => resp.trim())
+          .filter((resp) => resp.length > 0);
+
+        const payload: WorkExperienceFormValues = {
+          ...values,
+          responsibilities:
+            cleanedResponsibilities && cleanedResponsibilities.length > 0
+              ? cleanedResponsibilities
+              : [],
+        };
+
+        await onSubmit(payload);
+        if (mode === "create") {
+          form.reset();
+        }
+        onOpenChange(false);
+      } catch (error) {
+        console.error("Error submitting work experience:", error);
+      } finally {
+        setIsSubmitting(false);
+      }
     },
   });
 
-  // Reset form when initialData changes (for edit mode)
-  useEffect(() => {
-    if (open && initialData) {
-      form.reset({
-        company_name: initialData.company_name || "",
-        position_title: initialData.position_title || "",
-        employment_type: initialData.employment_type || "full_time",
-        location: initialData.location || "",
-        start_date: initialData.start_date || "",
-        end_date: initialData.end_date || "",
-        responsibilities: initialData.responsibilities || [],
-      });
-    } else if (open && !initialData) {
-      // Reset to empty form for create mode
-      form.reset({
-        company_name: "",
-        position_title: "",
-        employment_type: "full_time",
-        location: "",
-        start_date: "",
-        end_date: "",
-        responsibilities: [],
-      });
-    }
-  }, [open, initialData, form]);
+  const employmentTypeOptions = useMemo(
+    () => Object.entries(employmentTypes),
+    []
+  );
 
-  const { fields, append, remove } = useFieldArray<WorkExperienceFormData, "responsibilities">({
-    control: form.control,
-    name: "responsibilities",
-  });
+  const handleAddResponsibility = () => {
+    const current = form.getValues("responsibilities") || [];
+    form.setValue("responsibilities", [...current, ""]);
+  };
 
-  const handleSubmit = async (data: WorkExperienceFormData) => {
-    setIsSubmitting(true);
-    try {
-      // Filter out empty responsibilities and handle date fields
-      const filteredData = {
-        ...data,
-        responsibilities: data.responsibilities?.filter(r => r.trim() !== "") || [],
-        start_date: data.start_date?.trim() || undefined,
-        end_date: (data.end_date?.trim() && data.end_date.toLowerCase() !== "present") ? data.end_date.trim() : undefined,
-      };
-      console.log("Form data before submit:", JSON.stringify(filteredData, null, 2));
-      await onSubmit(filteredData);
-      form.reset();
-      onOpenChange(false);
-    } catch (error) {
-      console.error("Error submitting work experience:", error);
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleRemoveResponsibility = (index: number) => {
+    const current = form.getValues("responsibilities") || [];
+    form.setValue(
+      "responsibilities",
+      current.filter((_, i) => i !== index)
+    );
   };
 
   return (
@@ -161,7 +176,7 @@ export function WorkExperienceForm({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <form onSubmit={submit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -170,7 +185,11 @@ export function WorkExperienceForm({
                   <FormItem>
                     <FormLabel>Company Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g. Google" {...field} />
+                      <Input
+                        placeholder="e.g. Google"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -184,7 +203,11 @@ export function WorkExperienceForm({
                   <FormItem>
                     <FormLabel>Position Title</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g. Software Engineer" {...field} />
+                      <Input
+                        placeholder="e.g. Software Engineer"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -199,16 +222,16 @@ export function WorkExperienceForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Employment Type</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select employment type" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {employmentTypes.map((type) => (
-                          <SelectItem key={type.value} value={type.value}>
-                            {type.label}
+                        {employmentTypeOptions.map(([value, label]) => (
+                          <SelectItem key={value} value={value}>
+                            {label}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -225,7 +248,11 @@ export function WorkExperienceForm({
                   <FormItem>
                     <FormLabel>Location</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g. San Francisco, CA" {...field} />
+                      <Input
+                        placeholder="e.g. San Francisco, CA"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -241,7 +268,11 @@ export function WorkExperienceForm({
                   <FormItem>
                     <FormLabel>Start Date</FormLabel>
                     <FormControl>
-                      <Input placeholder="YYYY-MM" {...field} />
+                      <Input
+                        placeholder="YYYY-MM"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -255,7 +286,11 @@ export function WorkExperienceForm({
                   <FormItem>
                     <FormLabel>End Date (leave blank if current)</FormLabel>
                     <FormControl>
-                      <Input placeholder="YYYY-MM" {...field} />
+                      <Input
+                        placeholder="YYYY-MM"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -263,50 +298,54 @@ export function WorkExperienceForm({
               />
             </div>
 
-            <div className="space-y-2">
-              <FormLabel>Key Responsibilities & Achievements</FormLabel>
-              <div className="space-y-2">
-                {fields.map((field, index) => (
-                  <div key={field.id} className="flex gap-2">
-                    <FormField
-                      control={form.control}
-                      name={`responsibilities.${index}`}
-                      render={({ field }) => (
-                        <FormItem className="flex-1">
-                          <FormControl>
-                            <Textarea
-                              placeholder="Describe a key responsibility or achievement..."
-                              className="min-h-[60px]"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    {fields.length > 0 && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => remove(index)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
+            <FormField
+              control={form.control}
+              name="responsibilities"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Responsibilities</FormLabel>
+                  <div className="space-y-2">
+                    {(field.value || []).map((resp, index) => (
+                      <div key={index} className="flex gap-2">
+                        <FormControl>
+                          <Textarea
+                            placeholder="Describe a key responsibility..."
+                            className="min-h-[60px]"
+                            value={resp}
+                            onChange={(e) => {
+                              const newResponsibilities = [
+                                ...(field.value || []),
+                              ];
+                              newResponsibilities[index] = e.target.value;
+                              field.onChange(newResponsibilities);
+                            }}
+                          />
+                        </FormControl>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemoveResponsibility(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddResponsibility}
+                      className="w-full"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Responsibility
+                    </Button>
                   </div>
-                ))}
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => append("")}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Responsibility
-              </Button>
-            </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <DialogFooter>
               <Button
@@ -318,7 +357,9 @@ export function WorkExperienceForm({
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSubmitting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 {mode === "create" ? "Add Experience" : "Save Changes"}
               </Button>
             </DialogFooter>
