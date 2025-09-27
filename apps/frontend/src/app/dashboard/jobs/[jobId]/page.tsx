@@ -7,9 +7,13 @@ import {
 } from "@/lib/api/custom";
 import {
   getJobApiV1JobsJobIdGet,
-  getSelectedEducationsApiV1JobsJobIdSelectedEducationsGet,
+  getJobSelectedEducationsApiV1JobsJobIdSelectedEducationsGet,
 } from "@/lib/api/generated/api";
-import { JobSchema } from "@/lib/api/generated/schemas";
+import {
+  JobSchema,
+  NotSelectedItem,
+  SelectedItem,
+} from "@/lib/api/generated/schemas";
 import { useEffect, useState, use, useCallback, useRef } from "react";
 import rehypeStringify from "rehype-stringify";
 import remarkFrontmatter from "remark-frontmatter";
@@ -90,7 +94,7 @@ export default function JobPage({ params }: JobPageInput) {
 
   const fetchEducation = useCallback(async () => {
     const education =
-      await getSelectedEducationsApiV1JobsJobIdSelectedEducationsGet(jobId);
+      await getJobSelectedEducationsApiV1JobsJobIdSelectedEducationsGet(jobId);
     setEducationSelected(education);
   }, [jobId]);
 
@@ -159,14 +163,14 @@ export default function JobPage({ params }: JobPageInput) {
       <div className="mt-4">
         <h3>Selected Educations</h3>
         {educationSelected &&
-          educationSelected.selected_items.map((item) => (
+          educationSelected.selected_items.map((item: SelectedItem) => (
             <li key={item.id}>
               {item.id}: {item.justification}
             </li>
           ))}
         <h3>Not Selected Educations</h3>
         {educationSelected &&
-          educationSelected.not_selected_items.map((item) => (
+          educationSelected.not_selected_items.map((item: NotSelectedItem) => (
             <li key={item.id}>
               {item.id}: {item.justification}
             </li>

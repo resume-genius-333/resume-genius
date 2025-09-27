@@ -17,8 +17,6 @@ import {
   TrendingUp,
   Sparkles,
   Clock,
-  CheckCircle2,
-  XCircle,
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -61,7 +59,7 @@ export default function DashboardPage() {
           Welcome back, {user?.first_name || "there"}!
         </h1>
         <p className="text-muted-foreground">
-          Here's an overview of your job search progress
+          Here&apos;s an overview of your job search progress
         </p>
       </div>
 
@@ -185,7 +183,9 @@ export default function DashboardPage() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Keep your profile updated with your latest skills and experiences. This helps our AI create more tailored resumes for each job application.
+            Keep your profile updated with your latest skills and experiences.
+            This helps our AI create more tailored resumes for each job
+            application.
           </p>
         </CardContent>
       </Card>

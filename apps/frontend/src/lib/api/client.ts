@@ -1,10 +1,26 @@
+"use client";
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios, { AxiosRequestConfig, ResponseType } from "axios";
-import z, { ZodObject } from "zod";
+import z from "zod";
 
 // Use relative URL to go through Next.js proxy
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+
+const isBrowser = typeof window !== "undefined";
+
+const safeLocalStorage = {
+  getItem(key: string) {
+    if (!isBrowser) return null;
+    try {
+      return window.localStorage.getItem(key);
+    } catch (error) {
+      console.warn("localStorage.getItem failed:", error);
+      return null;
+    }
+  },
+};
 
 // Create axios instance with default config
 const axiosInstance = axios.create({
@@ -18,7 +34,7 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   (config) => {
     // Token is set in AuthContext when logging in or refreshing
-    const token = localStorage.getItem("access_token");
+    const token = safeLocalStorage.getItem("access_token");
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -192,7 +208,7 @@ async function handleSSEWithFetch<T = any, D = any>(
   ].join("/");
 
   // Get auth token
-  const token = localStorage.getItem("access_token");
+  const token = safeLocalStorage.getItem("access_token");
 
   // Prepare headers
   const headers: Record<string, string> = {
@@ -285,7 +301,7 @@ function convertFetchStreamToSSE<T = any>(
   const reader = body.getReader();
 
   return new ReadableStream<MaybeZodObject<T>>({
-    async start(controller) {
+    async start() {
       console.log(`🔍 SSE Stream reader created for ${url || "stream"}`);
     },
     async pull(controller) {

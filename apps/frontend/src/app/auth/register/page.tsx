@@ -27,20 +27,30 @@ import {
 } from "@/components/ui/form";
 
 // Create registration schema with password confirmation
-const registerSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z.string()
-    .min(8, "Password must be at least 8 characters")
-    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-    .regex(/[0-9]/, "Password must contain at least one number"),
-  confirmPassword: z.string(),
-  first_name: z.string().min(1, "First name is required").max(50, "First name is too long"),
-  last_name: z.string().max(50, "Last name is too long").optional().nullable(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords do not match",
-  path: ["confirmPassword"],
-});
+const registerSchema = z
+  .object({
+    email: z.email("Invalid email address"),
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+      .regex(/[0-9]/, "Password must contain at least one number"),
+    confirmPassword: z.string(),
+    first_name: z
+      .string()
+      .min(1, "First name is required")
+      .max(50, "First name is too long"),
+    last_name: z
+      .string()
+      .max(50, "Last name is too long")
+      .optional()
+      .nullable(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
 
 type RegisterFormData = z.infer<typeof registerSchema>;
 
@@ -63,6 +73,7 @@ export default function RegisterPage() {
     setIsLoading(true);
     try {
       // Remove confirmPassword from the data sent to API
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { confirmPassword, ...registerData } = data;
       await register({
         ...registerData,
@@ -193,14 +204,8 @@ export default function RegisterPage() {
               />
             </CardContent>
             <CardFooter className="flex flex-col space-y-4 pt-6">
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={isLoading}
-              >
-                {isLoading && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Sign Up
               </Button>
               <div className="text-sm text-center text-muted-foreground">

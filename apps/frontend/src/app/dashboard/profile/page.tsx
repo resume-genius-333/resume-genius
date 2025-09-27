@@ -17,16 +17,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import {
-  User,
   Mail,
-  Phone,
-  MapPin,
   Briefcase,
   GraduationCap,
   Award,
-  Settings,
-  Shield,
-  Bell,
   Save,
   Plus,
   X,
@@ -110,7 +104,9 @@ export default function ProfilePage() {
               <div className="flex items-center gap-2 text-sm">
                 <CheckCircle className="h-4 w-4 text-green-500" />
                 <span>
-                  {user?.email_verified ? "Email Verified" : "Email Not Verified"}
+                  {user?.email_verified
+                    ? "Email Verified"
+                    : "Email Not Verified"}
                 </span>
               </div>
             </div>
@@ -173,18 +169,12 @@ export default function ProfilePage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number</Label>
-                    <Input
-                      id="phone"
-                      placeholder="+1 (555) 123-4567"
-                    />
+                    <Input id="phone" placeholder="+1 (555) 123-4567" />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="location">Location</Label>
-                    <Input
-                      id="location"
-                      placeholder="City, State, Country"
-                    />
+                    <Input id="location" placeholder="City, State, Country" />
                   </div>
 
                   <div className="space-y-2">
@@ -204,7 +194,12 @@ export default function ProfilePage() {
               <div className="grid gap-6">
                 {/* Experience Management Cards */}
                 <div className="grid gap-4 md:grid-cols-3">
-                  <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => window.location.href = '/dashboard/profile/education'}>
+                  <Card
+                    className="hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() =>
+                      (window.location.href = "/dashboard/profile/education")
+                    }
+                  >
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -221,12 +216,19 @@ export default function ProfilePage() {
                     </CardContent>
                   </Card>
 
-                  <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => window.location.href = '/dashboard/profile/work'}>
+                  <Card
+                    className="hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() =>
+                      (window.location.href = "/dashboard/profile/work")
+                    }
+                  >
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <Briefcase className="h-5 w-5 text-primary" />
-                          <CardTitle className="text-base">Work Experience</CardTitle>
+                          <CardTitle className="text-base">
+                            Work Experience
+                          </CardTitle>
                         </div>
                         <Plus className="h-4 w-4 text-muted-foreground" />
                       </div>
@@ -238,7 +240,12 @@ export default function ProfilePage() {
                     </CardContent>
                   </Card>
 
-                  <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => window.location.href = '/dashboard/profile/projects'}>
+                  <Card
+                    className="hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() =>
+                      (window.location.href = "/dashboard/profile/projects")
+                    }
+                  >
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -276,10 +283,7 @@ export default function ProfilePage() {
 
                       <div className="space-y-2">
                         <Label htmlFor="company">Current Company</Label>
-                        <Input
-                          id="company"
-                          placeholder="e.g. Tech Corp"
-                        />
+                        <Input id="company" placeholder="e.g. Tech Corp" />
                       </div>
                     </div>
 
@@ -407,7 +411,9 @@ export default function ProfilePage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                      <Label htmlFor="confirmPassword">
+                        Confirm New Password
+                      </Label>
                       <Input
                         id="confirmPassword"
                         type="password"

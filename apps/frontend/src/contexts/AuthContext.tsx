@@ -112,8 +112,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         toast.success("Successfully logged in!");
         router.push("/dashboard");
-      } catch (error: any) {
-        const message = error.response?.data?.detail || "Login failed";
+      } catch (error) {
+        const message =
+          (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Login failed";
         toast.error(message);
         throw error;
       }
@@ -128,8 +129,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await registerApiV1AuthRegisterPost(userData);
         toast.success("Registration successful! Please log in.");
         router.push("/auth/sign-in");
-      } catch (error: any) {
-        const message = error.response?.data?.detail || "Registration failed";
+      } catch (error) {
+        const message =
+          (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Registration failed";
         toast.error(message);
         throw error;
       }
@@ -207,7 +209,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     initAuth();
-  }, []);
+  }, [clearTokens, fetchUser, loadTokens, refreshSession]);
 
   // Set up auto-refresh before token expires
   useEffect(() => {

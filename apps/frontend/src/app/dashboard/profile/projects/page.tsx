@@ -3,14 +3,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Plus,
@@ -18,7 +11,6 @@ import {
   Trash2,
   FolderOpen,
   Calendar,
-  Link as LinkIcon,
   ChevronLeft,
   Code,
   ExternalLink,
@@ -27,36 +19,35 @@ import Link from "next/link";
 import { ProjectForm } from "@/components/profile/ProjectForm";
 import { DeleteConfirmDialog } from "@/components/profile/DeleteConfirmDialog";
 import {
-  getProjectsApiV1ProfileProjectsGet,
-  createProjectApiV1ProfileProjectsPost,
-  updateProjectApiV1ProfileProjectsProjectIdPut,
-  deleteProjectApiV1ProfileProjectsProjectIdDelete,
+  getProfileProjectsApiV1ProfileProjectsGet,
+  createProfileProjectApiV1ProfileProjectsPost,
+  updateProfileProjectApiV1ProfileProjectsProjectIdPut,
+  deleteProfileProjectApiV1ProfileProjectsProjectIdDelete,
 } from "@/lib/api/generated/api";
 import type {
-  ProjectResponse,
+  ProfileProjectSchema,
   ProjectCreateRequest,
   ProjectUpdateRequest,
 } from "@/lib/api/generated/schemas";
 
 // Using the generated ProjectResponse type
-type Project = ProjectResponse;
 
 export default function ProjectsPage() {
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<ProfileProjectSchema[]>([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [selectedProject, setSelectedProject] =
+    useState<ProfileProjectSchema | null>(null);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
 
   useEffect(() => {
     fetchProjects();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchProjects = async () => {
     try {
-      const response = await getProjectsApiV1ProfileProjectsGet();
+      const response = await getProfileProjectsApiV1ProfileProjectsGet();
       setProjects(response.projects || []);
     } catch (error) {
       console.error("Failed to load projects:", error);
@@ -68,7 +59,7 @@ export default function ProjectsPage() {
 
   const handleCreate = async (data: unknown) => {
     try {
-      await createProjectApiV1ProfileProjectsPost(
+      await createProfileProjectApiV1ProfileProjectsPost(
         data as ProjectCreateRequest
       );
       toast("Project added successfully");
@@ -83,7 +74,7 @@ export default function ProjectsPage() {
   const handleUpdate = async (data: unknown) => {
     if (!selectedProject) return;
     try {
-      await updateProjectApiV1ProfileProjectsProjectIdPut(
+      await updateProfileProjectApiV1ProfileProjectsProjectIdPut(
         selectedProject.id,
         data as ProjectUpdateRequest
       );
@@ -99,7 +90,7 @@ export default function ProjectsPage() {
   const handleDelete = async () => {
     if (!selectedProject) return;
     try {
-      await deleteProjectApiV1ProfileProjectsProjectIdDelete(
+      await deleteProfileProjectApiV1ProfileProjectsProjectIdDelete(
         selectedProject.id
       );
       toast("Project deleted successfully");
@@ -118,23 +109,33 @@ export default function ProjectsPage() {
     setFormOpen(true);
   };
 
-  const openEditForm = (project: Project) => {
+  const openEditForm = (project: ProfileProjectSchema) => {
     setSelectedProject(project);
     setFormMode("edit");
     setFormOpen(true);
   };
 
-  const openDeleteDialog = (project: Project) => {
+  const openDeleteDialog = (project: ProfileProjectSchema) => {
     setSelectedProject(project);
     setDeleteDialogOpen(true);
   };
 
-  const formatDate = (date?: string) => {
+  const formatDate = (date?: string | null) => {
     if (!date) return "Present";
     const [year, month] = date.split("-");
     const monthNames = [
-      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
     ];
     return month ? `${monthNames[parseInt(month) - 1]} ${year}` : year;
   };
@@ -182,7 +183,9 @@ export default function ProjectsPage() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <FolderOpen className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No projects added yet</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              No projects added yet
+            </h3>
             <p className="text-sm text-muted-foreground text-center mb-6">
               Add your projects to showcase your skills and achievements
             </p>
@@ -195,11 +198,16 @@ export default function ProjectsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {projects.map((project) => (
-            <Card key={project.id} className="hover:shadow-lg transition-shadow">
+            <Card
+              key={project.id}
+              className="hover:shadow-lg transition-shadow"
+            >
               <CardHeader className="pb-4">
                 <div className="flex justify-between items-start">
                   <div className="space-y-1 flex-1">
-                    <CardTitle className="text-xl">{project.project_name}</CardTitle>
+                    <CardTitle className="text-xl">
+                      {project.project_name}
+                    </CardTitle>
                   </div>
                   <div className="flex gap-2">
                     <Button
@@ -230,12 +238,13 @@ export default function ProjectsPage() {
                   {(project.start_date || project.end_date) && (
                     <div className="flex items-center gap-1 text-muted-foreground">
                       <Calendar className="h-4 w-4" />
-                      {formatDate(project.start_date)} - {formatDate(project.end_date)}
+                      {formatDate(project.start_date || undefined)} -{" "}
+                      {formatDate(project.end_date || undefined)}
                     </div>
                   )}
-                  {project.url && (
+                  {project.project_url && (
                     <a
-                      href={project.url}
+                      href={project.project_url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-1 text-primary hover:underline"
@@ -244,9 +253,9 @@ export default function ProjectsPage() {
                       View Project
                     </a>
                   )}
-                  {project.github_url && (
+                  {project.repository_url && (
                     <a
-                      href={project.github_url}
+                      href={project.repository_url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-1 text-primary hover:underline"
@@ -256,29 +265,6 @@ export default function ProjectsPage() {
                     </a>
                   )}
                 </div>
-
-                {project.technologies && project.technologies.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {project.technologies.split(",").map((tech, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
-                        {tech.trim()}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-
-                {project.tasks && project.tasks.length > 0 && (
-                  <div>
-                    <h4 className="font-semibold text-sm mb-2">Key Achievements:</h4>
-                    <ul className="list-disc pl-5 space-y-1">
-                      {project.tasks.map((task) => (
-                        <li key={task.id} className="text-sm text-muted-foreground">
-                          {task.description}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
               </CardContent>
             </Card>
           ))}
@@ -298,7 +284,7 @@ export default function ProjectsPage() {
         onOpenChange={setDeleteDialogOpen}
         onConfirm={handleDelete}
         title="Delete Project"
-        description={`Are you sure you want to delete "${selectedProject?.name}"? This action cannot be undone.`}
+        description={`Are you sure you want to delete "${selectedProject?.project_name}"? This action cannot be undone.`}
       />
     </div>
   );

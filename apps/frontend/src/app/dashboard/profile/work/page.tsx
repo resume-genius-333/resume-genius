@@ -26,36 +26,37 @@ import Link from "next/link";
 import { WorkExperienceForm } from "@/components/profile/WorkExperienceForm";
 import { DeleteConfirmDialog } from "@/components/profile/DeleteConfirmDialog";
 import {
-  getWorkExperiencesApiV1ProfileWorkExperiencesGet,
-  createWorkExperienceApiV1ProfileWorkExperiencesPost,
-  updateWorkExperienceApiV1ProfileWorkExperiencesWorkIdPut,
-  deleteWorkExperienceApiV1ProfileWorkExperiencesWorkIdDelete,
+  getProfileWorkExperiencesApiV1ProfileWorkExperiencesGet,
+  createProfileWorkExperienceApiV1ProfileWorkExperiencesPost,
+  updateProfileWorkExperienceApiV1ProfileWorkExperiencesWorkIdPut,
+  deleteProfileWorkExperienceApiV1ProfileWorkExperiencesWorkIdDelete,
 } from "@/lib/api/generated/api";
 import type {
-  WorkExperienceResponse,
+  ProfileWorkExperienceSchema,
   WorkExperienceCreateRequest,
   WorkExperienceUpdateRequest,
 } from "@/lib/api/generated/schemas";
-
-// Using the generated WorkExperienceResponse type
-type WorkExperience = WorkExperienceResponse;
+import DateUtils from "@/lib/utils/date";
 
 export default function WorkExperiencePage() {
-  const [workExperiences, setWorkExperiences] = useState<WorkExperience[]>([]);
+  const [workExperiences, setWorkExperiences] = useState<
+    ProfileWorkExperienceSchema[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedWork, setSelectedWork] = useState<WorkExperience | null>(null);
+  const [selectedWork, setSelectedWork] =
+    useState<ProfileWorkExperienceSchema | null>(null);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
 
   useEffect(() => {
     fetchWorkExperiences();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchWorkExperiences = async () => {
     try {
-      const response = await getWorkExperiencesApiV1ProfileWorkExperiencesGet();
+      const response =
+        await getProfileWorkExperiencesApiV1ProfileWorkExperiencesGet();
       setWorkExperiences(response.work_experiences || []);
     } catch (error) {
       console.error("Failed to load work experiences:", error);
@@ -67,8 +68,11 @@ export default function WorkExperiencePage() {
 
   const handleCreate = async (data: unknown) => {
     try {
-      console.log("Creating work experience with data:", JSON.stringify(data, null, 2));
-      await createWorkExperienceApiV1ProfileWorkExperiencesPost(
+      console.log(
+        "Creating work experience with data:",
+        JSON.stringify(data, null, 2)
+      );
+      await createProfileWorkExperienceApiV1ProfileWorkExperiencesPost(
         data as WorkExperienceCreateRequest
       );
       toast("Work experience added successfully");
@@ -83,7 +87,7 @@ export default function WorkExperiencePage() {
   const handleUpdate = async (data: unknown) => {
     if (!selectedWork) return;
     try {
-      await updateWorkExperienceApiV1ProfileWorkExperiencesWorkIdPut(
+      await updateProfileWorkExperienceApiV1ProfileWorkExperiencesWorkIdPut(
         selectedWork.id,
         data as WorkExperienceUpdateRequest
       );
@@ -99,7 +103,7 @@ export default function WorkExperiencePage() {
   const handleDelete = async () => {
     if (!selectedWork) return;
     try {
-      await deleteWorkExperienceApiV1ProfileWorkExperiencesWorkIdDelete(
+      await deleteProfileWorkExperienceApiV1ProfileWorkExperiencesWorkIdDelete(
         selectedWork.id
       );
       toast("Work experience deleted successfully");
@@ -118,13 +122,13 @@ export default function WorkExperiencePage() {
     setFormOpen(true);
   };
 
-  const openEditForm = (work: WorkExperience) => {
+  const openEditForm = (work: ProfileWorkExperienceSchema) => {
     setSelectedWork(work);
     setFormMode("edit");
     setFormOpen(true);
   };
 
-  const openDeleteDialog = (work: WorkExperience) => {
+  const openDeleteDialog = (work: ProfileWorkExperienceSchema) => {
     setSelectedWork(work);
     setDeleteDialogOpen(true);
   };
@@ -142,16 +146,6 @@ export default function WorkExperiencePage() {
     return type ? labels[type] || type : "Full-time";
   };
 
-  const formatDate = (date?: string) => {
-    if (!date) return "Present";
-    const [year, month] = date.split("-");
-    const monthNames = [
-      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-    ];
-    return `${monthNames[parseInt(month) - 1]} ${year}`;
-  };
-
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl">
       <div className="mb-6">
@@ -165,7 +159,9 @@ export default function WorkExperiencePage() {
         </div>
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Work Experience</h1>
+            <h1 className="text-3xl font-bold tracking-tight">
+              Work Experience
+            </h1>
             <p className="text-muted-foreground mt-2">
               Manage your professional experience and career history
             </p>
@@ -195,7 +191,9 @@ export default function WorkExperiencePage() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Briefcase className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No work experience added yet</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              No work experience added yet
+            </h3>
             <p className="text-sm text-muted-foreground text-center mb-6">
               Add your professional experience to showcase your career journey
             </p>
@@ -212,7 +210,9 @@ export default function WorkExperiencePage() {
               <CardHeader className="pb-4">
                 <div className="flex justify-between items-start">
                   <div className="space-y-1 flex-1">
-                    <CardTitle className="text-xl">{work.position_title}</CardTitle>
+                    <CardTitle className="text-xl">
+                      {work.position_title}
+                    </CardTitle>
                     <CardDescription className="flex items-center gap-2 text-base">
                       <Building className="h-4 w-4" />
                       {work.company_name}
@@ -240,7 +240,8 @@ export default function WorkExperiencePage() {
                 <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
-                    {formatDate(work.start_date)} - {formatDate(work.end_date)}
+                    {DateUtils.formatDate(work.start_date)} -{" "}
+                    {DateUtils.formatDate(work.end_date, "Present")}
                   </div>
                   {work.location && (
                     <div className="flex items-center gap-1">
@@ -255,11 +256,16 @@ export default function WorkExperiencePage() {
 
                 {work.responsibilities && work.responsibilities.length > 0 && (
                   <div>
-                    <h4 className="font-semibold mb-2">Key Responsibilities:</h4>
+                    <h4 className="font-semibold mb-2">
+                      Key Responsibilities:
+                    </h4>
                     <ul className="list-disc pl-5 space-y-1">
                       {work.responsibilities.map((resp, index) => (
-                        <li key={index} className="text-sm text-muted-foreground">
-                          {resp}
+                        <li
+                          key={index}
+                          className="text-sm text-muted-foreground"
+                        >
+                          {resp.description}
                         </li>
                       ))}
                     </ul>
