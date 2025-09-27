@@ -9,7 +9,7 @@ from ..base import Base
 from .enums import ProviderType
 
 if TYPE_CHECKING:
-    from ..user import User
+    from ..profile.user import ProfileUser
 
 
 class AuthProvider(Base):
@@ -41,4 +41,4 @@ class AuthProvider(Base):
     updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
 
     # Relationships
-    user: Mapped["User"] = relationship(back_populates="auth_providers")
+    user: Mapped["ProfileUser"] = relationship(back_populates="auth_providers")

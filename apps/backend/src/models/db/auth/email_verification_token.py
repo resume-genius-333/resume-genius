@@ -8,7 +8,7 @@ import uuid
 from ..base import Base
 
 if TYPE_CHECKING:
-    from ..user import User
+    from ..profile.user import ProfileUser
 
 
 class EmailVerificationToken(Base):
@@ -24,4 +24,4 @@ class EmailVerificationToken(Base):
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     # Relationships
-    user: Mapped["User"] = relationship(back_populates="email_verification_tokens")
+    user: Mapped["ProfileUser"] = relationship(back_populates="email_verification_tokens")

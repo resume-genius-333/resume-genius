@@ -1,9 +1,16 @@
 from .base import Base
-from .user import User
-from .education import Education
-from .work import WorkExperience, WorkResponsibility
-from .project import Project, ProjectTask
-from .skill import Skill, UserSkill, TaskSkillMapping, ResponsibilitySkillMapping
+from .profile import (
+    ProfileUser,
+    ProfileEducation,
+    ProfileProject,
+    ProfileProjectTask,
+    ProfileWorkExperience,
+    ProfileWorkResponsibility,
+    ProfileSkill,
+    ProfileUserSkill,
+    ProfileTaskSkillMapping,
+    ProfileResponsibilitySkillMapping,
+)
 from .enums import DegreeType, ProficiencyLevel, EmploymentType, SkillCategory
 from .auth import (
     ProviderType,
@@ -27,16 +34,16 @@ from .resumes import (
 
 __all__ = [
     "Base",
-    "User",
-    "Education",
-    "WorkExperience",
-    "WorkResponsibility",
-    "Project",
-    "ProjectTask",
-    "Skill",
-    "UserSkill",
-    "TaskSkillMapping",
-    "ResponsibilitySkillMapping",
+    "ProfileUser",
+    "ProfileEducation",
+    "ProfileWorkExperience",
+    "ProfileWorkResponsibility",
+    "ProfileProject",
+    "ProfileProjectTask",
+    "ProfileSkill",
+    "ProfileUserSkill",
+    "ProfileTaskSkillMapping",
+    "ProfileResponsibilitySkillMapping",
     "DegreeType",
     "ProficiencyLevel",
     "EmploymentType",

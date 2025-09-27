@@ -8,7 +8,7 @@ import uuid
 from ..base import Base
 
 if TYPE_CHECKING:
-    from ..user import User
+    from ..profile.user import ProfileUser
 
 
 class BlacklistedToken(Base):
@@ -22,4 +22,4 @@ class BlacklistedToken(Base):
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     # Relationships
-    user: Mapped["User"] = relationship(back_populates="blacklisted_tokens")
+    user: Mapped["ProfileUser"] = relationship(back_populates="blacklisted_tokens")
