@@ -9,9 +9,5 @@
  * Request model for project task.
  */
 export interface ProjectTaskRequest {
-  /**
-   * @minLength 1
-   * @maxLength 500
-   */
   description: string;
 }

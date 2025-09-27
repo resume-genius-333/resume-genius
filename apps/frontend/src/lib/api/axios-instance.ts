@@ -1,3 +1,5 @@
+"use client";
+
 import axios, {
   AxiosRequestConfig,
   AxiosError,
@@ -6,6 +8,36 @@ import axios, {
 
 // Use relative URL to go through Next.js proxy
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "/api/proxy";
+
+const isBrowser = typeof window !== "undefined";
+
+const safeLocalStorage = {
+  getItem(key: string) {
+    if (!isBrowser) return null;
+    try {
+      return window.localStorage.getItem(key);
+    } catch (error) {
+      console.warn("localStorage.getItem failed:", error);
+      return null;
+    }
+  },
+  setItem(key: string, value: string) {
+    if (!isBrowser) return;
+    try {
+      window.localStorage.setItem(key, value);
+    } catch (error) {
+      console.warn("localStorage.setItem failed:", error);
+    }
+  },
+  removeItem(key: string) {
+    if (!isBrowser) return;
+    try {
+      window.localStorage.removeItem(key);
+    } catch (error) {
+      console.warn("localStorage.removeItem failed:", error);
+    }
+  },
+};
 
 // Create axios instance with default config
 const axiosInstance = axios.create({
@@ -37,7 +69,7 @@ const processQueue = (error: unknown, token: string | null = null) => {
 axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     // Token is set in AuthContext when logging in or refreshing
-    const token = localStorage.getItem("access_token");
+    const token = safeLocalStorage.getItem("access_token");
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -83,7 +115,7 @@ axiosInstance.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
 
-      const refreshToken = localStorage.getItem("refresh_token");
+      const refreshToken = safeLocalStorage.getItem("refresh_token");
 
       if (!refreshToken) {
         // No refresh token, redirect to login
@@ -107,10 +139,10 @@ axiosInstance.interceptors.response.use(
         const { access_token, expires_in } = data;
 
         // Save new tokens (refresh token stays the same)
-        localStorage.setItem("access_token", access_token);
+        safeLocalStorage.setItem("access_token", access_token);
         // Keep the existing refresh token
         const expiryTime = new Date().getTime() + expires_in * 1000;
-        localStorage.setItem("token_expiry", expiryTime.toString());
+        safeLocalStorage.setItem("token_expiry", expiryTime.toString());
 
         axiosInstance.defaults.headers.common["Authorization"] =
           `Bearer ${access_token}`;
@@ -123,9 +155,9 @@ axiosInstance.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null);
         // Clear tokens and redirect to login
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("refresh_token");
-        localStorage.removeItem("token_expiry");
+        safeLocalStorage.removeItem("access_token");
+        safeLocalStorage.removeItem("refresh_token");
+        safeLocalStorage.removeItem("token_expiry");
         delete axiosInstance.defaults.headers.common["Authorization"];
 
         if (typeof window !== "undefined") {

@@ -25,39 +25,34 @@ import Link from "next/link";
 import { EducationForm } from "@/components/profile/EducationForm";
 import { DeleteConfirmDialog } from "@/components/profile/DeleteConfirmDialog";
 import {
-  getEducationsApiV1ProfileEducationsGet,
-  createEducationApiV1ProfileEducationsPost,
-  updateEducationApiV1ProfileEducationsEducationIdPut,
-  deleteEducationApiV1ProfileEducationsEducationIdDelete,
+  createProfileEducationApiV1ProfileEducationsPost,
+  updateProfileEducationApiV1ProfileEducationsEducationIdPut,
+  deleteProfileEducationApiV1ProfileEducationsEducationIdDelete,
+  getProfileEducationsApiV1ProfileEducationsGet,
 } from "@/lib/api/generated/api";
-import type { EducationSchema } from "@/lib/api/generated/schemas";
+import type { ProfileEducationSchema } from "@/lib/api/generated/schemas";
 import {
-  createEducationApiV1ProfileEducationsPostBody,
-  updateEducationApiV1ProfileEducationsEducationIdPutBody,
+  createProfileEducationApiV1ProfileEducationsPostBody,
+  updateProfileEducationApiV1ProfileEducationsEducationIdPutBody,
 } from "@/lib/api/generated/api.zod";
 import z from "zod";
 
-// Using the generated EducationResponse type
-type Education = EducationSchema;
-
 export default function EducationPage() {
-  const [educations, setEducations] = useState<Education[]>([]);
+  const [educations, setEducations] = useState<ProfileEducationSchema[]>([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedEducation, setSelectedEducation] = useState<Education | null>(
-    null
-  );
+  const [selectedEducation, setSelectedEducation] =
+    useState<ProfileEducationSchema | null>(null);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
 
   useEffect(() => {
     fetchEducations();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchEducations = async () => {
     try {
-      const response = await getEducationsApiV1ProfileEducationsGet();
+      const response = await getProfileEducationsApiV1ProfileEducationsGet();
       setEducations(response.educations || []);
     } catch (error) {
       console.error("Failed to load educations:", error);
@@ -68,11 +63,11 @@ export default function EducationPage() {
   };
 
   const handleCreate = async (
-    data: z.input<typeof createEducationApiV1ProfileEducationsPostBody>
+    data: z.input<typeof createProfileEducationApiV1ProfileEducationsPostBody>
   ) => {
     try {
-      await createEducationApiV1ProfileEducationsPost(
-        createEducationApiV1ProfileEducationsPostBody.parse(data)
+      await createProfileEducationApiV1ProfileEducationsPost(
+        createProfileEducationApiV1ProfileEducationsPostBody.parse(data)
       );
       toast("Education added successfully");
       setFormOpen(false);
@@ -85,14 +80,14 @@ export default function EducationPage() {
 
   const handleUpdate = async (
     data: z.input<
-      typeof updateEducationApiV1ProfileEducationsEducationIdPutBody
+      typeof updateProfileEducationApiV1ProfileEducationsEducationIdPutBody
     >
   ) => {
     if (!selectedEducation) return;
     try {
-      await updateEducationApiV1ProfileEducationsEducationIdPut(
+      await updateProfileEducationApiV1ProfileEducationsEducationIdPut(
         selectedEducation.id,
-        updateEducationApiV1ProfileEducationsEducationIdPutBody.parse({
+        updateProfileEducationApiV1ProfileEducationsEducationIdPutBody.parse({
           ...selectedEducation,
           ...data,
         })
@@ -109,7 +104,7 @@ export default function EducationPage() {
   const handleDelete = async () => {
     if (!selectedEducation) return;
     try {
-      await deleteEducationApiV1ProfileEducationsEducationIdDelete(
+      await deleteProfileEducationApiV1ProfileEducationsEducationIdDelete(
         selectedEducation.id
       );
       toast("Education deleted successfully");
@@ -128,13 +123,13 @@ export default function EducationPage() {
     setFormOpen(true);
   };
 
-  const openEditForm = (education: Education) => {
+  const openEditForm = (education: ProfileEducationSchema) => {
     setSelectedEducation(education);
     setFormMode("edit");
     setFormOpen(true);
   };
 
-  const openDeleteDialog = (education: Education) => {
+  const openDeleteDialog = (education: ProfileEducationSchema) => {
     setSelectedEducation(education);
     setDeleteDialogOpen(true);
   };

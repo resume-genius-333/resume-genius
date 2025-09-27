@@ -1,9 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useForm, useFieldArray } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { useMemo, useState } from "react";
+import z from "zod";
 import {
   Dialog,
   DialogContent,
@@ -23,27 +21,63 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Plus, X } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { createProfileProjectApiV1ProfileProjectsPostBody } from "@/lib/api/generated/api.zod";
+import type { ProfileProjectSchema } from "@/lib/api/generated/schemas";
+import { NormalizationDefaultValues, useZodForm } from "@/hooks/use-zod-form";
 
 const dateFormatRegex = /^\d{4}-\d{2}$/;
 
-const projectSchema = z.object({
-  project_name: z.string().min(1, "Project name is required"),
-  description: z.string().optional(),
-  start_date: z.string().regex(dateFormatRegex, "Date must be in YYYY-MM format").optional().or(z.literal("")),
-  end_date: z.string().regex(dateFormatRegex, "Date must be in YYYY-MM format").optional().or(z.literal("")),
-  project_url: z.string().url().optional().or(z.literal("")),
-  repository_url: z.string().url().optional().or(z.literal("")),
-  tasks: z.array(z.string().min(1, "Task cannot be empty")).optional(),
-});
+const projectFormSchema =
+  createProfileProjectApiV1ProfileProjectsPostBody.extend({
+    project_name: z.string().min(1, "Project name is required"),
+    description: z.string().max(1000).nullable().optional(),
+    start_date: z
+      .string()
+      .regex(dateFormatRegex, "Date must be in YYYY-MM format")
+      .or(z.literal(""))
+      .nullable()
+      .optional(),
+    end_date: z
+      .string()
+      .regex(dateFormatRegex, "Date must be in YYYY-MM format")
+      .or(z.literal(""))
+      .nullable()
+      .optional(),
+    project_url: z
+      .string()
+      .url("Enter a valid URL")
+      .or(z.literal(""))
+      .nullable()
+      .optional(),
+    repository_url: z
+      .url("Enter a valid URL")
+      .or(z.literal(""))
+      .nullable()
+      .optional(),
+    tasks: z
+      .array(z.string().min(1, "Task cannot be empty"))
+      .nullable()
+      .optional(),
+  });
 
-type ProjectFormData = z.infer<typeof projectSchema>;
+type ProjectFormValues = z.infer<typeof projectFormSchema>;
+
+type ProjectFormInitial = ProfileProjectSchema & { tasks?: string[] | null };
+
+const PROJECT_DEFAULTS: NormalizationDefaultValues<ProjectFormValues> = {
+  description: "",
+  start_date: "",
+  end_date: "",
+  project_url: "",
+  repository_url: "",
+};
 
 interface ProjectFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: ProjectFormData) => Promise<void>;
-  initialData?: Partial<ProjectFormData>;
+  onSubmit: (data: ProjectFormValues) => Promise<void>;
+  initialData?: Partial<ProjectFormInitial>;
   mode: "create" | "edit";
 }
 
@@ -56,71 +90,53 @@ export function ProjectForm({
 }: ProjectFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm<ProjectFormData>({
-    resolver: zodResolver(projectSchema),
-    defaultValues: {
-      project_name: "",
-      description: "",
-      start_date: "",
-      end_date: "",
-      project_url: "",
-      repository_url: "",
-      tasks: [],
+  const initialValues = useMemo<ProjectFormValues>(() => {
+    const tasks = Array.isArray(initialData?.tasks)
+      ? (initialData?.tasks ?? [])
+      : [];
+
+    const base: ProjectFormValues = {
+      project_name: initialData?.project_name ?? "",
+      description: initialData?.description ?? undefined,
+      start_date: initialData?.start_date ?? undefined,
+      end_date: initialData?.end_date ?? undefined,
+      project_url: initialData?.project_url ?? undefined,
+      repository_url: initialData?.repository_url ?? undefined,
+      tasks,
+    };
+
+    return base;
+  }, [initialData]);
+
+  const { form, submit } = useZodForm({
+    zodObject: projectFormSchema,
+    initial: initialValues,
+    defaults: PROJECT_DEFAULTS,
+    onUpdate: async (values) => {
+      setIsSubmitting(true);
+      try {
+        const cleanedTasks = values.tasks
+          ?.map((task) => task.trim())
+          .filter((task) => task.length > 0);
+
+        const payload: ProjectFormValues = {
+          ...values,
+          tasks:
+            cleanedTasks && cleanedTasks.length > 0 ? cleanedTasks : undefined,
+        };
+
+        await onSubmit(payload);
+        if (mode === "create") {
+          form.reset();
+        }
+        onOpenChange(false);
+      } catch (error) {
+        console.error("Error submitting project:", error);
+      } finally {
+        setIsSubmitting(false);
+      }
     },
   });
-
-  // Reset form when initialData changes (for edit mode)
-  useEffect(() => {
-    if (open && initialData) {
-      form.reset({
-        project_name: initialData.project_name || "",
-        description: initialData.description || "",
-        start_date: initialData.start_date || "",
-        end_date: initialData.end_date || "",
-        project_url: initialData.project_url || "",
-        repository_url: initialData.repository_url || "",
-        tasks: initialData.tasks || [],
-      });
-    } else if (open && !initialData) {
-      // Reset to empty form for create mode
-      form.reset({
-        project_name: "",
-        description: "",
-        start_date: "",
-        end_date: "",
-        project_url: "",
-        repository_url: "",
-        tasks: [],
-      });
-    }
-  }, [open, initialData, form]);
-
-  const { fields, append, remove } = useFieldArray<ProjectFormData, "tasks">({
-    control: form.control,
-    name: "tasks",
-  });
-
-  const handleSubmit = async (data: ProjectFormData) => {
-    setIsSubmitting(true);
-    try {
-      // Filter out empty tasks and handle date fields
-      const filteredData = {
-        ...data,
-        tasks: data.tasks?.filter(t => t.trim() !== "") || [],
-        project_url: data.project_url || undefined,
-        repository_url: data.repository_url || undefined,
-        start_date: data.start_date?.trim() || undefined,
-        end_date: (data.end_date?.trim() && data.end_date.toLowerCase() !== "present") ? data.end_date.trim() : undefined,
-      };
-      await onSubmit(filteredData);
-      form.reset();
-      onOpenChange(false);
-    } catch (error) {
-      console.error("Error submitting project:", error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -137,7 +153,7 @@ export function ProjectForm({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <form onSubmit={submit} className="space-y-4">
             <FormField
               control={form.control}
               name="project_name"
@@ -145,7 +161,11 @@ export function ProjectForm({
                 <FormItem>
                   <FormLabel>Project Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. E-commerce Platform" {...field} />
+                    <Input
+                      placeholder="e.g. E-commerce Platform"
+                      {...field}
+                      value={field.value ?? ""}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -163,13 +183,13 @@ export function ProjectForm({
                       placeholder="Brief description of the project..."
                       className="min-h-[80px]"
                       {...field}
+                      value={field.value ?? ""}
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
 
             <div className="grid grid-cols-2 gap-4">
               <FormField
@@ -179,7 +199,11 @@ export function ProjectForm({
                   <FormItem>
                     <FormLabel>Start Date</FormLabel>
                     <FormControl>
-                      <Input placeholder="YYYY-MM" {...field} />
+                      <Input
+                        placeholder="YYYY-MM"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -193,7 +217,11 @@ export function ProjectForm({
                   <FormItem>
                     <FormLabel>End Date (leave blank if ongoing)</FormLabel>
                     <FormControl>
-                      <Input placeholder="YYYY-MM" {...field} />
+                      <Input
+                        placeholder="YYYY-MM"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -213,6 +241,7 @@ export function ProjectForm({
                         type="url"
                         placeholder="https://example.com"
                         {...field}
+                        value={field.value ?? ""}
                       />
                     </FormControl>
                     <FormMessage />
@@ -231,57 +260,13 @@ export function ProjectForm({
                         type="url"
                         placeholder="https://github.com/..."
                         {...field}
+                        value={field.value ?? ""}
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </div>
-
-            <div className="space-y-2">
-              <FormLabel>Key Tasks & Achievements</FormLabel>
-              <div className="space-y-2">
-                {fields.map((field, index) => (
-                  <div key={field.id} className="flex gap-2">
-                    <FormField
-                      control={form.control}
-                      name={`tasks.${index}`}
-                      render={({ field }) => (
-                        <FormItem className="flex-1">
-                          <FormControl>
-                            <Textarea
-                              placeholder="Describe a key task or achievement..."
-                              className="min-h-[60px]"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    {fields.length > 0 && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => remove(index)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => append("")}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Task
-              </Button>
             </div>
 
             <DialogFooter>
@@ -294,7 +279,9 @@ export function ProjectForm({
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSubmitting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 {mode === "create" ? "Add Project" : "Save Changes"}
               </Button>
             </DialogFooter>

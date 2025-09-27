@@ -1,7 +1,7 @@
 import z from "zod";
 import { customAxiosInstance } from "./client";
 import {
-  getSelectedEducationsApiV1JobsJobIdSelectedEducationsGetResponse,
+  getJobSelectedEducationsApiV1JobsJobIdSelectedEducationsGetResponse,
   getStatusApiV1JobsJobIdStatusGetResponse,
 } from "./generated/api.zod";
 
@@ -41,7 +41,7 @@ export const streamProcessingStatus = async (jobId: string) => {
 };
 
 export const educationSelectionSchema =
-  getSelectedEducationsApiV1JobsJobIdSelectedEducationsGetResponse;
+  getJobSelectedEducationsApiV1JobsJobIdSelectedEducationsGetResponse;
 
 export type EducationSelectionResult = z.infer<typeof educationSelectionSchema>;
 export type EducationSelectedItem =

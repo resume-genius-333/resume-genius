@@ -15,16 +15,8 @@ import type { EducationCreateRequestMaxGpa } from "./educationCreateRequestMaxGp
  * Request model for creating education entry.
  */
 export interface EducationCreateRequest {
-  /**
-   * @minLength 1
-   * @maxLength 200
-   */
   institution_name: string;
   degree: DegreeType;
-  /**
-   * @minLength 1
-   * @maxLength 200
-   */
   field_of_study: string;
   focus_area?: EducationCreateRequestFocusArea;
   start_date?: EducationCreateRequestStartDate;

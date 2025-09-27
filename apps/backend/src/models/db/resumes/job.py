@@ -9,7 +9,7 @@ from src.models.llm.resumes.job import JobLLMSchema
 from ..base import Base
 
 if TYPE_CHECKING:
-    from ..user import User
+    from ..profile.user import ProfileUser
     from .resume import Resume
     from .resume_metadata import ResumeMetadata
     from .resume_education import ResumeEducation
@@ -49,7 +49,7 @@ class Job(Base):
     job_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     # Relationships
-    user: Mapped["User"] = relationship(foreign_keys=[user_id])
+    user: Mapped["ProfileUser"] = relationship(foreign_keys=[user_id])
     resumes: Mapped[List["Resume"]] = relationship(
         back_populates="job", cascade="all, delete-orphan"
     )

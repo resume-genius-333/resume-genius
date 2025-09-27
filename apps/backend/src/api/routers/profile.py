@@ -14,18 +14,20 @@ from src.models.api.profile import (
     EducationListResponse,
     WorkExperienceCreateRequest,
     WorkExperienceUpdateRequest,
-    WorkExperienceResponse,
     WorkExperienceListResponse,
     WorkResponsibilityRequest,
-    WorkResponsibilityResponse,
     ProjectCreateRequest,
     ProjectUpdateRequest,
-    ProjectResponse,
     ProjectListResponse,
     ProjectTaskRequest,
-    ProjectTaskResponse,
 )
-from src.models.db.education import EducationSchema
+from src.models.db.profile import (
+    ProfileEducationSchema,
+    ProfileProjectSchema,
+    ProfileProjectTaskSchema,
+    ProfileWorkExperienceSchema,
+    ProfileWorkResponsibilitySchema,
+)
 from src.services.profile_service import ProfileService
 
 logger = logging.getLogger(__name__)
@@ -35,7 +37,7 @@ router = APIRouter(prefix="/profile", tags=["profile"])
 
 # Education Endpoints
 @router.get("/educations", response_model=EducationListResponse)
-async def get_educations(
+async def get_profile_educations(
     current_user_id: Annotated[UUID, Depends(get_current_user_id)],
 ):
     """Get all education entries for the current user."""
@@ -44,7 +46,7 @@ async def get_educations(
         return await profile_service.get_user_educations(current_user_id)
 
 
-@router.get("/educations/{education_id}", response_model=EducationSchema)
+@router.get("/educations/{education_id}", response_model=ProfileEducationSchema)
 async def get_profile_education(
     education_id: UUID,
     current_user_id: Annotated[UUID, Depends(get_current_user_id)],
@@ -58,9 +60,11 @@ async def get_profile_education(
 
 
 @router.post(
-    "/educations", response_model=EducationSchema, status_code=status.HTTP_201_CREATED
+    "/educations",
+    response_model=ProfileEducationSchema,
+    status_code=status.HTTP_201_CREATED,
 )
-async def create_education(
+async def create_profile_education(
     request: EducationCreateRequest,
     current_user_id: Annotated[UUID, Depends(get_current_user_id)],
 ):
@@ -70,8 +74,8 @@ async def create_education(
         return await profile_service.create_education(current_user_id, request)
 
 
-@router.put("/educations/{education_id}", response_model=EducationSchema)
-async def update_education(
+@router.put("/educations/{education_id}", response_model=ProfileEducationSchema)
+async def update_profile_education(
     education_id: UUID,
     request: EducationUpdateRequest,
     current_user_id: Annotated[UUID, Depends(get_current_user_id)],
@@ -91,7 +95,7 @@ async def update_education(
 
 
 @router.delete("/educations/{education_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_education(
+async def delete_profile_education(
     education_id: UUID,
     current_user_id: Annotated[UUID, Depends(get_current_user_id)],
 ):
@@ -108,7 +112,7 @@ async def delete_education(
 
 # Work Experience Endpoints
 @router.get("/work-experiences", response_model=WorkExperienceListResponse)
-async def get_work_experiences(
+async def get_profile_work_experiences(
     current_user_id: Annotated[UUID, Depends(get_current_user_id)],
 ):
     """Get all work experiences for the current user."""
@@ -117,12 +121,31 @@ async def get_work_experiences(
         return await profile_service.get_user_work_experiences(current_user_id)
 
 
+@router.get("/work-experiences/{work_id}", response_model=ProfileWorkExperienceSchema)
+async def get_profile_work_experience(
+    work_id: UUID,
+    current_user_id: Annotated[UUID, Depends(get_current_user_id)],
+):
+    """Get a single work experience entry by ID for the current user."""
+    async with UnitOfWorkFactory() as uow:
+        profile_service = ProfileService(uow)
+        work_experience = await profile_service.get_user_work_experience_by_id(
+            current_user_id, work_id
+        )
+        if not work_experience:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Work experience not found",
+            )
+        return work_experience
+
+
 @router.post(
     "/work-experiences",
-    response_model=WorkExperienceResponse,
+    response_model=ProfileWorkExperienceSchema,
     status_code=status.HTTP_201_CREATED,
 )
-async def create_work_experience(
+async def create_profile_work_experience(
     request: WorkExperienceCreateRequest,
     current_user_id: Annotated[UUID, Depends(get_current_user_id)],
 ):
@@ -132,8 +155,8 @@ async def create_work_experience(
         return await profile_service.create_work_experience(current_user_id, request)
 
 
-@router.put("/work-experiences/{work_id}", response_model=WorkExperienceResponse)
-async def update_work_experience(
+@router.put("/work-experiences/{work_id}", response_model=ProfileWorkExperienceSchema)
+async def update_profile_work_experience(
     work_id: UUID,
     request: WorkExperienceUpdateRequest,
     current_user_id: Annotated[UUID, Depends(get_current_user_id)],
@@ -153,7 +176,7 @@ async def update_work_experience(
 
 
 @router.delete("/work-experiences/{work_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_work_experience(
+async def delete_profile_work_experience(
     work_id: UUID,
     current_user_id: Annotated[UUID, Depends(get_current_user_id)],
 ):
@@ -170,10 +193,10 @@ async def delete_work_experience(
 
 @router.post(
     "/work-experiences/{work_id}/responsibilities",
-    response_model=WorkResponsibilityResponse,
+    response_model=ProfileWorkResponsibilitySchema,
     status_code=status.HTTP_201_CREATED,
 )
-async def add_work_responsibility(
+async def add_profile_work_responsibility(
     work_id: UUID,
     request: WorkResponsibilityRequest,
     current_user_id: Annotated[UUID, Depends(get_current_user_id)],
@@ -196,7 +219,7 @@ async def add_work_responsibility(
     "/work-experiences/{work_id}/responsibilities/{responsibility_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-async def delete_work_responsibility(
+async def delete_profile_work_responsibility(
     work_id: UUID,
     responsibility_id: UUID,
     current_user_id: Annotated[UUID, Depends(get_current_user_id)],
@@ -215,7 +238,7 @@ async def delete_work_responsibility(
 
 # Project Endpoints
 @router.get("/projects", response_model=ProjectListResponse)
-async def get_projects(
+async def get_profile_projects(
     current_user_id: Annotated[UUID, Depends(get_current_user_id)],
 ):
     """Get all projects for the current user."""
@@ -224,10 +247,28 @@ async def get_projects(
         return await profile_service.get_user_projects(current_user_id)
 
 
+@router.get("/projects/{project_id}", response_model=ProfileProjectSchema)
+async def get_profile_project(
+    project_id: UUID,
+    current_user_id: Annotated[UUID, Depends(get_current_user_id)],
+):
+    """Get a single project for the current user."""
+    async with UnitOfWorkFactory() as uow:
+        profile_service = ProfileService(uow)
+        project = await profile_service.get_user_project(current_user_id, project_id)
+        if not project:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+            )
+        return project
+
+
 @router.post(
-    "/projects", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED
+    "/projects",
+    response_model=ProfileProjectSchema,
+    status_code=status.HTTP_201_CREATED,
 )
-async def create_project(
+async def create_profile_project(
     request: ProjectCreateRequest,
     current_user_id: Annotated[UUID, Depends(get_current_user_id)],
 ):
@@ -237,8 +278,8 @@ async def create_project(
         return await profile_service.create_project(current_user_id, request)
 
 
-@router.put("/projects/{project_id}", response_model=ProjectResponse)
-async def update_project(
+@router.put("/projects/{project_id}", response_model=ProfileProjectSchema)
+async def update_profile_project(
     project_id: UUID,
     request: ProjectUpdateRequest,
     current_user_id: Annotated[UUID, Depends(get_current_user_id)],
@@ -257,7 +298,7 @@ async def update_project(
 
 
 @router.delete("/projects/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_project(
+async def delete_profile_project(
     project_id: UUID,
     current_user_id: Annotated[UUID, Depends(get_current_user_id)],
 ):
@@ -273,10 +314,10 @@ async def delete_project(
 
 @router.post(
     "/projects/{project_id}/tasks",
-    response_model=ProjectTaskResponse,
+    response_model=ProfileProjectTaskSchema,
     status_code=status.HTTP_201_CREATED,
 )
-async def add_project_task(
+async def add_profile_project_task(
     project_id: UUID,
     request: ProjectTaskRequest,
     current_user_id: Annotated[UUID, Depends(get_current_user_id)],
@@ -297,7 +338,7 @@ async def add_project_task(
 @router.delete(
     "/projects/{project_id}/tasks/{task_id}", status_code=status.HTTP_204_NO_CONTENT
 )
-async def delete_project_task(
+async def delete_profile_project_task(
     project_id: UUID,
     task_id: UUID,
     current_user_id: Annotated[UUID, Depends(get_current_user_id)],

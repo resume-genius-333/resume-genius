@@ -16,10 +16,12 @@ import hashlib
 from src.containers import Container
 from src.core.security import SecurityUtils
 from src.core.unit_of_work import UnitOfWorkFactory
-from src.models.auth import UserResponse, TokenPayload
+from src.models.auth import TokenPayload
 from src.config.auth import AuthConfig
 from src.models.db.auth.api_key import APIKey
 import redis.asyncio as redis
+
+from src.models.db.profile.user import ProfileUserSchema
 
 
 # Security schemes
@@ -160,7 +162,7 @@ async def get_current_token(
 
 async def get_current_user(
     token_payload: TokenPayload = Depends(get_current_token),
-) -> UserResponse:
+) -> ProfileUserSchema:
     """Get current authenticated user."""
     # Get user from database
     async with UnitOfWorkFactory() as uow:
@@ -171,32 +173,12 @@ async def get_current_user(
             )
 
         # Convert to response schema
-        return UserResponse(
-            id=str(user.id),
-            email=user.email,
-            first_name=user.first_name,
-            last_name=user.last_name,
-            full_name=user.full_name,
-            name_prefix=user.name_prefix,
-            name_suffix=user.name_suffix,
-            phone=user.phone,
-            location=user.location,
-            avatar_url=user.avatar_url,
-            linkedin_url=user.linkedin_url,
-            github_url=user.github_url,
-            portfolio_url=user.portfolio_url,
-            is_active=user.is_active,
-            email_verified=user.email_verified,
-            email_verified_at=user.email_verified_at,
-            last_login_at=user.last_login_at,
-            created_at=user.created_at,
-            updated_at=user.updated_at,
-        )
+        return user.schema
 
 
 async def get_current_active_user(
-    current_user: UserResponse = Depends(get_current_user),
-) -> UserResponse:
+    current_user: ProfileUserSchema = Depends(get_current_user),
+) -> ProfileUserSchema:
     """Get current active user."""
     if not current_user.is_active:
         raise HTTPException(
@@ -206,7 +188,7 @@ async def get_current_active_user(
 
 
 async def get_current_user_id(
-    current_user: UserResponse = Depends(get_current_user),
+    current_user: ProfileUserSchema = Depends(get_current_user),
 ) -> uuid.UUID:
     """Get current user's ID."""
     return current_user.id
@@ -215,7 +197,7 @@ async def get_current_user_id(
 async def get_optional_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security_scheme),
     security: SecurityUtils = Depends(get_security_utils),
-) -> Optional[UserResponse]:
+) -> Optional[ProfileUserSchema]:
     """Get current user if authenticated, otherwise None."""
     if not credentials:
         return None
@@ -256,7 +238,7 @@ async def require_api_key(valid_key: bool = Depends(verify_api_key)):
 
 
 async def require_any_auth(
-    jwt_user: Optional[UserResponse] = Depends(get_optional_current_user),
+    jwt_user: Optional[ProfileUserSchema] = Depends(get_optional_current_user),
     api_key_valid: bool = Depends(verify_api_key),
 ):
     """Require either JWT or API key authentication."""

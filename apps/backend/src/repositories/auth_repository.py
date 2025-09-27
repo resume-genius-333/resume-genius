@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 import uuid
 from src.models.db import (
-    User,
+    ProfileUser,
     AuthProvider,
     RefreshToken,
     UserSession,
@@ -27,11 +27,13 @@ class AuthRepository:
         """Initialize repository with database session."""
         self.session = session
 
-    async def get_user_by_email(self, email: str) -> Optional[User]:
+    async def get_user_by_email(self, email: str) -> Optional[ProfileUser]:
         """Get user by email address."""
         logger.debug(f"Fetching user by email: {email}")
         try:
-            result = await self.session.execute(select(User).where(User.email == email))
+            result = await self.session.execute(
+                select(ProfileUser).where(ProfileUser.email == email)
+            )
             user = result.scalar_one_or_none()
             if user:
                 logger.debug(f"User found with ID: {user.id}")
@@ -44,10 +46,10 @@ class AuthRepository:
             )
             raise
 
-    async def get_user_by_id(self, user_id: str) -> Optional[User]:
+    async def get_user_by_id(self, user_id: str) -> Optional[ProfileUser]:
         """Get user by ID."""
         result = await self.session.execute(
-            select(User).where(User.id == uuid.UUID(user_id))
+            select(ProfileUser).where(ProfileUser.id == uuid.UUID(user_id))
         )
         return result.scalar_one_or_none()
 
@@ -57,9 +59,9 @@ class AuthRepository:
         first_name: str,
         last_name: Optional[str] = None,
         full_name: Optional[str] = None,
-    ) -> User:
+    ) -> ProfileUser:
         """Create a new user."""
-        user = User(
+        user = ProfileUser(
             email=email,
             first_name=first_name,
             last_name=last_name,
@@ -266,7 +268,9 @@ class AuthRepository:
 
     async def update_user_last_login(self, user_id: uuid.UUID) -> None:
         """Update user's last login timestamp."""
-        result = await self.session.execute(select(User).where(User.id == user_id))
+        result = await self.session.execute(
+            select(ProfileUser).where(ProfileUser.id == user_id)
+        )
         user = result.scalar_one_or_none()
         if user:
             user.last_login_at = datetime.now(timezone.utc)

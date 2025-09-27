@@ -6,10 +6,10 @@ import uuid
 
 from sqlalchemy.orm import Session
 
-from src.models.db.user import User
-from src.models.db.education import Education
-from src.models.db.work import WorkExperience, WorkResponsibility
-from src.models.db.project import Project, ProjectTask
+from src.models.db.profile.user import User
+from src.models.db.profile.education import Education
+from src.models.db.profile.work import WorkExperience, WorkResponsibility
+from src.models.db.profile.project import Project, ProjectTask
 from src.models.db.enums import DegreeType, EmploymentType
 
 from src.models.llm import (

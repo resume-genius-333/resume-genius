@@ -4,6 +4,6 @@
  * Resume Genius API
  * OpenAPI spec version: 1.0.0
  */
-import type { ResumeMetadataResponse } from "./resumeMetadataResponse";
+import type { ResumeMetadataSchema } from "./resumeMetadataSchema";
 
-export type FullResumeResponseMetadata = ResumeMetadataResponse | null;
+export type FullResumeResponseMetadata = ResumeMetadataSchema | null;

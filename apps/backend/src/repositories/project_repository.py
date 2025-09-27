@@ -4,11 +4,11 @@ from typing import Optional, List
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, delete
-from src.models.db.project import (
-    Project,
-    ProjectSchema,
-    ProjectTask,
-    ProjectTaskSchema,
+from src.models.db.profile.project import (
+    ProfileProject,
+    ProfileProjectSchema,
+    ProfileProjectTask,
+    ProfileProjectTaskSchema,
 )
 from src.models.llm.project import ProjectLLMSchema, ProjectTaskLLMSchema
 
@@ -26,9 +26,9 @@ class ProjectRepository:
         user_id: uuid.UUID,
         project_id: uuid.UUID,
         llm_schema: ProjectLLMSchema,
-    ) -> ProjectSchema:
+    ) -> ProfileProjectSchema:
         """Create a new project record in the database."""
-        project = Project.from_llm(
+        project = ProfileProject.from_llm(
             user_id=user_id,
             project_id=project_id,
             llm_schema=llm_schema,
@@ -42,12 +42,12 @@ class ProjectRepository:
 
     async def get_project_by_id(
         self, project_id: uuid.UUID, user_id: Optional[uuid.UUID] = None
-    ) -> Optional[ProjectSchema]:
+    ) -> Optional[ProfileProjectSchema]:
         """Get a project record by ID, optionally filtered by user."""
-        query = select(Project).where(Project.id == project_id)
+        query = select(ProfileProject).where(ProfileProject.id == project_id)
 
         if user_id:
-            query = query.where(Project.user_id == user_id)
+            query = query.where(ProfileProject.user_id == user_id)
 
         result = await self.session.execute(query)
         project = result.scalar_one_or_none()
@@ -58,12 +58,12 @@ class ProjectRepository:
         user_id: uuid.UUID,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-    ) -> List[ProjectSchema]:
+    ) -> List[ProfileProjectSchema]:
         """Get all project records for a specific user."""
-        query = select(Project).where(Project.user_id == user_id)
+        query = select(ProfileProject).where(ProfileProject.user_id == user_id)
 
         # Order by end_date descending (most recent first), with NULL values first (ongoing projects)
-        query = query.order_by(Project.end_date.desc().nullsfirst())
+        query = query.order_by(ProfileProject.end_date.desc().nullsfirst())
 
         if limit:
             query = query.limit(limit)
@@ -79,15 +79,23 @@ class ProjectRepository:
         user_id: uuid.UUID,
     ) -> int:
         """Get the count of project records for a user."""
-        query = select(func.count()).select_from(Project).where(Project.user_id == user_id)
+        query = (
+            select(func.count())
+            .select_from(ProfileProject)
+            .where(ProfileProject.user_id == user_id)
+        )
         result = await self.session.scalar(query)
         return result or 0
 
     async def update_project(
         self, project_id: uuid.UUID, user_id: uuid.UUID, **kwargs
-    ) -> Optional[ProjectSchema]:
+    ) -> Optional[ProfileProjectSchema]:
         """Update project fields."""
-        query = select(Project).where(Project.id == project_id).where(Project.user_id == user_id)
+        query = (
+            select(ProfileProject)
+            .where(ProfileProject.id == project_id)
+            .where(ProfileProject.user_id == user_id)
+        )
         result = await self.session.execute(query)
         project = result.scalar_one_or_none()
 
@@ -105,7 +113,11 @@ class ProjectRepository:
 
     async def delete_project(self, project_id: uuid.UUID, user_id: uuid.UUID) -> bool:
         """Delete a project record and all related tasks."""
-        query = select(Project).where(Project.id == project_id).where(Project.user_id == user_id)
+        query = (
+            select(ProfileProject)
+            .where(ProfileProject.id == project_id)
+            .where(ProfileProject.user_id == user_id)
+        )
         result = await self.session.execute(query)
         project = result.scalar_one_or_none()
 
@@ -124,9 +136,9 @@ class ProjectRepository:
         project_id: uuid.UUID,
         task_id: uuid.UUID,
         llm_schema: ProjectTaskLLMSchema,
-    ) -> ProjectTaskSchema:
+    ) -> ProfileProjectTaskSchema:
         """Create a new project task record."""
-        task = ProjectTask.from_llm(
+        task = ProfileProjectTask.from_llm(
             user_id=user_id,
             project_id=project_id,
             task_id=task_id,
@@ -141,12 +153,12 @@ class ProjectRepository:
 
     async def get_task_by_id(
         self, task_id: uuid.UUID, user_id: Optional[uuid.UUID] = None
-    ) -> Optional[ProjectTaskSchema]:
+    ) -> Optional[ProfileProjectTaskSchema]:
         """Get a project task by ID."""
-        query = select(ProjectTask).where(ProjectTask.id == task_id)
+        query = select(ProfileProjectTask).where(ProfileProjectTask.id == task_id)
 
         if user_id:
-            query = query.where(ProjectTask.user_id == user_id)
+            query = query.where(ProfileProjectTask.user_id == user_id)
 
         result = await self.session.execute(query)
         task = result.scalar_one_or_none()
@@ -156,12 +168,14 @@ class ProjectRepository:
         self,
         project_id: uuid.UUID,
         user_id: Optional[uuid.UUID] = None,
-    ) -> List[ProjectTaskSchema]:
+    ) -> List[ProfileProjectTaskSchema]:
         """Get all tasks for a specific project."""
-        query = select(ProjectTask).where(ProjectTask.project_id == project_id)
+        query = select(ProfileProjectTask).where(
+            ProfileProjectTask.project_id == project_id
+        )
 
         if user_id:
-            query = query.where(ProjectTask.user_id == user_id)
+            query = query.where(ProfileProjectTask.user_id == user_id)
 
         result = await self.session.execute(query)
         tasks = list(result.scalars().all())
@@ -169,12 +183,12 @@ class ProjectRepository:
 
     async def update_task(
         self, task_id: uuid.UUID, user_id: uuid.UUID, **kwargs
-    ) -> Optional[ProjectTaskSchema]:
+    ) -> Optional[ProfileProjectTaskSchema]:
         """Update task fields."""
         query = (
-            select(ProjectTask)
-            .where(ProjectTask.id == task_id)
-            .where(ProjectTask.user_id == user_id)
+            select(ProfileProjectTask)
+            .where(ProfileProjectTask.id == task_id)
+            .where(ProfileProjectTask.user_id == user_id)
         )
         result = await self.session.execute(query)
         task = result.scalar_one_or_none()
@@ -194,9 +208,9 @@ class ProjectRepository:
     async def delete_task(self, task_id: uuid.UUID, user_id: uuid.UUID) -> bool:
         """Delete a task record."""
         query = (
-            select(ProjectTask)
-            .where(ProjectTask.id == task_id)
-            .where(ProjectTask.user_id == user_id)
+            select(ProfileProjectTask)
+            .where(ProfileProjectTask.id == task_id)
+            .where(ProfileProjectTask.user_id == user_id)
         )
         result = await self.session.execute(query)
         task = result.scalar_one_or_none()
@@ -214,11 +228,11 @@ class ProjectRepository:
         user_id: uuid.UUID,
         project_id: uuid.UUID,
         tasks_data: List[tuple[uuid.UUID, ProjectTaskLLMSchema]],
-    ) -> List[ProjectTaskSchema]:
+    ) -> List[ProfileProjectTaskSchema]:
         """Bulk create multiple task records for a project."""
         tasks = []
         for task_id, llm_schema in tasks_data:
-            task = ProjectTask.from_llm(
+            task = ProfileProjectTask.from_llm(
                 user_id=user_id,
                 project_id=project_id,
                 task_id=task_id,
@@ -235,11 +249,13 @@ class ProjectRepository:
 
         return [task.schema for task in tasks]
 
-    async def delete_tasks_by_project(self, project_id: uuid.UUID, user_id: uuid.UUID) -> int:
+    async def delete_tasks_by_project(
+        self, project_id: uuid.UUID, user_id: uuid.UUID
+    ) -> int:
         """Delete all tasks for a specific project."""
-        stmt = delete(ProjectTask).where(
-            ProjectTask.project_id == project_id,
-            ProjectTask.user_id == user_id
+        stmt = delete(ProfileProjectTask).where(
+            ProfileProjectTask.project_id == project_id,
+            ProfileProjectTask.user_id == user_id,
         )
         result = await self.session.execute(stmt)
         await self.session.commit()
@@ -247,7 +263,7 @@ class ProjectRepository:
 
     async def get_project_with_tasks(
         self, project_id: uuid.UUID, user_id: Optional[uuid.UUID] = None
-    ) -> Optional[tuple[ProjectSchema, List[ProjectTaskSchema]]]:
+    ) -> Optional[tuple[ProfileProjectSchema, List[ProfileProjectTaskSchema]]]:
         """Get a project with all its tasks."""
         project = await self.get_project_by_id(project_id, user_id)
         if not project:

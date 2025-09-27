@@ -11,10 +11,6 @@ import type { AIEnhanceRequestContext } from "./aIEnhanceRequestContext";
  * Request model for AI enhancement.
  */
 export interface AIEnhanceRequest {
-  /**
-   * @minLength 1
-   * @maxLength 2000
-   */
   prompt: string;
   agent_mode?: boolean;
   tone?: AIEnhanceRequestTone;

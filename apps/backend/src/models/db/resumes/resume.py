@@ -7,7 +7,7 @@ import uuid
 from ..base import Base
 
 if TYPE_CHECKING:
-    from ..user import User
+    from ..profile.user import ProfileUser
     from .job import Job
     from .resume_metadata import ResumeMetadata
 
@@ -63,7 +63,7 @@ class Resume(Base):
     )
 
     # Relationships
-    user: Mapped["User"] = relationship(foreign_keys=[user_id])
+    user: Mapped["ProfileUser"] = relationship(foreign_keys=[user_id])
     job: Mapped["Job"] = relationship(back_populates="resumes")
     resume_metadata: Mapped["ResumeMetadata"] = relationship(back_populates="resumes")
     parent: Mapped[Optional["Resume"]] = relationship(

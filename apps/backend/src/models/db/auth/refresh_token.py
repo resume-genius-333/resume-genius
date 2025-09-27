@@ -8,7 +8,7 @@ import uuid
 from ..base import Base
 
 if TYPE_CHECKING:
-    from ..user import User
+    from ..profile.user import ProfileUser
     from .user_session import UserSession
 
 
@@ -31,5 +31,5 @@ class RefreshToken(Base):
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     # Relationships
-    user: Mapped["User"] = relationship(back_populates="refresh_tokens")
+    user: Mapped["ProfileUser"] = relationship(back_populates="refresh_tokens")
     sessions: Mapped[List["UserSession"]] = relationship(back_populates="refresh_token", cascade="all, delete-orphan")

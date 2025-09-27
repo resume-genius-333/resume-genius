@@ -5,15 +5,15 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 from sqlalchemy.orm import selectinload
-from src.models.db.skill import (
-    Skill,
-    SkillSchema,
-    UserSkill,
-    UserSkillSchema,
-    TaskSkillMapping,
-    TaskSkillMappingSchema,
-    ResponsibilitySkillMapping,
-    ResponsibilitySkillMappingSchema,
+from src.models.db.profile.skill import (
+    ProfileSkill,
+    ProfileSkillSchema,
+    ProfileUserSkill,
+    ProfileUserSkillSchema,
+    ProfileTaskSkillMapping,
+    ProfileTaskSkillMappingSchema,
+    ProfileResponsibilitySkillMapping,
+    ProfileResponsibilitySkillMappingSchema,
 )
 from src.models.llm.skill import SkillLLMSchema
 from src.models.db.enums import SkillCategory, ProficiencyLevel
@@ -32,9 +32,9 @@ class SkillRepository:
         skill_id: uuid.UUID,
         llm_schema: SkillLLMSchema,
         embedding: List[float],
-    ) -> SkillSchema:
+    ) -> ProfileSkillSchema:
         """Create a new skill record in the database."""
-        skill = Skill.from_llm(
+        skill = ProfileSkill.from_llm(
             skill_id=skill_id,
             llm_schema=llm_schema,
             embedding=embedding,
@@ -48,18 +48,16 @@ class SkillRepository:
 
     async def get_skill_by_id(
         self, skill_id: uuid.UUID
-    ) -> Optional[SkillSchema]:
+    ) -> Optional[ProfileSkillSchema]:
         """Get a skill record by ID."""
-        query = select(Skill).where(Skill.id == skill_id)
+        query = select(ProfileSkill).where(ProfileSkill.id == skill_id)
         result = await self.session.execute(query)
         skill = result.scalar_one_or_none()
         return skill.schema if skill else None
 
-    async def get_skill_by_name(
-        self, skill_name: str
-    ) -> Optional[SkillSchema]:
+    async def get_skill_by_name(self, skill_name: str) -> Optional[ProfileSkillSchema]:
         """Get a skill record by name."""
-        query = select(Skill).where(Skill.skill_name == skill_name)
+        query = select(ProfileSkill).where(ProfileSkill.skill_name == skill_name)
         result = await self.session.execute(query)
         skill = result.scalar_one_or_none()
         return skill.schema if skill else None
@@ -69,13 +67,13 @@ class SkillRepository:
         embedding: List[float],
         limit: int = 10,
         similarity_threshold: Optional[float] = None,
-    ) -> List[tuple[SkillSchema, float]]:
+    ) -> List[tuple[ProfileSkillSchema, float]]:
         """Search for similar skills using vector similarity."""
         # Using cosine similarity: <=> operator in pgvector
         query = (
             select(
-                Skill,
-                Skill.embedding.cosine_distance(embedding).label("distance")
+                ProfileSkill,
+                ProfileSkill.embedding.cosine_distance(embedding).label("distance"),
             )
             .order_by("distance")
             .limit(limit)
@@ -84,7 +82,9 @@ class SkillRepository:
         if similarity_threshold is not None:
             # Convert similarity threshold to distance (1 - similarity)
             distance_threshold = 1 - similarity_threshold
-            query = query.filter(Skill.embedding.cosine_distance(embedding) <= distance_threshold)
+            query = query.filter(
+                ProfileSkill.embedding.cosine_distance(embedding) <= distance_threshold
+            )
 
         result = await self.session.execute(query)
         skills_with_distance = result.all()
@@ -100,9 +100,9 @@ class SkillRepository:
         category: SkillCategory,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-    ) -> List[SkillSchema]:
+    ) -> List[ProfileSkillSchema]:
         """Get all skills in a specific category."""
-        query = select(Skill).where(Skill.skill_category == category)
+        query = select(ProfileSkill).where(ProfileSkill.skill_category == category)
 
         if limit:
             query = query.limit(limit)
@@ -115,9 +115,9 @@ class SkillRepository:
 
     async def update_skill(
         self, skill_id: uuid.UUID, **kwargs
-    ) -> Optional[SkillSchema]:
+    ) -> Optional[ProfileSkillSchema]:
         """Update skill fields."""
-        query = select(Skill).where(Skill.id == skill_id)
+        query = select(ProfileSkill).where(ProfileSkill.id == skill_id)
         result = await self.session.execute(query)
         skill = result.scalar_one_or_none()
 
@@ -135,7 +135,7 @@ class SkillRepository:
 
     async def delete_skill(self, skill_id: uuid.UUID) -> bool:
         """Delete a skill record."""
-        query = select(Skill).where(Skill.id == skill_id)
+        query = select(ProfileSkill).where(ProfileSkill.id == skill_id)
         result = await self.session.execute(query)
         skill = result.scalar_one_or_none()
 
@@ -153,9 +153,9 @@ class SkillRepository:
         user_id: uuid.UUID,
         skill_id: uuid.UUID,
         proficiency_level: Optional[ProficiencyLevel] = None,
-    ) -> UserSkillSchema:
+    ) -> ProfileUserSkillSchema:
         """Create a user-skill association."""
-        user_skill = UserSkill(
+        user_skill = ProfileUserSkill(
             user_id=user_id,
             skill_id=skill_id,
             proficiency_level=proficiency_level,
@@ -171,10 +171,13 @@ class SkillRepository:
         self,
         user_id: uuid.UUID,
         skill_id: uuid.UUID,
-    ) -> Optional[UserSkillSchema]:
+    ) -> Optional[ProfileUserSkillSchema]:
         """Get a specific user-skill association."""
-        query = select(UserSkill).where(
-            and_(UserSkill.user_id == user_id, UserSkill.skill_id == skill_id)
+        query = select(ProfileUserSkill).where(
+            and_(
+                ProfileUserSkill.user_id == user_id,
+                ProfileUserSkill.skill_id == skill_id,
+            )
         )
         result = await self.session.execute(query)
         user_skill = result.scalar_one_or_none()
@@ -184,12 +187,12 @@ class SkillRepository:
         self,
         user_id: uuid.UUID,
         include_skill_details: bool = False,
-    ) -> List[UserSkillSchema]:
+    ) -> List[ProfileUserSkillSchema]:
         """Get all skills for a user."""
-        query = select(UserSkill).where(UserSkill.user_id == user_id)
+        query = select(ProfileUserSkill).where(ProfileUserSkill.user_id == user_id)
 
         if include_skill_details:
-            query = query.options(selectinload(UserSkill.skill))
+            query = query.options(selectinload(ProfileUserSkill.skill))
 
         result = await self.session.execute(query)
         user_skills = list(result.scalars().all())
@@ -200,10 +203,13 @@ class SkillRepository:
         user_id: uuid.UUID,
         skill_id: uuid.UUID,
         proficiency_level: ProficiencyLevel,
-    ) -> Optional[UserSkillSchema]:
+    ) -> Optional[ProfileUserSkillSchema]:
         """Update user skill proficiency level."""
-        query = select(UserSkill).where(
-            and_(UserSkill.user_id == user_id, UserSkill.skill_id == skill_id)
+        query = select(ProfileUserSkill).where(
+            and_(
+                ProfileUserSkill.user_id == user_id,
+                ProfileUserSkill.skill_id == skill_id,
+            )
         )
         result = await self.session.execute(query)
         user_skill = result.scalar_one_or_none()
@@ -217,12 +223,13 @@ class SkillRepository:
 
         return user_skill.schema
 
-    async def delete_user_skill(
-        self, user_id: uuid.UUID, skill_id: uuid.UUID
-    ) -> bool:
+    async def delete_user_skill(self, user_id: uuid.UUID, skill_id: uuid.UUID) -> bool:
         """Delete a user-skill association."""
-        query = select(UserSkill).where(
-            and_(UserSkill.user_id == user_id, UserSkill.skill_id == skill_id)
+        query = select(ProfileUserSkill).where(
+            and_(
+                ProfileUserSkill.user_id == user_id,
+                ProfileUserSkill.skill_id == skill_id,
+            )
         )
         result = await self.session.execute(query)
         user_skill = result.scalar_one_or_none()
@@ -242,9 +249,9 @@ class SkillRepository:
         skill_id: uuid.UUID,
         task_id: uuid.UUID,
         justification: Optional[str] = None,
-    ) -> TaskSkillMappingSchema:
+    ) -> ProfileTaskSkillMappingSchema:
         """Create a task-skill mapping."""
-        mapping = TaskSkillMapping(
+        mapping = ProfileTaskSkillMapping(
             user_id=user_id,
             skill_id=skill_id,
             task_id=task_id,
@@ -261,12 +268,14 @@ class SkillRepository:
         self,
         task_id: uuid.UUID,
         user_id: Optional[uuid.UUID] = None,
-    ) -> List[TaskSkillMappingSchema]:
+    ) -> List[ProfileTaskSkillMappingSchema]:
         """Get all skill mappings for a task."""
-        query = select(TaskSkillMapping).where(TaskSkillMapping.task_id == task_id)
+        query = select(ProfileTaskSkillMapping).where(
+            ProfileTaskSkillMapping.task_id == task_id
+        )
 
         if user_id:
-            query = query.where(TaskSkillMapping.user_id == user_id)
+            query = query.where(ProfileTaskSkillMapping.user_id == user_id)
 
         result = await self.session.execute(query)
         mappings = list(result.scalars().all())
@@ -279,11 +288,11 @@ class SkillRepository:
         task_id: uuid.UUID,
     ) -> bool:
         """Delete a task-skill mapping."""
-        query = select(TaskSkillMapping).where(
+        query = select(ProfileTaskSkillMapping).where(
             and_(
-                TaskSkillMapping.user_id == user_id,
-                TaskSkillMapping.skill_id == skill_id,
-                TaskSkillMapping.task_id == task_id,
+                ProfileTaskSkillMapping.user_id == user_id,
+                ProfileTaskSkillMapping.skill_id == skill_id,
+                ProfileTaskSkillMapping.task_id == task_id,
             )
         )
         result = await self.session.execute(query)
@@ -304,9 +313,9 @@ class SkillRepository:
         skill_id: uuid.UUID,
         responsibility_id: uuid.UUID,
         justification: Optional[str] = None,
-    ) -> ResponsibilitySkillMappingSchema:
+    ) -> ProfileResponsibilitySkillMappingSchema:
         """Create a responsibility-skill mapping."""
-        mapping = ResponsibilitySkillMapping(
+        mapping = ProfileResponsibilitySkillMapping(
             user_id=user_id,
             skill_id=skill_id,
             responsibility_id=responsibility_id,
@@ -323,14 +332,14 @@ class SkillRepository:
         self,
         responsibility_id: uuid.UUID,
         user_id: Optional[uuid.UUID] = None,
-    ) -> List[ResponsibilitySkillMappingSchema]:
+    ) -> List[ProfileResponsibilitySkillMappingSchema]:
         """Get all skill mappings for a responsibility."""
-        query = select(ResponsibilitySkillMapping).where(
-            ResponsibilitySkillMapping.responsibility_id == responsibility_id
+        query = select(ProfileResponsibilitySkillMapping).where(
+            ProfileResponsibilitySkillMapping.responsibility_id == responsibility_id
         )
 
         if user_id:
-            query = query.where(ResponsibilitySkillMapping.user_id == user_id)
+            query = query.where(ProfileResponsibilitySkillMapping.user_id == user_id)
 
         result = await self.session.execute(query)
         mappings = list(result.scalars().all())
@@ -343,11 +352,12 @@ class SkillRepository:
         responsibility_id: uuid.UUID,
     ) -> bool:
         """Delete a responsibility-skill mapping."""
-        query = select(ResponsibilitySkillMapping).where(
+        query = select(ProfileResponsibilitySkillMapping).where(
             and_(
-                ResponsibilitySkillMapping.user_id == user_id,
-                ResponsibilitySkillMapping.skill_id == skill_id,
-                ResponsibilitySkillMapping.responsibility_id == responsibility_id,
+                ProfileResponsibilitySkillMapping.user_id == user_id,
+                ProfileResponsibilitySkillMapping.skill_id == skill_id,
+                ProfileResponsibilitySkillMapping.responsibility_id
+                == responsibility_id,
             )
         )
         result = await self.session.execute(query)
@@ -365,11 +375,11 @@ class SkillRepository:
         self,
         user_id: uuid.UUID,
         skills_data: List[tuple[uuid.UUID, Optional[ProficiencyLevel]]],
-    ) -> List[UserSkillSchema]:
+    ) -> List[ProfileUserSkillSchema]:
         """Bulk create multiple user-skill associations."""
         user_skills = []
         for skill_id, proficiency_level in skills_data:
-            user_skill = UserSkill(
+            user_skill = ProfileUserSkill(
                 user_id=user_id,
                 skill_id=skill_id,
                 proficiency_level=proficiency_level,

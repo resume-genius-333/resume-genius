@@ -8,7 +8,6 @@
 export type EmploymentType =
   (typeof EmploymentType)[keyof typeof EmploymentType];
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare
 export const EmploymentType = {
   full_time: "full_time",
   part_time: "part_time",

@@ -4,12 +4,12 @@
  * Resume Genius API
  * OpenAPI spec version: 1.0.0
  */
-import type { WorkExperienceResponse } from "./workExperienceResponse";
+import type { ProfileWorkExperienceSchema } from "./profileWorkExperienceSchema";
 
 /**
  * Response model for list of work experiences.
  */
 export interface WorkExperienceListResponse {
-  work_experiences: WorkExperienceResponse[];
+  work_experiences: ProfileWorkExperienceSchema[];
   total: number;
 }

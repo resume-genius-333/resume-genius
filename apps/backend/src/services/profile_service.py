@@ -4,6 +4,8 @@ import logging
 from typing import Optional
 from uuid import UUID, uuid4
 
+from pydantic import HttpUrl
+
 from src.core.unit_of_work import UnitOfWork
 from src.models.api.profile import (
     EducationCreateRequest,
@@ -12,18 +14,20 @@ from src.models.api.profile import (
     EducationListResponse,
     WorkExperienceCreateRequest,
     WorkExperienceUpdateRequest,
-    WorkExperienceResponse,
     WorkExperienceListResponse,
     WorkResponsibilityRequest,
-    WorkResponsibilityResponse,
     ProjectCreateRequest,
     ProjectUpdateRequest,
-    ProjectResponse,
     ProjectListResponse,
     ProjectTaskRequest,
-    ProjectTaskResponse,
 )
-from src.models.db.education import EducationSchema
+from src.models.db.profile import (
+    ProfileEducationSchema,
+    ProfileProjectSchema,
+    ProfileProjectTaskSchema,
+    ProfileWorkExperienceSchema,
+    ProfileWorkResponsibilitySchema,
+)
 from src.models.llm.education import EducationLLMSchema
 from src.models.llm.work import WorkExperienceLLMSchema, WorkResponsibilityLLMSchema
 from src.models.llm.project import ProjectLLMSchema, ProjectTaskLLMSchema
@@ -51,7 +55,7 @@ class ProfileService:
 
     async def get_user_education(
         self, user_id: UUID, education_id: UUID
-    ) -> Optional[EducationSchema]:
+    ) -> Optional[ProfileEducationSchema]:
         """Get all education entries for a user."""
         education = await self.uow.education_repository.get_education_by_id(
             education_id=education_id, user_id=user_id
@@ -60,7 +64,7 @@ class ProfileService:
 
     async def create_education(
         self, user_id: UUID, request: EducationCreateRequest
-    ) -> EducationSchema:
+    ) -> ProfileEducationSchema:
         """Create a new education entry."""
         education_id = uuid4()
 
@@ -90,7 +94,7 @@ class ProfileService:
         user_id: UUID,
         education_id: UUID,
         request: EducationUpdateRequest,
-    ) -> Optional[EducationSchema]:
+    ) -> Optional[ProfileEducationSchema]:
         """Update an education entry."""
         update_data = request.model_dump(exclude_unset=True)
 
@@ -124,27 +128,22 @@ class ProfileService:
         )
         total = await self.uow.work_repository.get_work_experiences_count(user_id)
 
-        # Fetch responsibilities for each work experience
-        response_list = []
-        for work in work_experiences:
-            responsibilities = (
-                await self.uow.work_repository.get_responsibilities_by_work(
-                    work.id, user_id
-                )
-            )
+        return WorkExperienceListResponse(
+            work_experiences=work_experiences, total=total
+        )
 
-            work_dict = work.model_dump()
-            work_dict["responsibilities"] = [
-                WorkResponsibilityResponse.model_validate(resp)
-                for resp in responsibilities
-            ]
-            response_list.append(WorkExperienceResponse(**work_dict))
-
-        return WorkExperienceListResponse(work_experiences=response_list, total=total)
+    async def get_user_work_experience_by_id(
+        self, user_id: UUID, work_id: UUID
+    ) -> Optional[ProfileWorkExperienceSchema]:
+        """Get a single work experience by ID for a user."""
+        work_experience = await self.uow.work_repository.get_work_experience_by_id(
+            work_id=work_id, user_id=user_id
+        )
+        return work_experience
 
     async def create_work_experience(
         self, user_id: UUID, request: WorkExperienceCreateRequest
-    ) -> WorkExperienceResponse:
+    ) -> ProfileWorkExperienceSchema:
         """Create a new work experience entry."""
         work_id = uuid4()
 
@@ -181,18 +180,14 @@ class ProfileService:
 
         await self.uow.commit()
 
-        work_dict = work.model_dump()
-        work_dict["responsibilities"] = [
-            WorkResponsibilityResponse.model_validate(resp) for resp in responsibilities
-        ]
-        return WorkExperienceResponse(**work_dict)
+        return work
 
     async def update_work_experience(
         self,
         user_id: UUID,
         work_id: UUID,
         request: WorkExperienceUpdateRequest,
-    ) -> Optional[WorkExperienceResponse]:
+    ) -> Optional[ProfileWorkExperienceSchema]:
         """Update a work experience entry."""
         update_data = request.model_dump(exclude_unset=True)
 
@@ -203,18 +198,9 @@ class ProfileService:
         if not work:
             return None
 
-        # Fetch responsibilities
-        responsibilities = await self.uow.work_repository.get_responsibilities_by_work(
-            work_id, user_id
-        )
-
         await self.uow.commit()
 
-        work_dict = work.model_dump()
-        work_dict["responsibilities"] = [
-            WorkResponsibilityResponse.model_validate(resp) for resp in responsibilities
-        ]
-        return WorkExperienceResponse(**work_dict)
+        return work
 
     async def delete_work_experience(self, user_id: UUID, work_id: UUID) -> bool:
         """Delete a work experience entry."""
@@ -231,7 +217,7 @@ class ProfileService:
         user_id: UUID,
         work_id: UUID,
         request: WorkResponsibilityRequest,
-    ) -> Optional[WorkResponsibilityResponse]:
+    ) -> Optional[ProfileWorkResponsibilitySchema]:
         """Add a responsibility to a work experience."""
         # Verify work experience exists
         work = await self.uow.work_repository.get_work_experience_by_id(
@@ -251,7 +237,7 @@ class ProfileService:
         )
 
         await self.uow.commit()
-        return WorkResponsibilityResponse.model_validate(responsibility)
+        return responsibility
 
     async def delete_work_responsibility(
         self, user_id: UUID, work_id: UUID, responsibility_id: UUID
@@ -278,25 +264,20 @@ class ProfileService:
         """Get all projects for a user."""
         projects = await self.uow.project_repository.get_projects_by_user(user_id)
         total = await self.uow.project_repository.get_projects_count(user_id)
+        return ProjectListResponse(projects=projects, total=total)
 
-        # Fetch tasks for each project
-        response_list = []
-        for project in projects:
-            tasks = await self.uow.project_repository.get_tasks_by_project(
-                project.id, user_id
-            )
-
-            project_dict = project.model_dump()
-            project_dict["tasks"] = [
-                ProjectTaskResponse.model_validate(task) for task in tasks
-            ]
-            response_list.append(ProjectResponse(**project_dict))
-
-        return ProjectListResponse(projects=response_list, total=total)
+    async def get_user_project(
+        self, user_id: UUID, project_id: UUID
+    ) -> Optional[ProfileProjectSchema]:
+        """Get a single project by ID for a user."""
+        project = await self.uow.project_repository.get_project_by_id(
+            project_id=project_id, user_id=user_id
+        )
+        return project
 
     async def create_project(
         self, user_id: UUID, request: ProjectCreateRequest
-    ) -> ProjectResponse:
+    ) -> ProfileProjectSchema:
         """Create a new project."""
         project_id = uuid4()
 
@@ -306,8 +287,10 @@ class ProfileService:
             description=request.description,
             start_date=request.start_date,
             end_date=request.end_date,
-            project_url=request.project_url,
-            repository_url=request.repository_url,
+            project_url=HttpUrl(request.project_url) if request.project_url else None,
+            repository_url=HttpUrl(request.repository_url)
+            if request.repository_url
+            else None,
         )
 
         project = await self.uow.project_repository.create_project(
@@ -333,18 +316,14 @@ class ProfileService:
 
         await self.uow.commit()
 
-        project_dict = project.model_dump()
-        project_dict["tasks"] = [
-            ProjectTaskResponse.model_validate(task) for task in tasks
-        ]
-        return ProjectResponse(**project_dict)
+        return project
 
     async def update_project(
         self,
         user_id: UUID,
         project_id: UUID,
         request: ProjectUpdateRequest,
-    ) -> Optional[ProjectResponse]:
+    ) -> Optional[ProfileProjectSchema]:
         """Update a project."""
         update_data = request.model_dump(exclude_unset=True)
 
@@ -361,18 +340,9 @@ class ProfileService:
         if not project:
             return None
 
-        # Fetch tasks
-        tasks = await self.uow.project_repository.get_tasks_by_project(
-            project_id, user_id
-        )
-
         await self.uow.commit()
 
-        project_dict = project.model_dump()
-        project_dict["tasks"] = [
-            ProjectTaskResponse.model_validate(task) for task in tasks
-        ]
-        return ProjectResponse(**project_dict)
+        return project
 
     async def delete_project(self, user_id: UUID, project_id: UUID) -> bool:
         """Delete a project."""
@@ -389,7 +359,7 @@ class ProfileService:
         user_id: UUID,
         project_id: UUID,
         request: ProjectTaskRequest,
-    ) -> Optional[ProjectTaskResponse]:
+    ) -> Optional[ProfileProjectTaskSchema]:
         """Add a task to a project."""
         # Verify project exists
         project = await self.uow.project_repository.get_project_by_id(
@@ -409,7 +379,7 @@ class ProfileService:
         )
 
         await self.uow.commit()
-        return ProjectTaskResponse.model_validate(task)
+        return task
 
     async def delete_project_task(
         self, user_id: UUID, project_id: UUID, task_id: UUID

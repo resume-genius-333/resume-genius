@@ -3,10 +3,9 @@
 import logging
 from typing import Optional
 from datetime import datetime, timezone
+from uuid import UUID
 from src.core.unit_of_work import UnitOfWork
 
-# Configure logging
-logger = logging.getLogger(__name__)
 from src.core.security import SecurityUtils
 from src.config.auth import AuthConfig
 from src.models.auth import (
@@ -14,19 +13,21 @@ from src.models.auth import (
     UserRegisterResponse,
     UserLoginRequest,
     UserLoginResponse,
-    UserResponse,
     RefreshTokenRequest,
     RefreshTokenResponse,
 )
 from src.models.db import ProviderType
+from src.models.db.profile.user import ProfileUserSchema
+
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 class AuthService:
     """Service for authentication business logic."""
 
-    def __init__(
-        self, uow: UnitOfWork, security: SecurityUtils, config: AuthConfig
-    ):
+    def __init__(self, uow: UnitOfWork, security: SecurityUtils, config: AuthConfig):
         """Initialize auth service with dependencies."""
         self.uow = uow
         self.security = security
@@ -80,7 +81,7 @@ class AuthService:
     ) -> UserLoginResponse:
         """Authenticate user and create session."""
         logger.info(f"Login attempt for email: {request.email}")
-        
+
         # Get user
         logger.debug("Fetching user from database")
         user = await self.uow.auth_repository.get_user_by_email(request.email)
@@ -117,11 +118,13 @@ class AuthService:
 
         # Verify password
         logger.debug("Verifying password")
-        if not self.security.verify_password(
+        if not auth_provider.password_hash or not self.security.verify_password(
             request.password, auth_provider.password_hash
         ):
             logger.warning(f"Invalid password for user: {request.email}")
-            await self.uow.auth_repository.update_login_attempt(auth_provider, success=False)
+            await self.uow.auth_repository.update_login_attempt(
+                auth_provider, success=False
+            )
             raise ValueError("Invalid email or password")
         logger.debug("Password verified successfully")
 
@@ -193,12 +196,16 @@ class AuthService:
             raise ValueError("Invalid refresh token")
 
         # Check if token is blacklisted
+        if not token_payload.jti:
+            raise ValueError("Invalid refresh token")
         if await self.uow.auth_repository.is_token_blacklisted(token_payload.jti):
             raise ValueError("Token has been revoked")
 
         # Hash token and get from database
         token_hash = self.security.hash_token(request.refresh_token)
-        refresh_token_model = await self.uow.auth_repository.get_refresh_token(token_hash)
+        refresh_token_model = await self.uow.auth_repository.get_refresh_token(
+            token_hash
+        )
         if not refresh_token_model:
             raise ValueError("Invalid refresh token")
 
@@ -212,7 +219,9 @@ class AuthService:
 
         # Update session activity
         if token_payload.session_id:
-            await self.uow.auth_repository.update_session_activity(token_payload.session_id)
+            await self.uow.auth_repository.update_session_activity(
+                token_payload.session_id
+            )
 
         # Create new access token
         access_token = self.security.create_access_token(
@@ -234,57 +243,41 @@ class AuthService:
         access_payload = self.security.decode_token(access_token)
         if access_payload:
             # Blacklist access token
-            await self.uow.auth_repository.blacklist_token(
-                jti=access_payload.jti,
-                user_id=access_payload.sub,
-                expires_at=access_payload.exp,
-                reason="User logout",
-            )
+            if access_payload.jti is not None and access_payload.sub is not None:
+                await self.uow.auth_repository.blacklist_token(
+                    jti=access_payload.jti,
+                    user_id=UUID(access_payload.sub),
+                    expires_at=access_payload.exp,
+                    reason="User logout",
+                )
 
             # End session
             if access_payload.session_id:
-                await self.uow.auth_repository.end_user_session(access_payload.session_id)
+                await self.uow.auth_repository.end_user_session(
+                    access_payload.session_id
+                )
 
         # Revoke refresh token if provided
         if refresh_token:
             refresh_payload = self.security.decode_token(refresh_token)
             if refresh_payload:
                 # Blacklist refresh token
-                await self.uow.auth_repository.blacklist_token(
-                    jti=refresh_payload.jti,
-                    user_id=refresh_payload.sub,
-                    expires_at=refresh_payload.exp,
-                    reason="User logout",
-                )
+                if refresh_payload.jti is not None and refresh_payload.sub is not None:
+                    await self.uow.auth_repository.blacklist_token(
+                        jti=refresh_payload.jti,
+                        user_id=UUID(refresh_payload.sub),
+                        expires_at=refresh_payload.exp,
+                        reason="User logout",
+                    )
 
                 # Revoke refresh token in database
                 token_hash = self.security.hash_token(refresh_token)
                 await self.uow.auth_repository.revoke_refresh_token(token_hash)
 
-    async def get_current_user(self, user_id: str) -> UserResponse:
+    async def get_current_user(self, user_id: str) -> ProfileUserSchema:
         """Get current user information."""
         user = await self.uow.auth_repository.get_user_by_id(user_id)
         if not user:
             raise ValueError("User not found")
 
-        return UserResponse(
-            id=str(user.id),
-            email=user.email,
-            first_name=user.first_name,
-            last_name=user.last_name,
-            full_name=user.full_name,
-            name_prefix=user.name_prefix,
-            name_suffix=user.name_suffix,
-            phone=user.phone,
-            location=user.location,
-            avatar_url=user.avatar_url,
-            linkedin_url=user.linkedin_url,
-            github_url=user.github_url,
-            portfolio_url=user.portfolio_url,
-            is_active=user.is_active,
-            email_verified=user.email_verified,
-            email_verified_at=user.email_verified_at,
-            last_login_at=user.last_login_at,
-            created_at=user.created_at,
-            updated_at=user.updated_at,
-        )
+        return user.schema

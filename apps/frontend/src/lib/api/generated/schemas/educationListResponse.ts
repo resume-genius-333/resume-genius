@@ -4,12 +4,12 @@
  * Resume Genius API
  * OpenAPI spec version: 1.0.0
  */
-import type { EducationSchema } from "./educationSchema";
+import type { ProfileEducationSchema } from "./profileEducationSchema";
 
 /**
  * Response model for list of educations.
  */
 export interface EducationListResponse {
-  educations: EducationSchema[];
+  educations: ProfileEducationSchema[];
   total: number;
 }
