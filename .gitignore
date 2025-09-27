@@ -4,3 +4,12 @@
 # macOS system files
 .DS_Store
 .env
+
+# Terraform artifacts
+**/.terraform/
+**/.terraform.lock.hcl
+**/terraform.tfstate
+**/terraform.tfstate.*
+**/*.tfplan
+*.tfvars
+!*.tfvars.example
