@@ -5,7 +5,6 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 
-from dependency_injector.wiring import inject
 from src.api.dependencies import (
     get_security_utils,
     get_auth_config,
@@ -21,9 +20,9 @@ from src.models.auth import (
     UserLoginResponse,
     RefreshTokenRequest,
     RefreshTokenResponse,
-    UserResponse,
     TokenPayload,
 )
+from src.models.db.profile.user import ProfileUserSchema
 from src.services.auth_service import AuthService
 from src.core.security import SecurityUtils
 from src.config.auth import AuthConfig
@@ -232,10 +231,10 @@ async def logout(
                 pass
 
 
-@router.get("/me", response_model=UserResponse)
+@router.get("/me", response_model=ProfileUserSchema)
 async def get_me(
-    current_user: UserResponse = Depends(get_current_active_user),
-) -> UserResponse:
+    current_user: ProfileUserSchema = Depends(get_current_active_user),
+) -> ProfileUserSchema:
     """Get current user information."""
     return current_user
 

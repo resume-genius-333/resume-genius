@@ -86,6 +86,7 @@ container.wire(
         "src.api.routers.auth",
         "src.api.routers.jobs",
         "src.api.routers.resumes",
+        "src.api.routers.profile",
     ]
 )
 
