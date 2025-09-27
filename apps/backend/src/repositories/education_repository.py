@@ -4,7 +4,10 @@ from typing import Optional, List
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from src.models.db.education import Education, EducationSchema
+from src.models.db.profile.education import (
+    ProfileEducation,
+    ProfileEducationSchema,
+)
 from src.models.llm.education import EducationLLMSchema
 
 
@@ -20,9 +23,9 @@ class EducationRepository:
         user_id: uuid.UUID,
         education_id: uuid.UUID,
         llm_schema: EducationLLMSchema,
-    ) -> EducationSchema:
+    ) -> ProfileEducationSchema:
         """Create a new education record in the database."""
-        education = Education.from_llm(
+        education = ProfileEducation.from_llm(
             user_id=user_id,
             education_id=education_id,
             llm_schema=llm_schema,
@@ -36,12 +39,12 @@ class EducationRepository:
 
     async def get_education_by_id(
         self, education_id: uuid.UUID, user_id: Optional[uuid.UUID] = None
-    ) -> Optional[EducationSchema]:
+    ) -> Optional[ProfileEducationSchema]:
         """Get an education record by ID, optionally filtered by user."""
-        query = select(Education).where(Education.id == education_id)
+        query = select(ProfileEducation).where(ProfileEducation.id == education_id)
 
         if user_id:
-            query = query.where(Education.user_id == user_id)
+            query = query.where(ProfileEducation.user_id == user_id)
 
         result = await self.session.execute(query)
         education = result.scalar_one_or_none()
@@ -52,12 +55,12 @@ class EducationRepository:
         user_id: uuid.UUID,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-    ) -> List[EducationSchema]:
+    ) -> List[ProfileEducationSchema]:
         """Get all education records for a specific user."""
-        query = select(Education).where(Education.user_id == user_id)
+        query = select(ProfileEducation).where(ProfileEducation.user_id == user_id)
 
         # Order by end_date descending (most recent first), with NULL values last
-        query = query.order_by(Education.end_date.desc().nullslast())
+        query = query.order_by(ProfileEducation.end_date.desc().nullslast())
 
         if limit:
             query = query.limit(limit)
@@ -73,15 +76,23 @@ class EducationRepository:
         user_id: uuid.UUID,
     ) -> int:
         """Get the count of education records for a user."""
-        query = select(func.count()).select_from(Education).where(Education.user_id == user_id)
+        query = (
+            select(func.count())
+            .select_from(ProfileEducation)
+            .where(ProfileEducation.user_id == user_id)
+        )
         result = await self.session.scalar(query)
         return result or 0
 
     async def update_education(
         self, education_id: uuid.UUID, user_id: uuid.UUID, **kwargs
-    ) -> Optional[EducationSchema]:
+    ) -> Optional[ProfileEducationSchema]:
         """Update education fields."""
-        query = select(Education).where(Education.id == education_id).where(Education.user_id == user_id)
+        query = (
+            select(ProfileEducation)
+            .where(ProfileEducation.id == education_id)
+            .where(ProfileEducation.user_id == user_id)
+        )
         result = await self.session.execute(query)
         education = result.scalar_one_or_none()
 
@@ -97,9 +108,15 @@ class EducationRepository:
 
         return education.schema
 
-    async def delete_education(self, education_id: uuid.UUID, user_id: uuid.UUID) -> bool:
+    async def delete_education(
+        self, education_id: uuid.UUID, user_id: uuid.UUID
+    ) -> bool:
         """Delete an education record."""
-        query = select(Education).where(Education.id == education_id).where(Education.user_id == user_id)
+        query = (
+            select(ProfileEducation)
+            .where(ProfileEducation.id == education_id)
+            .where(ProfileEducation.user_id == user_id)
+        )
         result = await self.session.execute(query)
         education = result.scalar_one_or_none()
 
@@ -115,11 +132,11 @@ class EducationRepository:
         self,
         user_id: uuid.UUID,
         educations_data: List[tuple[uuid.UUID, EducationLLMSchema]],
-    ) -> List[EducationSchema]:
+    ) -> List[ProfileEducationSchema]:
         """Bulk create multiple education records."""
         educations = []
         for education_id, llm_schema in educations_data:
-            education = Education.from_llm(
+            education = ProfileEducation.from_llm(
                 user_id=user_id,
                 education_id=education_id,
                 llm_schema=llm_schema,

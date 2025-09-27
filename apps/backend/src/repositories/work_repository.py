@@ -4,11 +4,11 @@ from typing import Optional, List
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, delete
-from src.models.db.work import (
-    WorkExperience,
-    WorkExperienceSchema,
-    WorkResponsibility,
-    WorkResponsibilitySchema,
+from src.models.db.profile.work import (
+    ProfileWorkExperience,
+    ProfileWorkExperienceSchema,
+    ProfileWorkResponsibility,
+    ProfileWorkResponsibilitySchema,
 )
 from src.models.llm.work import WorkExperienceLLMSchema, WorkResponsibilityLLMSchema
 
@@ -26,9 +26,9 @@ class WorkRepository:
         user_id: uuid.UUID,
         work_id: uuid.UUID,
         llm_schema: WorkExperienceLLMSchema,
-    ) -> WorkExperienceSchema:
+    ) -> ProfileWorkExperienceSchema:
         """Create a new work experience record in the database."""
-        work = WorkExperience.from_llm(
+        work = ProfileWorkExperience.from_llm(
             user_id=user_id,
             work_id=work_id,
             llm_schema=llm_schema,
@@ -42,12 +42,12 @@ class WorkRepository:
 
     async def get_work_experience_by_id(
         self, work_id: uuid.UUID, user_id: Optional[uuid.UUID] = None
-    ) -> Optional[WorkExperienceSchema]:
+    ) -> Optional[ProfileWorkExperienceSchema]:
         """Get a work experience record by ID, optionally filtered by user."""
-        query = select(WorkExperience).where(WorkExperience.id == work_id)
+        query = select(ProfileWorkExperience).where(ProfileWorkExperience.id == work_id)
 
         if user_id:
-            query = query.where(WorkExperience.user_id == user_id)
+            query = query.where(ProfileWorkExperience.user_id == user_id)
 
         result = await self.session.execute(query)
         work = result.scalar_one_or_none()
@@ -58,12 +58,14 @@ class WorkRepository:
         user_id: uuid.UUID,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-    ) -> List[WorkExperienceSchema]:
+    ) -> List[ProfileWorkExperienceSchema]:
         """Get all work experience records for a specific user."""
-        query = select(WorkExperience).where(WorkExperience.user_id == user_id)
+        query = select(ProfileWorkExperience).where(
+            ProfileWorkExperience.user_id == user_id
+        )
 
         # Order by end_date descending (most recent first), with NULL values first (current jobs)
-        query = query.order_by(WorkExperience.end_date.desc().nullsfirst())
+        query = query.order_by(ProfileWorkExperience.end_date.desc().nullsfirst())
 
         if limit:
             query = query.limit(limit)
@@ -79,15 +81,23 @@ class WorkRepository:
         user_id: uuid.UUID,
     ) -> int:
         """Get the count of work experience records for a user."""
-        query = select(func.count()).select_from(WorkExperience).where(WorkExperience.user_id == user_id)
+        query = (
+            select(func.count())
+            .select_from(ProfileWorkExperience)
+            .where(ProfileWorkExperience.user_id == user_id)
+        )
         result = await self.session.scalar(query)
         return result or 0
 
     async def update_work_experience(
         self, work_id: uuid.UUID, user_id: uuid.UUID, **kwargs
-    ) -> Optional[WorkExperienceSchema]:
+    ) -> Optional[ProfileWorkExperienceSchema]:
         """Update work experience fields."""
-        query = select(WorkExperience).where(WorkExperience.id == work_id).where(WorkExperience.user_id == user_id)
+        query = (
+            select(ProfileWorkExperience)
+            .where(ProfileWorkExperience.id == work_id)
+            .where(ProfileWorkExperience.user_id == user_id)
+        )
         result = await self.session.execute(query)
         work = result.scalar_one_or_none()
 
@@ -103,9 +113,15 @@ class WorkRepository:
 
         return work.schema
 
-    async def delete_work_experience(self, work_id: uuid.UUID, user_id: uuid.UUID) -> bool:
+    async def delete_work_experience(
+        self, work_id: uuid.UUID, user_id: uuid.UUID
+    ) -> bool:
         """Delete a work experience record and all related responsibilities."""
-        query = select(WorkExperience).where(WorkExperience.id == work_id).where(WorkExperience.user_id == user_id)
+        query = (
+            select(ProfileWorkExperience)
+            .where(ProfileWorkExperience.id == work_id)
+            .where(ProfileWorkExperience.user_id == user_id)
+        )
         result = await self.session.execute(query)
         work = result.scalar_one_or_none()
 
@@ -124,9 +140,9 @@ class WorkRepository:
         work_id: uuid.UUID,
         responsibility_id: uuid.UUID,
         llm_schema: WorkResponsibilityLLMSchema,
-    ) -> WorkResponsibilitySchema:
+    ) -> ProfileWorkResponsibilitySchema:
         """Create a new work responsibility record."""
-        responsibility = WorkResponsibility.from_llm(
+        responsibility = ProfileWorkResponsibility.from_llm(
             user_id=user_id,
             work_id=work_id,
             responsibility_id=responsibility_id,
@@ -141,12 +157,14 @@ class WorkRepository:
 
     async def get_responsibility_by_id(
         self, responsibility_id: uuid.UUID, user_id: Optional[uuid.UUID] = None
-    ) -> Optional[WorkResponsibilitySchema]:
+    ) -> Optional[ProfileWorkResponsibilitySchema]:
         """Get a work responsibility by ID."""
-        query = select(WorkResponsibility).where(WorkResponsibility.id == responsibility_id)
+        query = select(ProfileWorkResponsibility).where(
+            ProfileWorkResponsibility.id == responsibility_id
+        )
 
         if user_id:
-            query = query.where(WorkResponsibility.user_id == user_id)
+            query = query.where(ProfileWorkResponsibility.user_id == user_id)
 
         result = await self.session.execute(query)
         responsibility = result.scalar_one_or_none()
@@ -156,12 +174,14 @@ class WorkRepository:
         self,
         work_id: uuid.UUID,
         user_id: Optional[uuid.UUID] = None,
-    ) -> List[WorkResponsibilitySchema]:
+    ) -> List[ProfileWorkResponsibilitySchema]:
         """Get all responsibilities for a specific work experience."""
-        query = select(WorkResponsibility).where(WorkResponsibility.work_id == work_id)
+        query = select(ProfileWorkResponsibility).where(
+            ProfileWorkResponsibility.work_id == work_id
+        )
 
         if user_id:
-            query = query.where(WorkResponsibility.user_id == user_id)
+            query = query.where(ProfileWorkResponsibility.user_id == user_id)
 
         result = await self.session.execute(query)
         responsibilities = list(result.scalars().all())
@@ -169,12 +189,12 @@ class WorkRepository:
 
     async def update_responsibility(
         self, responsibility_id: uuid.UUID, user_id: uuid.UUID, **kwargs
-    ) -> Optional[WorkResponsibilitySchema]:
+    ) -> Optional[ProfileWorkResponsibilitySchema]:
         """Update responsibility fields."""
         query = (
-            select(WorkResponsibility)
-            .where(WorkResponsibility.id == responsibility_id)
-            .where(WorkResponsibility.user_id == user_id)
+            select(ProfileWorkResponsibility)
+            .where(ProfileWorkResponsibility.id == responsibility_id)
+            .where(ProfileWorkResponsibility.user_id == user_id)
         )
         result = await self.session.execute(query)
         responsibility = result.scalar_one_or_none()
@@ -191,12 +211,14 @@ class WorkRepository:
 
         return responsibility.schema
 
-    async def delete_responsibility(self, responsibility_id: uuid.UUID, user_id: uuid.UUID) -> bool:
+    async def delete_responsibility(
+        self, responsibility_id: uuid.UUID, user_id: uuid.UUID
+    ) -> bool:
         """Delete a responsibility record."""
         query = (
-            select(WorkResponsibility)
-            .where(WorkResponsibility.id == responsibility_id)
-            .where(WorkResponsibility.user_id == user_id)
+            select(ProfileWorkResponsibility)
+            .where(ProfileWorkResponsibility.id == responsibility_id)
+            .where(ProfileWorkResponsibility.user_id == user_id)
         )
         result = await self.session.execute(query)
         responsibility = result.scalar_one_or_none()
@@ -214,11 +236,11 @@ class WorkRepository:
         user_id: uuid.UUID,
         work_id: uuid.UUID,
         responsibilities_data: List[tuple[uuid.UUID, WorkResponsibilityLLMSchema]],
-    ) -> List[WorkResponsibilitySchema]:
+    ) -> List[ProfileWorkResponsibilitySchema]:
         """Bulk create multiple responsibility records for a work experience."""
         responsibilities = []
         for responsibility_id, llm_schema in responsibilities_data:
-            responsibility = WorkResponsibility.from_llm(
+            responsibility = ProfileWorkResponsibility.from_llm(
                 user_id=user_id,
                 work_id=work_id,
                 responsibility_id=responsibility_id,
@@ -235,11 +257,13 @@ class WorkRepository:
 
         return [resp.schema for resp in responsibilities]
 
-    async def delete_responsibilities_by_work(self, work_id: uuid.UUID, user_id: uuid.UUID) -> int:
+    async def delete_responsibilities_by_work(
+        self, work_id: uuid.UUID, user_id: uuid.UUID
+    ) -> int:
         """Delete all responsibilities for a specific work experience."""
-        stmt = delete(WorkResponsibility).where(
-            WorkResponsibility.work_id == work_id,
-            WorkResponsibility.user_id == user_id
+        stmt = delete(ProfileWorkResponsibility).where(
+            ProfileWorkResponsibility.work_id == work_id,
+            ProfileWorkResponsibility.user_id == user_id,
         )
         result = await self.session.execute(stmt)
         await self.session.commit()
