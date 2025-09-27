@@ -1,0 +1,14 @@
+# Region where Terraform provisions the state bucket and lock table. Ensure this matches
+# the region configured in environment backends so they can access the same state store.
+aws_region = "ap-southeast-1"
+
+# Globally unique S3 bucket name that houses Terraform state files.
+state_bucket_name = "resume-genius-tf-state-ap-sg"
+
+# DynamoDB table name used to co-ordinate state locking across Terraform runs.
+lock_table_name = "resume-genius-tf-lock-ap-sg"
+
+# Optional tags applied to both resources to aid with cost allocation or ownership.
+# tags = {
+#   Owner = "platform"
+# }

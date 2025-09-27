@@ -1,0 +1,38 @@
+# Region that hosts every resource. Choose the one closest to your users to minimise latency.
+aws_region = "ap-southeast-1"
+
+# Short environment label that flows into resource names and tags (dev/staging/prod, etc.).
+environment = "dev"
+
+# Prefix keeps resource names unique when multiple projects share an AWS account.
+name_prefix = "resume-genius"
+
+# Availability zones that the VPC subnets will occupy for redundancy.
+availability_zones = ["ap-southeast-1a", "ap-southeast-1b"]
+
+# Database admin credentials. Replace with production-grade secrets before applying.
+rds_master_username = "litellm"
+rds_master_password = "REPLACE_ME"
+
+# Container image to deploy. Update the tag when shipping new application versions.
+litellm_container_image = "084828573819.dkr.ecr.ap-southeast-1.amazonaws.com/litellm:latest"
+
+# Environment variable -> secret ARN map. ECS injects secrets at runtime without exposing
+# plaintext in logs or state. Keep this in sync with the secrets you manage in AWS.
+litellm_secrets = {
+  LITELLM_MASTER_KEY       = "arn:aws:secretsmanager:ap-southeast-1:084828573819:secret:litellm/LITELLM_MASTER_KEY"
+  LITELLM_SALT_KEY         = "arn:aws:secretsmanager:ap-southeast-1:084828573819:secret:litellm/LITELLM_SALT_KEY"
+  DATABASE_URL             = "arn:aws:secretsmanager:ap-southeast-1:084828573819:secret:litellm/DATABASE_URL"
+  OPENAI_API_KEY           = "arn:aws:secretsmanager:ap-southeast-1:084828573819:secret:litellm/OPENAI_API_KEY"
+  ANTHROPIC_API_KEY        = "arn:aws:secretsmanager:ap-southeast-1:084828573819:secret:litellm/ANTHROPIC_API_KEY"
+  GOOGLE_API_KEY           = "arn:aws:secretsmanager:ap-southeast-1:084828573819:secret:litellm/GOOGLE_API_KEY"
+  GROQ_API_KEY             = "arn:aws:secretsmanager:ap-southeast-1:084828573819:secret:litellm/GROQ_API_KEY"
+  PERPLEXITYAI_API_KEY     = "arn:aws:secretsmanager:ap-southeast-1:084828573819:secret:litellm/PERPLEXITYAI_API_KEY"
+  XAI_API_KEY              = "arn:aws:secretsmanager:ap-southeast-1:084828573819:secret:litellm/XAI_API_KEY"
+}
+
+# Plain-text environment variables passed to the container. Use this for non-sensitive
+# configuration such as feature flags or human-friendly metadata.
+litellm_environment = {
+  LITELLM_DATABASE_NAME = "litellm"
+}
