@@ -95,7 +95,7 @@ jobs:
         env:
           TF_VAR_litellm_container_image: ${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
           TF_VAR_rds_master_password: ${{ secrets.LITELLM_DB_MASTER_PASSWORD }}
-          TF_VAR_redis_auth_token: ${{ secrets.LITELLM_REDIS_AUTH_TOKEN }}
+          TF_VAR_redis_auth_token_secret_arn: ${{ secrets.LITELLM_REDIS_AUTH_TOKEN_SECRET_ARN }}
           TF_VAR_litellm_secrets: ${{ secrets.LITELLM_SECRETS_JSON }}
         run: terraform plan -input=false
 
@@ -135,7 +135,7 @@ jobs:
         env:
           TF_VAR_litellm_container_image: ${{ env.IMAGE_URI }}
           TF_VAR_rds_master_password: ${{ secrets.LITELLM_DB_MASTER_PASSWORD }}
-          TF_VAR_redis_auth_token: ${{ secrets.LITELLM_REDIS_AUTH_TOKEN }}
+          TF_VAR_redis_auth_token_secret_arn: ${{ secrets.LITELLM_REDIS_AUTH_TOKEN_SECRET_ARN }}
           TF_VAR_litellm_secrets: ${{ secrets.LITELLM_SECRETS_JSON }}
         run: terraform apply -input=false -auto-approve
 
