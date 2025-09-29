@@ -10,6 +10,34 @@ This Terraform configuration provisions the AWS infrastructure required to run L
 - `modules/ecs_litellm` – ECS cluster/service, ALB, IAM roles, CloudWatch logs.
 - `environments/dev` – Sample stack wiring the modules together. Duplicate this folder per environment.
 
+## Architecture Overview
+
+The Terraform stack builds a private VPC with public subnets for ingress and private subnets for application and data tiers. The diagram below highlights how traffic and dependencies flow through the environment:
+
+```mermaid
+flowchart LR
+  Internet((Internet)) --> ALB
+  subgraph VPC["VPC (resume-genius-env)"]
+    subgraph Public["Public subnets"]
+      ALB[Application Load Balancer]
+      NAT[NAT Gateway]
+    end
+    subgraph Private["Private subnets"]
+      ECS[ECS Fargate Service<br/>LiteLLM tasks]
+      Redis[(ElastiCache Redis)]
+      RDS[(RDS PostgreSQL)]
+    end
+  end
+  ALB --> ECS
+  ECS --> Redis
+  ECS --> RDS
+  ECS -->|Fetch secrets| Secrets[(AWS Secrets Manager)]
+  ECS -->|Send logs| CloudWatch[(CloudWatch Logs)]
+  ECS -->|Pull image| ECR[(Amazon ECR)]
+  ECS -->|Outbound API calls| NAT
+  NAT --> Internet
+```
+
 ## Prerequisites
 
 1. **Terraform** `>= 1.6`.
@@ -42,7 +70,8 @@ Key variables:
 - `availability_zones` – AZs that match your subnets.
 - `litellm_container_image` – e.g. `ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/litellm:main`.
 - `litellm_secrets` – map of environment variable names to secret ARNs.
-- `rds_master_password`, `redis_auth_token` – inject secure values via tfvars or environment variables when planning/applying.
+- `rds_master_password`, `redis_auth_token_secret_arn` – inject secure values via tfvars or environment variables when planning/applying.
+- `alb_https_certificate_arn` – optional ACM certificate for enabling HTTPS at the load balancer.
 
 Outputs include the ALB DNS name, ECS service/cluster identifiers, and datastore endpoints for verification.
 
@@ -53,3 +82,12 @@ Outputs include the ALB DNS name, ECS service/cluster identifiers, and datastore
 - Override ECS sizing (`litellm_task_cpu`, `litellm_task_memory`, `litellm_desired_count`) and ALB settings through variables.
 
 > **Security tip:** Avoid committing real secrets. Populate them through Terraform Cloud/Terragrunt variables, or pass with `TF_VAR_` environment variables during workflows.
+
+### Enabling HTTPS
+
+1. Request or import an ACM certificate in the target AWS region (e.g. `ap-southeast-1`).
+2. Update your environment `terraform.tfvars` with:
+   - `alb_https_certificate_arn = "arn:aws:acm:REGION:ACCOUNT:certificate/ID"`
+   - (Optional) `alb_redirect_http_to_https = true` to issue an ALB redirect from port 80 to 443.
+3. Ensure the certificate’s domain names point at the ALB’s DNS name via CNAME/ALIAS records.
+4. Apply Terraform; it creates an HTTPS listener that terminates TLS with the provided certificate.

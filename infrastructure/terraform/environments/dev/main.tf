@@ -48,6 +48,12 @@ module "network" {
   tags = local.tags
 }
 
+# Resolve the Redis AUTH token from Secrets Manager so the sensitive value never needs to
+# live in source control. The secret should contain the raw token string (not JSON).
+data "aws_secretsmanager_secret_version" "redis_auth_token" {
+  secret_id = var.redis_auth_token_secret_arn
+}
+
 # Shared security group that allows east-west traffic between LiteLLM components such as
 # the ECS service, Redis, and Postgres. Outbound is fully open because AWS SGs are
 # stateful and we only rely on other groups to restrict inbound traffic.
@@ -151,7 +157,7 @@ module "redis" {
   transit_encryption_enabled = var.redis_transit_encryption_enabled
   at_rest_encryption_enabled = var.redis_at_rest_encryption_enabled
   # Optional auth token enforces password-based access; recommended for production.
-  auth_token = var.redis_auth_token
+  auth_token = data.aws_secretsmanager_secret_version.redis_auth_token.secret_string
   # Maintenance/snapshot windows schedule disruptive operations; leave null to let AWS pick
   # defaults or set explicit off-peak times.
   maintenance_window       = var.redis_maintenance_window
@@ -213,6 +219,10 @@ module "litellm" {
   health_check_path = var.litellm_health_check_path
   # Load balancer listener and protection settings influence external access and safety.
   listener_port           = var.alb_listener_port
+  https_listener_port     = var.alb_https_listener_port
+  https_certificate_arn   = var.alb_https_certificate_arn
+  https_ssl_policy        = var.alb_https_ssl_policy
+  redirect_http_to_https  = var.alb_redirect_http_to_https
   alb_deletion_protection = var.alb_deletion_protection
   # Control log retention in CloudWatch; longer periods improve auditing but cost more.
   log_retention_days = var.litellm_log_retention_days
