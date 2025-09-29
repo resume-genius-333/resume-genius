@@ -1,9 +1,10 @@
-# Docker Compose for LiteLLM Proxy
-# Simplified configuration without Langfuse
+# Docker Compose for Resume Genius Development
+# LiteLLM local services are available behind an opt-in compose profile
 
 services:
-  # LiteLLM Proxy Service
+  # LiteLLM Proxy Service (opt-in via --profile litellm-local)
   litellm:
+    profiles: [litellm-local]
     image: ghcr.io/berriai/litellm:main-stable
     container_name: litellm-proxy
     ports:
@@ -31,8 +32,9 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # PostgreSQL Database for LiteLLM
+  # PostgreSQL Database for LiteLLM (opt-in via --profile litellm-local)
   litellm-postgres:
+    profiles: [litellm-local]
     image: postgres:16-alpine
     container_name: litellm-postgres
     restart: always
@@ -164,8 +166,6 @@ services:
         condition: service_healthy
       resume-genius-redis:
         condition: service_healthy
-      litellm:
-        condition: service_started
     restart: unless-stopped
 
 volumes:

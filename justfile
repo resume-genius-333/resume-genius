@@ -28,6 +28,7 @@ default:
 
 # Alias for common commands
 alias u := up
+alias ul := up-litellm
 alias d := down
 alias l := logs
 alias r := restart
@@ -39,9 +40,19 @@ alias rb := rebuild-backend
 
 # Start all services in development mode with hot reload
 up:
-    @echo "{{GREEN}}Starting services in development mode...{{NC}}"
+    @echo "{{GREEN}}Starting services in development mode (LiteLLM remote)...{{NC}}"
     {{docker_compose}} up -d
     @echo "{{GREEN}}Services started!{{NC}}"
+    @echo "Frontend: http://localhost:3000"
+    @echo "Backend:  http://localhost:8000/docs"
+    @echo "Redis:    localhost:6380"
+    @echo "LiteLLM:  remote (run 'just up-litellm' for local proxy)"
+
+# Start all services including local LiteLLM profile
+up-litellm:
+    @echo "{{GREEN}}Starting services with local LiteLLM profile...{{NC}}"
+    {{docker_compose}} --profile litellm-local up -d
+    @echo "{{GREEN}}Services started with local LiteLLM!{{NC}}"
     @echo "Frontend: http://localhost:3000"
     @echo "Backend:  http://localhost:8000/docs"
     @echo "LiteLLM:  http://localhost:4000"
@@ -481,6 +492,7 @@ help:
     @echo "{{GREEN}}Quick Start:{{NC}}"
     @echo "  just setup          - Initial project setup"
     @echo "  just up             - Start development services"
+    @echo "  just up-litellm     - Start development services with local LiteLLM"
     @echo "  just down           - Stop all services"
     @echo ""
     @echo "{{GREEN}}Docker:{{NC}}"
