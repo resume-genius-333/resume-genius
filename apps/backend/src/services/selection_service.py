@@ -163,7 +163,7 @@ class SelectionService:
         educations = await self.uow.education_repository.get_educations_by_user(user_id)
         logger.info(f"Found {len(educations)} educations.")
         selection_result = await self.instructor.create(
-            model="gpt-5-nano",
+            model="claude-4-sonnet",
             response_model=SelectionResult,
             messages=[
                 {
