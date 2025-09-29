@@ -13,3 +13,6 @@
 **/*.tfplan
 *.tfvars
 !*.tfvars.example
+
+**/.mypy_cache
+**/.ruff_cache
