@@ -7,7 +7,7 @@ import type {
   UseFormReturn,
 } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import z, { type ZodObject, type ZodRawShape, type ZodTypeAny } from "zod";
+import z, { type ZodObject, type ZodRawShape, type ZodType } from "zod";
 
 /**
  * Custom hook for integrating Zod schemas with React Hook Form.
@@ -122,6 +122,14 @@ type NormalizationDefaults<T extends object, Base> = {
   [K in keyof T as MaybeNil<Base, T[K]> extends true ? K : never]: Base;
 };
 
+// interface test {
+//   name: string | null,
+//   birthday: string | undefined,
+//   cake: string
+// }
+
+// type test2 = NormalizationDefaults<test, string>
+
 /**
  * Combined type for all normalization defaults (strings and numbers).
  * The user must provide default values for these fields.
@@ -226,8 +234,8 @@ interface UseZodFormResult<
  * It strips away the optional/nullable wrappers so forms can work with
  * the base type (e.g., string instead of string | null).
  */
-function buildFieldNormalization(field: ZodTypeAny): {
-  normalized: ZodTypeAny;
+function buildFieldNormalization(field: ZodType): {
+  normalized: ZodType;
   meta: FieldMeta;
   replaced: boolean;
 } {
@@ -239,12 +247,12 @@ function buildFieldNormalization(field: ZodTypeAny): {
   while (current instanceof z.ZodOptional || current instanceof z.ZodNullable) {
     if (current instanceof z.ZodOptional) {
       wasOptional = true;
-      current = current._def.innerType as ZodTypeAny;
+      current = current._def.innerType as ZodType;
       continue;
     }
 
     wasNullable = true;
-    current = current._def.innerType as ZodTypeAny;
+    current = current._def.innerType as ZodType;
   }
 
   const baseType: FieldMeta["baseType"] =
@@ -308,7 +316,7 @@ function buildFormSchema<
   };
 
   const baseSchema = omit.length > 0 ? zodObject.omit(omitMask) : zodObject;
-  const overrides: Record<string, ZodTypeAny> = {};
+  const overrides: Record<string, ZodType> = {};
   const meta: FieldMetaMap = {};
   const shape = zodObject.shape;
 
@@ -316,7 +324,7 @@ function buildFormSchema<
   for (const key of Object.keys(shape)) {
     if (key in omitMask) continue;
 
-    const field = shape[key as keyof typeof shape] as ZodTypeAny;
+    const field = shape[key as keyof typeof shape] as ZodType;
     const {
       normalized,
       meta: fieldMeta,
