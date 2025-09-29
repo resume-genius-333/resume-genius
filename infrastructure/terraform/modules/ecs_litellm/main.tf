@@ -39,6 +39,9 @@ locals {
       }
     }
   ]
+
+  # Determine whether HTTPS should be configured based on the presence of a certificate ARN.
+  https_enabled = length(trimspace(coalesce(var.https_certificate_arn, ""))) > 0
 }
 
 # CloudWatch Logs group that stores container stdout/stderr with configurable retention.
@@ -175,6 +178,18 @@ resource "aws_security_group_rule" "alb_ingress" {
   cidr_blocks       = [each.value]
 }
 
+# Allow HTTPS traffic when a TLS listener is configured.
+resource "aws_security_group_rule" "alb_ingress_https" {
+  for_each = local.https_enabled ? toset(var.alb_ingress_cidrs) : toset([])
+
+  security_group_id = aws_security_group.alb.id
+  type              = "ingress"
+  from_port         = var.https_listener_port
+  to_port           = var.https_listener_port
+  protocol          = "tcp"
+  cidr_blocks       = [each.value]
+}
+
 # Permit the ALB to reach external services (e.g. for health checks on public endpoints).
 resource "aws_security_group_rule" "alb_egress" {
   security_group_id = aws_security_group.alb.id
@@ -250,11 +265,44 @@ resource "aws_lb_target_group" "this" {
   })
 }
 
-# Listener that routes inbound HTTP requests to the service's target group.
+# Listener that forwards HTTP traffic when HTTPS redirection is disabled.
 resource "aws_lb_listener" "http" {
+  count             = local.https_enabled && var.redirect_http_to_https ? 0 : 1
   load_balancer_arn = aws_lb.this.arn
   port              = var.listener_port
   protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.this.arn
+  }
+}
+
+# Listener that redirects HTTP to HTTPS when TLS is enabled and redirects are requested.
+resource "aws_lb_listener" "http_redirect" {
+  count             = local.https_enabled && var.redirect_http_to_https ? 1 : 0
+  load_balancer_arn = aws_lb.this.arn
+  port              = var.listener_port
+  protocol          = "HTTP"
+
+  default_action {
+    type = "redirect"
+    redirect {
+      port        = tostring(var.https_listener_port)
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+}
+
+# HTTPS listener that forwards traffic to the same target group when TLS is enabled.
+resource "aws_lb_listener" "https" {
+  count             = local.https_enabled ? 1 : 0
+  load_balancer_arn = aws_lb.this.arn
+  port              = var.https_listener_port
+  protocol          = "HTTPS"
+  ssl_policy        = var.https_ssl_policy
+  certificate_arn   = var.https_certificate_arn
 
   default_action {
     type             = "forward"

@@ -129,6 +129,34 @@ variable "listener_port" {
   default     = 80
 }
 
+# TCP port used for the HTTPS listener when TLS termination is enabled.
+variable "https_listener_port" {
+  type        = number
+  description = "HTTPS listener port for the ALB."
+  default     = 443
+}
+
+# ACM certificate ARN that the ALB uses to terminate TLS. Leave null to keep HTTP only.
+variable "https_certificate_arn" {
+  type        = string
+  description = "ACM certificate ARN for HTTPS termination."
+  default     = null
+}
+
+# SSL policy applied to the HTTPS listener when TLS is enabled.
+variable "https_ssl_policy" {
+  type        = string
+  description = "SSL policy for the HTTPS listener."
+  default     = "ELBSecurityPolicy-2016-08"
+}
+
+# When true and HTTPS is enabled, the HTTP listener redirects traffic to HTTPS.
+variable "redirect_http_to_https" {
+  type        = bool
+  description = "Redirect HTTP requests to HTTPS when TLS is enabled."
+  default     = true
+}
+
 # Prevents accidental deletion of the load balancer from Terraform or the AWS console.
 variable "alb_deletion_protection" {
   type        = bool

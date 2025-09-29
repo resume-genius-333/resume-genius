@@ -292,13 +292,18 @@ variable "redis_at_rest_encryption_enabled" {
   default     = true
 }
 
-# Optional password clients must present. Provide an SSM Parameter Store or Secrets Manager
-# ARN so the token is not stored in plain text.
-variable "redis_auth_token" {
+# Secrets Manager secret that stores the Redis AUTH token string. The workflow resolves the
+# secret at apply-time so the token never lives in the repo.
+variable "redis_auth_token_secret_arn" {
   type        = string
-  description = "Redis AUTH token (Secrets Manager or SSM ARN)."
-  default     = null
+  description = "Secrets Manager ARN containing the Redis AUTH token."
+  nullable    = false
   sensitive   = true
+
+  validation {
+    condition     = can(regex("^arn:aws:secretsmanager:[^:]+:[0-9]{12}:secret:.+", var.redis_auth_token_secret_arn))
+    error_message = "redis_auth_token_secret_arn must be a valid Secrets Manager secret ARN."
+  }
 }
 
 # UTC time window when AWS may apply patches. Pick off-peak hours to minimise disruption
@@ -468,6 +473,31 @@ variable "alb_listener_port" {
   type        = number
   description = "Port for the ALB HTTP listener."
   default     = 80
+}
+
+# HTTPS listener configuration
+variable "alb_https_listener_port" {
+  type        = number
+  description = "Port for the ALB HTTPS listener when TLS is enabled."
+  default     = 443
+}
+
+variable "alb_https_certificate_arn" {
+  type        = string
+  description = "ACM certificate ARN for terminating HTTPS at the ALB."
+  default     = null
+}
+
+variable "alb_https_ssl_policy" {
+  type        = string
+  description = "SSL policy applied to the HTTPS listener."
+  default     = "ELBSecurityPolicy-2016-08"
+}
+
+variable "alb_redirect_http_to_https" {
+  type        = bool
+  description = "Redirect HTTP requests to HTTPS when a certificate ARN is provided."
+  default     = true
 }
 
 # Protects the ALB from accidental deletion. Enable in production to avoid unplanned
