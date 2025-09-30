@@ -148,16 +148,11 @@ export async function customAxiosInstance<T = any, D = any>(
     responseSchema?: T;
   }
 ): Promise<MaybeZodObject<T> | ReadableStream<MaybeZodObject<T>>> {
-  if (typeof window === "undefined") {
-    console.log("Not in browser");
-  } else {
-    console.log("In browser");
-  }
   const isSseStreaming = config.responseType === "sse-stream";
 
   // Use Fetch API for SSE streaming
   if (isSseStreaming) {
-    return handleSSEWithFetch(config);
+    return handleSseWithFetch(config);
   }
 
   // Use axios for non-streaming requests
@@ -195,7 +190,7 @@ export async function customAxiosInstance<T = any, D = any>(
 /**
  * Handle SSE streaming using Fetch API
  */
-async function handleSSEWithFetch<T = any, D = any>(
+async function handleSseWithFetch<T = any, D = any>(
   config: CustomAxiosRequestConfig<D> & {
     responseSchema?: T;
   }
