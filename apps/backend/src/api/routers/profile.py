@@ -9,9 +9,13 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from src.api.dependencies import get_current_user_id
 from src.core.unit_of_work import UnitOfWorkFactory
 from src.models.api.profile import (
+    CreateProfileResumeUploadUrlRequest,
+    CreateProfileResumeUploadUrlResponse,
     EducationCreateRequest,
     EducationUpdateRequest,
     EducationListResponse,
+    StartProfileResumeExtractionRequest,
+    StartProfileResumeExtractionResponse,
     WorkExperienceCreateRequest,
     WorkExperienceUpdateRequest,
     WorkExperienceListResponse,
@@ -353,3 +357,25 @@ async def delete_profile_project_task(
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Task not found"
             )
+
+
+@router.post(
+    "/profile-resume/upload/", response_model=CreateProfileResumeUploadUrlResponse
+)
+async def create_profile_resume_upload_url(
+    request: CreateProfileResumeUploadUrlRequest,
+    current_user_id: Annotated[UUID, Depends(get_current_user_id)],
+):
+    raise NotImplementedError()
+
+
+@router.post(
+    "/profile-resume/extract/{resume_id}",
+    response_model=StartProfileResumeExtractionResponse,
+)
+async def start_profile_resume_extraction(
+    resume_id: UUID,
+    request: StartProfileResumeExtractionRequest,
+    current_user_id: Annotated[UUID, Depends(get_current_user_id)],
+):
+    raise NotImplementedError()

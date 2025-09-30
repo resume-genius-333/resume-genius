@@ -237,3 +237,7 @@ export * from "./workExperienceUpdateRequestLocation";
 export * from "./workExperienceUpdateRequestPositionTitle";
 export * from "./workExperienceUpdateRequestStartDate";
 export * from "./workResponsibilityRequest";
+export * from "./createProfileResumeUploadUrlRequest";
+export * from "./createProfileResumeUploadUrlResponse";
+export * from "./startProfileResumeExtractionRequest";
+export * from "./startProfileResumeExtractionResponse";

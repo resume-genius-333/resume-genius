@@ -9,6 +9,8 @@ import type {
   BodyTokenApiV1AuthTokenPost,
   CreateJobRequest,
   CreateJobResponse,
+  CreateProfileResumeUploadUrlRequest,
+  CreateProfileResumeUploadUrlResponse,
   CreateResumeVersionRequest,
   EducationCreateRequest,
   EducationListResponse,
@@ -46,6 +48,8 @@ import type {
   ResumeWorkExperienceRequest,
   ResumeWorkExperienceSchema,
   SelectionResult,
+  StartProfileResumeExtractionRequest,
+  StartProfileResumeExtractionResponse,
   TestApiKeyApiV1AuthTestApiKeyGet200,
   UpdateResumeVersionRequest,
   UserLoginRequest,
@@ -890,6 +894,36 @@ export const deleteProfileProjectTaskApiV1ProfileProjectsProjectIdTasksTaskIdDel
   };
 
 /**
+ * @summary Create Profile Resume Upload Url
+ */
+export const createProfileResumeUploadUrlApiV1ProfileProfileResumeUploadPost = (
+  createProfileResumeUploadUrlRequest: CreateProfileResumeUploadUrlRequest
+) => {
+  return customAxiosInstance<CreateProfileResumeUploadUrlResponse>({
+    url: `/api/v1/profile/profile-resume/upload/`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: createProfileResumeUploadUrlRequest,
+  });
+};
+
+/**
+ * @summary Start Profile Resume Extraction
+ */
+export const startProfileResumeExtractionApiV1ProfileProfileResumeExtractResumeIdPost =
+  (
+    resumeId: string,
+    startProfileResumeExtractionRequest: StartProfileResumeExtractionRequest
+  ) => {
+    return customAxiosInstance<StartProfileResumeExtractionResponse>({
+      url: `/api/v1/profile/profile-resume/extract/${resumeId}`,
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      data: startProfileResumeExtractionRequest,
+    });
+  };
+
+/**
  * @summary Root
  */
 export const rootGet = () => {
@@ -1218,6 +1252,22 @@ export type DeleteProfileProjectTaskApiV1ProfileProjectsProjectIdTasksTaskIdDele
     Awaited<
       ReturnType<
         typeof deleteProfileProjectTaskApiV1ProfileProjectsProjectIdTasksTaskIdDelete
+      >
+    >
+  >;
+export type CreateProfileResumeUploadUrlApiV1ProfileProfileResumeUploadPostResult =
+  NonNullable<
+    Awaited<
+      ReturnType<
+        typeof createProfileResumeUploadUrlApiV1ProfileProfileResumeUploadPost
+      >
+    >
+  >;
+export type StartProfileResumeExtractionApiV1ProfileProfileResumeExtractResumeIdPostResult =
+  NonNullable<
+    Awaited<
+      ReturnType<
+        typeof startProfileResumeExtractionApiV1ProfileProfileResumeExtractResumeIdPost
       >
     >
   >;

@@ -116,3 +116,17 @@ class ProjectListResponse(BaseModel):
 
     projects: List[ProfileProjectSchema]
     total: int
+
+class CreateProfileResumeUploadUrlRequest(BaseModel):
+    sha256_checksum: str
+    md5_checksum: str
+
+class CreateProfileResumeUploadUrlResponse(BaseModel):
+    fileId: str
+    uploadUrl: str
+
+class StartProfileResumeExtractionRequest(BaseModel):
+    fileId: str
+
+class StartProfileResumeExtractionResponse(BaseModel):
+    fileId: str

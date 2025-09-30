@@ -1681,6 +1681,39 @@ export const deleteProfileProjectTaskApiV1ProfileProjectsProjectIdTasksTaskIdDel
   });
 
 /**
+ * @summary Create Profile Resume Upload Url
+ */
+export const createProfileResumeUploadUrlApiV1ProfileProfileResumeUploadPostBody =
+  zod.object({
+    sha256_checksum: zod.string(),
+    md5_checksum: zod.string(),
+  });
+
+export const createProfileResumeUploadUrlApiV1ProfileProfileResumeUploadPostResponse =
+  zod.object({
+    fileId: zod.string(),
+    uploadUrl: zod.string(),
+  });
+
+/**
+ * @summary Start Profile Resume Extraction
+ */
+export const startProfileResumeExtractionApiV1ProfileProfileResumeExtractResumeIdPostParams =
+  zod.object({
+    resume_id: zod.uuid(),
+  });
+
+export const startProfileResumeExtractionApiV1ProfileProfileResumeExtractResumeIdPostBody =
+  zod.object({
+    fileId: zod.string(),
+  });
+
+export const startProfileResumeExtractionApiV1ProfileProfileResumeExtractResumeIdPostResponse =
+  zod.object({
+    fileId: zod.string(),
+  });
+
+/**
  * @summary Root
  */
 export const rootGetResponse = zod.any();
