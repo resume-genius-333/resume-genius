@@ -5,6 +5,6 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export interface StartProfileResumeExtractionResponse {
-  file_id: string;
-}
+export type CreateProfileResumeUploadUrlResponseRequiredHeaders = {
+  [key: string]: string;
+};

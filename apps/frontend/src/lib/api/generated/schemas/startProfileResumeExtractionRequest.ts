@@ -6,5 +6,5 @@
  */
 
 export interface StartProfileResumeExtractionRequest {
-  fileId: string;
+  file_id: string;
 }

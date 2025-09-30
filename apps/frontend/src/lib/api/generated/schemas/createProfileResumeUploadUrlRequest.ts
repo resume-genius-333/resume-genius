@@ -4,8 +4,10 @@
  * Resume Genius API
  * OpenAPI spec version: 1.0.0
  */
+import type { CreateProfileResumeUploadUrlRequestContentType } from "./createProfileResumeUploadUrlRequestContentType";
 
 export interface CreateProfileResumeUploadUrlRequest {
   sha256_checksum: string;
   md5_checksum: string;
+  content_type?: CreateProfileResumeUploadUrlRequestContentType;
 }

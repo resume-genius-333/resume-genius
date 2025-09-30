@@ -4,8 +4,10 @@
  * Resume Genius API
  * OpenAPI spec version: 1.0.0
  */
+import type { CreateProfileResumeUploadUrlResponseRequiredHeaders } from "./createProfileResumeUploadUrlResponseRequiredHeaders";
 
 export interface CreateProfileResumeUploadUrlResponse {
-  fileId: string;
-  uploadUrl: string;
+  file_id: string;
+  upload_url: string;
+  required_headers: CreateProfileResumeUploadUrlResponseRequiredHeaders;
 }

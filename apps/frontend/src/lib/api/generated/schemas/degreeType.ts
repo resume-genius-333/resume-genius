@@ -7,6 +7,7 @@
 
 export type DegreeType = (typeof DegreeType)[keyof typeof DegreeType];
 
+// eslint-disable-next-line @typescript-eslint/no-redeclare
 export const DegreeType = {
   high_school: "high_school",
   associate: "associate",
