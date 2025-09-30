@@ -82,7 +82,7 @@ export default function ResumeUploadTestPage() {
           md5_checksum: md5,
         });
 
-      const { fileId: newFileId, uploadUrl } = uploadUrlResponse.data;
+      const { fileId: newFileId, uploadUrl } = uploadUrlResponse;
       setFileId(newFileId);
 
       // Upload file to signed URL
@@ -120,8 +120,8 @@ export default function ResumeUploadTestPage() {
           { fileId }
         );
 
-      console.log("Analysis started:", response.data);
-      alert(`Analysis started successfully! File ID: ${response.data.fileId}`);
+      console.log("Analysis started:", response);
+      alert(`Analysis started successfully! File ID: ${response.fileId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Analysis failed");
       console.error("Analysis error:", err);
