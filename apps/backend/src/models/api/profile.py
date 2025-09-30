@@ -1,6 +1,7 @@
 """API models for user profile management endpoints."""
 
-from typing import Optional, List
+from typing import Any, Optional, List
+import uuid
 from pydantic import BaseModel, Field
 
 from src.models.db.profile.education import ProfileEducationSchema
@@ -117,16 +118,22 @@ class ProjectListResponse(BaseModel):
     projects: List[ProfileProjectSchema]
     total: int
 
+
 class CreateProfileResumeUploadUrlRequest(BaseModel):
     sha256_checksum: str
     md5_checksum: str
+    content_type: Optional[str] = None
+
 
 class CreateProfileResumeUploadUrlResponse(BaseModel):
-    fileId: str
-    uploadUrl: str
+    file_id: uuid.UUID
+    upload_url: str
+    required_headers: dict[str, str]
+
 
 class StartProfileResumeExtractionRequest(BaseModel):
-    fileId: str
+    file_id: uuid.UUID
+
 
 class StartProfileResumeExtractionResponse(BaseModel):
-    fileId: str
+    file_id: uuid.UUID

@@ -2,11 +2,12 @@
 
 import logging
 from typing import Annotated
-from uuid import UUID
+from uuid import UUID, uuid4
+import boto3
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from src.api.dependencies import get_current_user_id
+from src.api.dependencies import get_current_user_id, get_storage_service
 from src.core.unit_of_work import UnitOfWorkFactory
 from src.models.api.profile import (
     CreateProfileResumeUploadUrlRequest,
@@ -366,7 +367,18 @@ async def create_profile_resume_upload_url(
     request: CreateProfileResumeUploadUrlRequest,
     current_user_id: Annotated[UUID, Depends(get_current_user_id)],
 ):
-    raise NotImplementedError()
+    storage_service = get_storage_service()
+    file_id = uuid4()
+    key = f"private/users/{current_user_id}/profile-resumes/{file_id}"
+    url, headers = storage_service.generate_presigned_upload_url(
+        key=key,
+        md5=request.md5_checksum,
+        sha256=request.sha256_checksum,
+        content_type=request.content_type,
+    )
+    return CreateProfileResumeUploadUrlResponse(
+        file_id=file_id, upload_url=url, required_headers=headers
+    )
 
 
 @router.post(
