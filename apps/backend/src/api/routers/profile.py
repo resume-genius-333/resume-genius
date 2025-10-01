@@ -3,7 +3,6 @@
 import logging
 from typing import Annotated
 from uuid import UUID, uuid4
-import boto3
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
