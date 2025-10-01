@@ -4,6 +4,8 @@ from typing import Optional
 import boto3
 from botocore.config import Config
 
+from src.utils.hash import MD5, SHA256
+
 
 def _ensure_base64_digest(value: str) -> str:
     """Convert hex-encoded digests to base64 for S3 headers."""
@@ -39,19 +41,16 @@ class StorageService:
     def generate_presigned_upload_url(
         self,
         key: str,
-        md5: str,
-        sha256: str,
+        md5: MD5,
+        sha256: SHA256,
         expires_in: int = 600,
         content_type: str | None = None,
     ) -> tuple[str, dict]:
-        md5_b64 = _ensure_base64_digest(md5)
-        sha256_b64 = _ensure_base64_digest(sha256)
-
         params = {
             "Bucket": self.bucket_name,
             "Key": key,
-            "ContentMD5": md5_b64,  # signs the Content-MD5 header
-            "ChecksumSHA256": sha256_b64,  # signs x-amz-checksum-sha256
+            "ContentMD5": md5.b64(url_safe=False),  # signs the Content-MD5 header
+            "ChecksumSHA256": sha256.b64(url_safe=False),  # signs x-amz-checksum-sha256
         }
 
         if content_type:
@@ -59,8 +58,8 @@ class StorageService:
 
         # Return the URL and the *required headers* the client must send
         required_headers = {
-            "Content-MD5": md5_b64,
-            "x-amz-checksum-sha256": sha256_b64,
+            "Content-MD5": md5.b64(url_safe=False),
+            "x-amz-checksum-sha256": sha256.b64(url_safe=False),
         }
         if content_type:
             required_headers["Content-Type"] = content_type
@@ -74,4 +73,10 @@ class StorageService:
         key: str,
         expires_in: int = 600,
     ) -> str:
-        raise NotImplementedError()
+        params = {
+            "Bucket": self.bucket_name,
+            "Key": key,
+        }
+        return self.client.generate_presigned_url(
+            "get_object", Params=params, ExpiresIn=expires_in, HttpMethod="GET"
+        )
