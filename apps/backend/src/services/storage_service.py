@@ -1,6 +1,6 @@
 import os
 import base64
-from typing import Optional, Literal, overload
+from typing import Optional
 import boto3
 from botocore.config import Config
 
@@ -25,7 +25,15 @@ def _ensure_base64_digest(value: str) -> str:
 class StorageService:
     def __init__(self, bucket_name: Optional[str] = None) -> None:
         # Force SigV4 so modern headers like checksum are signed correctly
-        self.client = boto3.client("s3", config=Config(signature_version="s3v4"))
+        region = (
+            os.getenv("STORAGE_BUCKET_REGION")
+            or os.getenv("AWS_REGION")
+            or os.getenv("AWS_DEFAULT_REGION")
+        )
+        client_kwargs: dict = {"config": Config(signature_version="s3v4")}
+        if region:
+            client_kwargs["region_name"] = region
+        self.client = boto3.client("s3", **client_kwargs)
         self.bucket_name = bucket_name or os.getenv("STORAGE_BUCKET_NAME")
 
     def generate_presigned_upload_url(
@@ -51,7 +59,7 @@ class StorageService:
 
         # Return the URL and the *required headers* the client must send
         required_headers = {
-            "x-amz-checksum-md5": md5_b64,
+            "Content-MD5": md5_b64,
             "x-amz-checksum-sha256": sha256_b64,
         }
         if content_type:

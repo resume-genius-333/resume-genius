@@ -46,7 +46,7 @@ export default function TestPage() {
         {testPages.map((page) => (
           <Card
             key={page.path}
-            className="hover:shadow-lg transition-shadow cursor-pointer"
+            className="flex h-full flex-col hover:shadow-lg transition-shadow cursor-pointer"
             onClick={() => router.push(page.path)}
           >
             <CardHeader>
@@ -56,7 +56,7 @@ export default function TestPage() {
               </div>
               <CardDescription>{page.description}</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="mt-auto pt-0">
               <Button variant="outline" className="w-full">
                 Open Test Page
               </Button>
