@@ -38,6 +38,36 @@ alias rb := rebuild-backend
 # Docker Commands
 # ============================================================================
 
+# Clean up Docker disk space (remove unused volumes, images, containers, and build cache)
+docker-clean:
+    @echo "{{BLUE}}Analyzing Docker disk usage...{{NC}}"
+    @docker system df
+    @echo ""
+    @echo "{{YELLOW}}This will remove:{{NC}}"
+    @echo "  - All dangling volumes (not attached to containers)"
+    @echo "  - All build cache"
+    @echo "  - All stopped containers"
+    @echo "  - All unused images"
+    @echo ""
+    @echo "{{GREEN}}Active volumes will be preserved:{{NC}}"
+    @echo "  - docker_resume_genius_postgres_data"
+    @echo "  - docker_resume_genius_redis_data"
+    @echo "  - docker_litellm_postgres_data"
+    @echo ""
+    @echo "{{BLUE}}Cleaning dangling volumes...{{NC}}"
+    @docker volume prune -f
+    @echo "{{BLUE}}Cleaning build cache...{{NC}}"
+    @docker builder prune -af
+    @echo "{{BLUE}}Cleaning stopped containers...{{NC}}"
+    @docker container prune -f
+    @echo "{{BLUE}}Cleaning unused images...{{NC}}"
+    @docker image prune -af
+    @echo ""
+    @echo "{{GREEN}}Docker cleanup complete!{{NC}}"
+    @echo ""
+    @echo "{{BLUE}}New disk usage:{{NC}}"
+    @docker system df
+
 # Start all services in development mode with hot reload
 up:
     @echo "{{GREEN}}Starting services in development mode (LiteLLM remote)...{{NC}}"
