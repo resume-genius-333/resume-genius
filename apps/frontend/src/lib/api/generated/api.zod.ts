@@ -1692,7 +1692,7 @@ export const createProfileResumeUploadUrlApiV1ProfileProfileResumeUploadPostBody
 
 export const createProfileResumeUploadUrlApiV1ProfileProfileResumeUploadPostResponse =
   zod.object({
-    file_id: zod.uuid(),
+    file_id: zod.string(),
     upload_url: zod.string(),
     required_headers: zod.record(zod.string(), zod.string()),
   });
@@ -1700,20 +1700,13 @@ export const createProfileResumeUploadUrlApiV1ProfileProfileResumeUploadPostResp
 /**
  * @summary Start Profile Resume Extraction
  */
-export const startProfileResumeExtractionApiV1ProfileProfileResumeExtractResumeIdPostParams =
+export const startProfileResumeExtractionApiV1ProfileProfileResumeExtractFileIdPostParams =
   zod.object({
-    resume_id: zod.uuid(),
+    file_id: zod.string(),
   });
 
-export const startProfileResumeExtractionApiV1ProfileProfileResumeExtractResumeIdPostBody =
-  zod.object({
-    file_id: zod.uuid(),
-  });
-
-export const startProfileResumeExtractionApiV1ProfileProfileResumeExtractResumeIdPostResponse =
-  zod.object({
-    file_id: zod.uuid(),
-  });
+export const startProfileResumeExtractionApiV1ProfileProfileResumeExtractFileIdPostResponse =
+  zod.any();
 
 /**
  * @summary Root
