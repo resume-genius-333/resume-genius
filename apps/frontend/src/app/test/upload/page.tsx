@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import SparkMD5 from "spark-md5";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, CheckCircle, FileText, Loader2 } from "lucide-react";
@@ -26,33 +27,23 @@ export default function ResumeUploadTestPage() {
     // Calculate SHA-256
     const sha256Buffer = await crypto.subtle.digest("SHA-256", uint8Array);
     const sha256Array = Array.from(new Uint8Array(sha256Buffer));
-    const sha256 = sha256Array.map((b) => b.toString(16).padStart(2, "0")).join("");
+    const sha256 = sha256Array
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
 
-    // Calculate MD5 using Web Crypto API alternative
-    // Note: MD5 is not available in Web Crypto API, so we'll use a workaround
-    // For now, we'll use a simple hash as placeholder
+    // Calculate MD5 using SparkMD5 since the Web Crypto API does not expose MD5
     const md5 = await calculateMD5(uint8Array);
 
     return { sha256, md5 };
   };
 
-  // Simple MD5 implementation for browser
   const calculateMD5 = async (data: Uint8Array): Promise<string> => {
-    // Using a simple hash function as MD5 is not available in Web Crypto API
-    // In production, you might want to use a library like spark-md5
-    const hex = Array.from(data)
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
+    const normalized =
+      data.byteOffset === 0 && data.byteLength === data.buffer.byteLength
+        ? data
+        : data.slice();
 
-    // For this test, we'll create a simple hash
-    // In production, use a proper MD5 library
-    let hash = 0;
-    for (let i = 0; i < hex.length; i++) {
-      const char = hex.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash = hash & hash;
-    }
-    return Math.abs(hash).toString(16).padStart(32, "0");
+    return SparkMD5.ArrayBuffer.hash(normalized.buffer as ArrayBuffer);
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,9 +71,16 @@ export default function ResumeUploadTestPage() {
         await createProfileResumeUploadUrlApiV1ProfileProfileResumeUploadPost({
           sha256_checksum: sha256,
           md5_checksum: md5,
+          content_type: "application/pdf",
         });
 
-      const { fileId: newFileId, uploadUrl } = uploadUrlResponse;
+      console.log(uploadUrlResponse);
+
+      const {
+        file_id: newFileId,
+        upload_url: uploadUrl,
+        required_headers: requiredHeaders,
+      } = uploadUrlResponse;
       setFileId(newFileId);
 
       // Upload file to signed URL
@@ -90,7 +88,7 @@ export default function ResumeUploadTestPage() {
         method: "PUT",
         body: selectedFile,
         headers: {
-          "Content-Type": selectedFile.type || "application/pdf",
+          ...requiredHeaders,
         },
       });
 
@@ -117,11 +115,11 @@ export default function ResumeUploadTestPage() {
       const response =
         await startProfileResumeExtractionApiV1ProfileProfileResumeExtractResumeIdPost(
           "placeholder-resume-id", // This should come from somewhere
-          { fileId }
+          { file_id: fileId }
         );
 
       console.log("Analysis started:", response);
-      alert(`Analysis started successfully! File ID: ${response.fileId}`);
+      alert(`Analysis started successfully! File ID: ${response.file_id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Analysis failed");
       console.error("Analysis error:", err);

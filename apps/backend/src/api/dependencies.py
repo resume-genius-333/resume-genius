@@ -22,6 +22,7 @@ from src.models.db.auth.api_key import APIKey
 import redis.asyncio as redis
 
 from src.models.db.profile.user import ProfileUserSchema
+from src.services.storage_service import StorageService
 
 
 # Security schemes
@@ -248,3 +249,8 @@ async def require_any_auth(
             detail="Authentication required",
             headers={"WWW-Authenticate": "Bearer, X-API-Key"},
         )
+
+
+@inject
+def get_storage_service(service: StorageService = Provide[Container.storage_client]):
+    return service

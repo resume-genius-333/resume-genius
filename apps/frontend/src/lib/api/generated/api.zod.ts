@@ -1687,12 +1687,14 @@ export const createProfileResumeUploadUrlApiV1ProfileProfileResumeUploadPostBody
   zod.object({
     sha256_checksum: zod.string(),
     md5_checksum: zod.string(),
+    content_type: zod.union([zod.string(), zod.null()]).optional(),
   });
 
 export const createProfileResumeUploadUrlApiV1ProfileProfileResumeUploadPostResponse =
   zod.object({
-    fileId: zod.string(),
-    uploadUrl: zod.string(),
+    file_id: zod.uuid(),
+    upload_url: zod.string(),
+    required_headers: zod.record(zod.string(), zod.string()),
   });
 
 /**
@@ -1705,12 +1707,12 @@ export const startProfileResumeExtractionApiV1ProfileProfileResumeExtractResumeI
 
 export const startProfileResumeExtractionApiV1ProfileProfileResumeExtractResumeIdPostBody =
   zod.object({
-    fileId: zod.string(),
+    file_id: zod.uuid(),
   });
 
 export const startProfileResumeExtractionApiV1ProfileProfileResumeExtractResumeIdPostResponse =
   zod.object({
-    fileId: zod.string(),
+    file_id: zod.uuid(),
   });
 
 /**

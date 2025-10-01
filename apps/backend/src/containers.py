@@ -7,6 +7,8 @@ from sqlalchemy.orm import sessionmaker, Session
 import redis.asyncio as redis
 from instructor import AsyncInstructor, Instructor, from_openai
 
+from src.services.storage_service import StorageService
+
 if TYPE_CHECKING:
     from openai import OpenAI, AsyncOpenAI
 else:
@@ -16,6 +18,8 @@ else:
 class Container(containers.DeclarativeContainer):
     # Configuration provider
     config = providers.Configuration()
+
+    storage_client = providers.Singleton(StorageService)
 
     # OpenAI service singleton
     openai_client = providers.Singleton(
