@@ -2,7 +2,7 @@
 
 import logging
 from typing import Annotated
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
@@ -14,8 +14,6 @@ from src.models.api.profile import (
     EducationCreateRequest,
     EducationUpdateRequest,
     EducationListResponse,
-    StartProfileResumeExtractionRequest,
-    StartProfileResumeExtractionResponse,
     WorkExperienceCreateRequest,
     WorkExperienceUpdateRequest,
     WorkExperienceListResponse,
@@ -33,6 +31,7 @@ from src.models.db.profile import (
     ProfileWorkResponsibilitySchema,
 )
 from src.services.profile_service import ProfileService
+from src.utils.hash import MD5, SHA256
 
 logger = logging.getLogger(__name__)
 
@@ -367,26 +366,27 @@ async def create_profile_resume_upload_url(
     current_user_id: Annotated[UUID, Depends(get_current_user_id)],
 ):
     storage_service = get_storage_service()
-    file_id = uuid4()
+    file_id = sha256 = SHA256.parse(request.sha256_checksum)
+    md5 = MD5.parse(request.md5_checksum)
     key = f"private/users/{current_user_id}/profile-resumes/{file_id}"
     url, headers = storage_service.generate_presigned_upload_url(
         key=key,
-        md5=request.md5_checksum,
-        sha256=request.sha256_checksum,
+        md5=md5,
+        sha256=sha256,
         content_type=request.content_type,
     )
     return CreateProfileResumeUploadUrlResponse(
-        file_id=file_id, upload_url=url, required_headers=headers
+        file_id=file_id.b64(url_safe=True), upload_url=url, required_headers=headers
     )
 
 
-@router.post(
-    "/profile-resume/extract/{resume_id}",
-    response_model=StartProfileResumeExtractionResponse,
-)
+@router.post("/profile-resume/extract/{file_id}")
 async def start_profile_resume_extraction(
-    resume_id: UUID,
-    request: StartProfileResumeExtractionRequest,
+    file_id: str,
     current_user_id: Annotated[UUID, Depends(get_current_user_id)],
 ):
-    raise NotImplementedError()
+    storage_service = get_storage_service()
+    key = f"private/users/{current_user_id}/profile-resumes/{file_id}"
+    url = storage_service.generate_presigned_get_url(key=key)
+    print(url)
+    return url
