@@ -44,6 +44,9 @@ async def _create_job_background(
             select_education_result = selection_service.select_educations(
                 user_id=user_id, job_id=job_id, job_description=request.job_description
             )
+            # select_work_experience_result = selection_service.select_work_experience(
+
+            # )
             await asyncio.gather(job_result, select_education_result)
             await uow.commit()
     except Exception as e:
