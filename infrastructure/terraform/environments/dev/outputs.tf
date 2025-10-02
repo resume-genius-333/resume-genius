@@ -25,7 +25,7 @@ output "rds_endpoint" {
   value       = module.rds.endpoint
 }
 
-output "redis_endpoint" {
-  description = "Hostname clients use to connect to the primary Redis node for read/write traffic."
-  value       = module.redis.primary_endpoint_address
+output "litellm_cache_bucket" {
+  description = "Name of the S3 bucket storing LiteLLM cached responses."
+  value       = aws_s3_bucket.litellm_cache.bucket
 }

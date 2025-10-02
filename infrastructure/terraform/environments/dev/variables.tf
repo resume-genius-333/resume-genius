@@ -65,7 +65,7 @@ variable "availability_zones" {
 variable "enable_nat_gateway" {
   type        = bool
   description = "Provision a NAT gateway for private subnets."
-  default     = true
+  default     = false
 }
 
 # RDS
@@ -212,148 +212,6 @@ variable "additional_rds_allowed_security_group_ids" {
   default     = []
 }
 
-# Redis
-# Specific Redis engine version. Newer versions bring features and fixes but require
-# compatibility testing with your application client libraries.
-variable "redis_engine_version" {
-  type        = string
-  description = "Redis engine version."
-  default     = "7.1"
-}
-
-# Determines CPU and memory for each Redis node. Larger node types support more concurrent
-# connections and larger datasets but cost more per hour.
-variable "redis_node_type" {
-  type        = string
-  description = "Instance type for Redis."
-  default     = "cache.t4g.small"
-}
-
-# Number of cache nodes when cluster mode is disabled. A single node is simplest but lacks
-# high availability.
-variable "redis_num_cache_nodes" {
-  type        = number
-  description = "Number of cache nodes when cluster mode disabled."
-  default     = 1
-}
-
-# Switches between classic (single primary/replica) and cluster (sharded) architectures.
-# Cluster mode is required for datasets larger than a single node can support.
-variable "redis_cluster_mode_enabled" {
-  type        = bool
-  description = "Enable Redis cluster mode."
-  default     = false
-}
-
-# Number of shards to create when cluster mode is enabled. More shards distribute load but
-# add operational complexity.
-variable "redis_num_node_groups" {
-  type        = number
-  description = "Number of shards when cluster mode enabled."
-  default     = null
-}
-
-# Number of replicas per shard in cluster mode. Replicas provide read scaling and failover
-# but each replica incurs additional cost.
-variable "redis_replicas_per_node_group" {
-  type        = number
-  description = "Replicas per node group when cluster mode enabled."
-  default     = null
-}
-
-# Enables automatic promotion of replicas if the primary fails. Requires at least one
-# replica per node group and improves availability.
-variable "redis_automatic_failover_enabled" {
-  type        = bool
-  description = "Enable Redis automatic failover."
-  default     = false
-}
-
-# Ensures primary and replica nodes live in different availability zones. Recommended for
-# production resiliency but slightly increases latency.
-variable "redis_multi_az_enabled" {
-  type        = bool
-  description = "Enable Redis Multi-AZ."
-  default     = false
-}
-
-# Encrypts traffic between clients and Redis. Keep enabled unless every client runs within
-# a fully trusted network.
-variable "redis_transit_encryption_enabled" {
-  type        = bool
-  description = "Enable in-transit encryption."
-  default     = true
-}
-
-# Encrypts the cache data stored on disk. Recommended to satisfy security compliance.
-variable "redis_at_rest_encryption_enabled" {
-  type        = bool
-  description = "Enable at-rest encryption."
-  default     = true
-}
-
-# Secrets Manager secret that stores the Redis AUTH token string. The workflow resolves the
-# secret at apply-time so the token never lives in the repo.
-variable "redis_auth_token_secret_arn" {
-  type        = string
-  description = "Secrets Manager ARN containing the Redis AUTH token."
-  nullable    = false
-  sensitive   = true
-
-  validation {
-    condition     = can(regex("^arn:aws:secretsmanager:[^:]+:[0-9]{12}:secret:.+", var.redis_auth_token_secret_arn))
-    error_message = "redis_auth_token_secret_arn must be a valid Secrets Manager secret ARN."
-  }
-}
-
-# UTC time window when AWS may apply patches. Pick off-peak hours to minimise disruption
-# if you choose to set a specific window.
-variable "redis_maintenance_window" {
-  type        = string
-  description = "Preferred maintenance window."
-  default     = null
-}
-
-# Preferred timeframe for daily snapshots. Schedule away from peak load to reduce the
-# chance of performance impact.
-variable "redis_snapshot_window" {
-  type        = string
-  description = "Preferred snapshot window."
-  default     = null
-}
-
-# Number of days to retain Redis snapshots. Zero disables snapshots; increase for disaster
-# recovery at the cost of additional storage.
-variable "redis_snapshot_retention_limit" {
-  type        = number
-  description = "Snapshot retention days."
-  default     = 0
-}
-
-# Controls which availability zones host the cache nodes when you need deterministic
-# placement. Leave empty to let AWS balance automatically.
-variable "redis_preferred_cache_cluster_azs" {
-  type        = list(string)
-  description = "Preferred AZs for cache clusters."
-  default     = []
-}
-
-# TCP port clients use to reach Redis. Only change if organisational policies require a
-# non-default port and update security groups accordingly.
-variable "redis_port" {
-  type        = number
-  description = "Redis port."
-  default     = 6379
-}
-
-# Additional security groups that should be able to reach Redis beyond the default ECS
-# service group—useful for admin tooling or batch jobs.
-variable "additional_redis_allowed_security_group_ids" {
-  type        = list(string)
-  description = "Extra security groups allowed to access Redis."
-  default     = []
-}
-
 # LiteLLM ECS
 # Full ECR (or Docker Hub) image URI that Fargate pulls when starting the task. Update
 # this when shipping new application versions.
@@ -386,12 +244,29 @@ variable "litellm_desired_count" {
   default     = 1
 }
 
+# Minutes to keep the LiteLLM service running after the last request. Automation can
+# override the desired count to zero when idle for longer than this window.
+variable "litellm_idle_shutdown_minutes" {
+  type        = number
+  description = "Idle window in minutes before scaling LiteLLM tasks to zero."
+  default     = 120
+}
+
+# Frequency (in minutes) that the idle watchdog evaluates ALB metrics to determine
+# whether the service should remain running. Lower values react faster but increase
+# Lambda invocations.
+variable "litellm_idle_check_interval_minutes" {
+  type        = number
+  description = "Interval in minutes for LiteLLM idle checks."
+  default     = 5
+}
+
 # CPU units allocated per task. Fargate enforces mappings between CPU and memory; refer to
 # AWS docs before changing to ensure the pair remains valid.
 variable "litellm_task_cpu" {
   type        = string
   description = "Task CPU units."
-  default     = "1024"
+  default     = "512"
 }
 
 # Memory (MiB) allocated per task. Setting this too low leads to OutOfMemory restarts,
@@ -399,7 +274,7 @@ variable "litellm_task_cpu" {
 variable "litellm_task_memory" {
   type        = string
   description = "Task memory (MiB)."
-  default     = "2048"
+  default     = "1024"
 }
 
 # Determines whether Fargate attaches public IPs to task ENIs. Required only when tasks in
@@ -407,7 +282,7 @@ variable "litellm_task_memory" {
 variable "litellm_assign_public_ip" {
   type        = bool
   description = "Assign public IPs to LiteLLM tasks."
-  default     = false
+  default     = true
 }
 
 # Plain-text environment variables injected into the container. Good place for non-secret
