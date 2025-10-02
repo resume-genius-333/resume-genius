@@ -126,14 +126,6 @@ class CreateProfileResumeUploadUrlRequest(BaseModel):
 
 
 class CreateProfileResumeUploadUrlResponse(BaseModel):
-    file_id: uuid.UUID
+    file_id: str
     upload_url: str
     required_headers: dict[str, str]
-
-
-class StartProfileResumeExtractionRequest(BaseModel):
-    file_id: uuid.UUID
-
-
-class StartProfileResumeExtractionResponse(BaseModel):
-    file_id: uuid.UUID

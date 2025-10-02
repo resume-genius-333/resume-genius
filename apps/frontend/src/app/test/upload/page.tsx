@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, CheckCircle, FileText, Loader2 } from "lucide-react";
 import {
   createProfileResumeUploadUrlApiV1ProfileProfileResumeUploadPost,
-  startProfileResumeExtractionApiV1ProfileProfileResumeExtractResumeIdPost,
+  startProfileResumeExtractionApiV1ProfileProfileResumeExtractFileIdPost,
 } from "@/lib/api/generated/api";
 
 export default function ResumeUploadTestPage() {
@@ -20,10 +20,12 @@ export default function ResumeUploadTestPage() {
 
   const logErrorDetails = (context: string, err: unknown) => {
     if (err && typeof err === "object" && "response" in err) {
-      const response = (err as {
-        message?: string;
-        response?: { status?: number; statusText?: string; data?: unknown };
-      }).response;
+      const response = (
+        err as {
+          message?: string;
+          response?: { status?: number; statusText?: string; data?: unknown };
+        }
+      ).response;
       console.error(context, {
         message: (err as { message?: string }).message,
         status: response?.status,
@@ -139,14 +141,13 @@ export default function ResumeUploadTestPage() {
     setError(null);
 
     try {
-      const response =
-        await startProfileResumeExtractionApiV1ProfileProfileResumeExtractResumeIdPost(
-          "placeholder-resume-id", // This should come from somewhere
-          { file_id: fileId }
+      const url =
+        await startProfileResumeExtractionApiV1ProfileProfileResumeExtractFileIdPost(
+          fileId
         );
 
-      console.log("Analysis started:", response);
-      alert(`Analysis started successfully! File ID: ${response.file_id}`);
+      console.log("Analysis started:", url);
+      alert(`Analysis started successfully! ${url}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Analysis failed");
       logErrorDetails("Analysis error", err);

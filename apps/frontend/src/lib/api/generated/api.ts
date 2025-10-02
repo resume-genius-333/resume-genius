@@ -48,8 +48,6 @@ import type {
   ResumeWorkExperienceRequest,
   ResumeWorkExperienceSchema,
   SelectionResult,
-  StartProfileResumeExtractionRequest,
-  StartProfileResumeExtractionResponse,
   TestApiKeyApiV1AuthTestApiKeyGet200,
   UpdateResumeVersionRequest,
   UserLoginRequest,
@@ -910,16 +908,11 @@ export const createProfileResumeUploadUrlApiV1ProfileProfileResumeUploadPost = (
 /**
  * @summary Start Profile Resume Extraction
  */
-export const startProfileResumeExtractionApiV1ProfileProfileResumeExtractResumeIdPost =
-  (
-    resumeId: string,
-    startProfileResumeExtractionRequest: StartProfileResumeExtractionRequest
-  ) => {
-    return customAxiosInstance<StartProfileResumeExtractionResponse>({
-      url: `/api/v1/profile/profile-resume/extract/${resumeId}`,
+export const startProfileResumeExtractionApiV1ProfileProfileResumeExtractFileIdPost =
+  (fileId: string) => {
+    return customAxiosInstance<unknown>({
+      url: `/api/v1/profile/profile-resume/extract/${fileId}`,
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: startProfileResumeExtractionRequest,
     });
   };
 
@@ -1263,11 +1256,11 @@ export type CreateProfileResumeUploadUrlApiV1ProfileProfileResumeUploadPostResul
       >
     >
   >;
-export type StartProfileResumeExtractionApiV1ProfileProfileResumeExtractResumeIdPostResult =
+export type StartProfileResumeExtractionApiV1ProfileProfileResumeExtractFileIdPostResult =
   NonNullable<
     Awaited<
       ReturnType<
-        typeof startProfileResumeExtractionApiV1ProfileProfileResumeExtractResumeIdPost
+        typeof startProfileResumeExtractionApiV1ProfileProfileResumeExtractFileIdPost
       >
     >
   >;
