@@ -51,6 +51,11 @@ model_list:
       model: anthropic/claude-sonnet-4-20250514
       api_key: os.environ/ANTHROPIC_API_KEY
 
+  - model_name: claude-4.5-sonnet
+    litellm_params:
+      model: anthropic/claude-sonnet-4-5-20250929
+      api_key: os.environ/ANTHROPIC_API_KEY
+
   - model_name: claude-3.5-sonnet
     litellm_params:
       model: anthropic/claude-3-5-sonnet-20241022
@@ -225,12 +230,15 @@ files_settings:
 
   - custom_llm_provider: xai
     api_key: os.environ/XAI_API_KEY
-# Caching (Optional)
-# cache:
-#   type: "redis"
-#   host: "redis"
-#   port: 6379
-#   ttl: 3600  # 1 hour
+
+  - custom_llm_provider: deepseek
+    api_key: os.environ/DEEPSEEK_API_KEY
+    
+# Caching configuration uses S3 so we can avoid running a dedicated Redis cluster.
+cache:
+  type: "s3"
+  s3_bucket_name: os.environ/LITELLM_CACHE_S3_BUCKET
+  s3_region_name: os.environ/LITELLM_CACHE_S3_REGION
 
 # Rate Limiting (Optional)
 # rate_limit:
