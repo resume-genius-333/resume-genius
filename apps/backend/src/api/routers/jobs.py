@@ -32,23 +32,68 @@ async def _create_job_background(
 ):
     """Background task for creating a job."""
     try:
-        async with UnitOfWorkFactory() as uow:
-            job_service = JobService(uow)
-            selection_service = SelectionService(uow)
-            job_result = job_service.create_job(
+        logger.info(
+            "Starting background processing for job_id=%s (user_id=%s)",
+            job_id,
+            user_id,
+        )
+
+        async with UnitOfWorkFactory() as job_uow:
+            job_service = JobService(job_uow)
+            await job_service.create_job(
                 user_id=user_id,
                 job_id=job_id,
                 job_description=request.job_description,
                 job_url=request.job_url,
             )
-            select_education_result = selection_service.select_educations(
-                user_id=user_id, job_id=job_id, job_description=request.job_description
-            )
-            # select_work_experience_result = selection_service.select_work_experience(
+            await job_uow.commit()
 
-            # )
-            await asyncio.gather(job_result, select_education_result)
-            await uow.commit()
+        async def run_select_educations() -> None:
+            async with UnitOfWorkFactory() as selection_uow:
+                selection_service = SelectionService(selection_uow)
+                await selection_service.select_educations(
+                    user_id=user_id,
+                    job_id=job_id,
+                    job_description=request.job_description,
+                )
+                await selection_uow.commit()
+
+        async def run_select_work_experiences() -> None:
+            async with UnitOfWorkFactory() as selection_uow:
+                selection_service = SelectionService(selection_uow)
+                await selection_service.select_work_experiences(
+                    user_id=user_id,
+                    job_id=job_id,
+                    job_description=request.job_description,
+                )
+                await selection_uow.commit()
+
+        async def run_select_projects() -> None:
+            async with UnitOfWorkFactory() as selection_uow:
+                selection_service = SelectionService(selection_uow)
+                await selection_service.select_projects(
+                    user_id=user_id,
+                    job_id=job_id,
+                    job_description=request.job_description,
+                )
+                await selection_uow.commit()
+
+        async def run_select_skills() -> None:
+            async with UnitOfWorkFactory() as selection_uow:
+                selection_service = SelectionService(selection_uow)
+                await selection_service.select_skills(
+                    user_id=user_id,
+                    job_id=job_id,
+                    job_description=request.job_description,
+                )
+                await selection_uow.commit()
+
+        await asyncio.gather(
+            run_select_educations(),
+            run_select_work_experiences(),
+            run_select_projects(),
+            run_select_skills(),
+        )
     except Exception as e:
         logger.error(f"Error in background job creation: {str(e)}")
         raise
@@ -153,14 +198,13 @@ async def get_job_selected_educations(
     job_id: uuid.UUID,
     current_user: ProfileUserSchema = Depends(get_current_user),
 ) -> SelectionResult:
-    """Select relevant information from user's resume for the job."""
+    """Select relevant educations from user's resume for the job."""
     async with UnitOfWorkFactory() as uow:
         selection_service = SelectionService(uow)
         user_id = current_user.id
         result = await selection_service.get_selected_educations(
             job_id=job_id, user_id=user_id
         )
-        await uow.commit()
         if not result:
             raise HTTPException(
                 status_code=404, detail="No education selection available."
@@ -168,46 +212,68 @@ async def get_job_selected_educations(
         return result
 
 
-@router.get("/jobs/{job_id}/selected_work_experiences")
+@router.get(
+    "/jobs/{job_id}/selected_work_experiences",
+    response_model=SelectionResult,
+)
 async def get_job_selected_work_experiences(
     job_id: uuid.UUID,
     current_user: ProfileUserSchema = Depends(get_current_user),
 ):
-    """Select relevant information from user's resume for the job."""
-    # async with UnitOfWorkFactory() as uow:
-    #     job_service = JobService(uow)
-    #     user_id = uuid.UUID(current_user.id)
-    #     result = await job_service.get_selected_work_experiences(job_id, user_id)
-    #     await uow.commit()
-    #     return result
+    """Select relevant work experiences from user's resume for the job."""
+    async with UnitOfWorkFactory() as uow:
+        selection_service = SelectionService(uow)
+        user_id = current_user.id
+        result = await selection_service.get_selected_work_experiences(
+            user_id=user_id, job_id=job_id
+        )
+        if not result:
+            raise HTTPException(
+                status_code=404, detail="No work experience selection available."
+            )
+        return result
 
 
-@router.get("/jobs/{job_id}/selected_projects")
+@router.get(
+    "/jobs/{job_id}/selected_projects",
+    response_model=SelectionResult,
+)
 async def get_job_selected_projects(
     job_id: uuid.UUID,
     current_user: ProfileUserSchema = Depends(get_current_user),
 ):
-    """Select relevant information from user's resume for the job."""
-    # async with UnitOfWorkFactory() as uow:
-    #     job_service = JobService(uow)
-    #     user_id = uuid.UUID(current_user.id)
-    #     result = await job_service.get_selected_projects(job_id, user_id)
-    #     await uow.commit()
-    #     return result
+    """Select relevant projects from user's resume for the job."""
+    async with UnitOfWorkFactory() as uow:
+        selection_service = SelectionService(uow)
+        user_id = current_user.id
+        result = await selection_service.get_selected_projects(
+            user_id=user_id, job_id=job_id
+        )
+        if not result:
+            raise HTTPException(
+                status_code=404, detail="No project selection available."
+            )
+        return result
 
 
-@router.get("/jobs/{job_id}/selected_skills")
+@router.get(
+    "/jobs/{job_id}/selected_skills",
+    response_model=SelectionResult,
+)
 async def get_job_selected_skills(
     job_id: uuid.UUID,
     current_user: ProfileUserSchema = Depends(get_current_user),
 ):
-    """Select relevant information from user's resume for the job."""
-    # async with UnitOfWorkFactory() as uow:
-    #     job_service = JobService(uow)
-    #     user_id = uuid.UUID(current_user.id)
-    #     result = await job_service.get_selected_skills(job_id, user_id)
-    #     await uow.commit()
-    #     return result
+    """Select relevant skills from user's resume for the job."""
+    async with UnitOfWorkFactory() as uow:
+        selection_service = SelectionService(uow)
+        user_id = current_user.id
+        result = await selection_service.get_selected_skills(
+            user_id=user_id, job_id=job_id
+        )
+        if not result:
+            raise HTTPException(status_code=404, detail="No skill selection available.")
+        return result
 
 
 @router.post("/jobs/{job_id}/confirm_experience_selection")

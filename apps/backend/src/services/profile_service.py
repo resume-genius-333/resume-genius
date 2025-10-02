@@ -157,30 +157,39 @@ class ProfileService:
             end_date=request.end_date,
         )
 
-        work = await self.uow.work_repository.create_work_experience(
+        await self.uow.work_repository.create_work_experience(
             user_id=user_id,
             work_id=work_id,
             llm_schema=llm_schema,
         )
 
         # Create responsibilities if provided
-        responsibilities = []
         if request.responsibilities:
             for resp_desc in request.responsibilities:
                 resp_id = uuid4()
                 resp_llm = WorkResponsibilityLLMSchema(description=resp_desc)
 
-                resp = await self.uow.work_repository.create_responsibility(
+                await self.uow.work_repository.create_responsibility(
                     user_id=user_id,
                     work_id=work_id,
                     responsibility_id=resp_id,
                     llm_schema=resp_llm,
                 )
-                responsibilities.append(resp)
 
         await self.uow.commit()
 
-        return work
+        work_with_responsibilities = (
+            await self.uow.work_repository.get_work_experience_by_id(
+                work_id=work_id, user_id=user_id
+            )
+        )
+
+        if not work_with_responsibilities:
+            raise RuntimeError(
+                "Failed to load newly created work experience for response"
+            )
+
+        return work_with_responsibilities
 
     async def update_work_experience(
         self,
