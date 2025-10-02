@@ -40,11 +40,10 @@ export const streamProcessingStatus = async (jobId: string) => {
   });
 };
 
-export const educationSelectionSchema =
+export const resumeSelectionSchema =
   getJobSelectedEducationsApiV1JobsJobIdSelectedEducationsGetResponse;
 
-export type EducationSelectionResult = z.infer<typeof educationSelectionSchema>;
-export type EducationSelectedItem =
-  EducationSelectionResult["selected_items"][0];
-export type EducationNotSelectedItem =
-  EducationSelectionResult["not_selected_items"][0];
+export type ResumeSelectionResult = z.infer<typeof resumeSelectionSchema>;
+export type ResumeSelectedItem = ResumeSelectionResult["selected_items"][0];
+export type ResumeNotSelectedItem =
+  ResumeSelectionResult["not_selected_items"][0];

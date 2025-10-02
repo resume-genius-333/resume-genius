@@ -1,3 +1,4 @@
+import json
 import logging
 from typing import List, Literal, Optional
 import uuid
@@ -150,7 +151,7 @@ class SelectionService:
                 f"Received unsupported result type: {type(result)}: {result}"
             )
             return None
-        logger.info("Received selection result: ", result)
+        logger.info("Received %s selection result: %s", target, result)
         return SelectionResult.model_validate_json(result)
 
     async def select_educations(
@@ -159,6 +160,9 @@ class SelectionService:
         job_id: uuid.UUID,
         job_description: str,
     ) -> SelectionResult:
+        logger.info(
+            "Selecting educations for user_id=%s, job_id=%s", user_id, job_id
+        )
         # ask AI to give us back the information using instructor
         educations = await self.uow.education_repository.get_educations_by_user(user_id)
         logger.info(f"Found {len(educations)} educations.")
@@ -184,7 +188,10 @@ Here are the educations:
                 }
             ],
         )
-        logger.info("AI selected the following result: ", selection_result)
+        logger.info(
+            "AI selected educations: %s",
+            selection_result.model_dump_json(indent=2),
+        )
         await self._set(
             user_id=user_id,
             job_id=job_id,
@@ -202,6 +209,191 @@ Here are the educations:
         job_id: uuid.UUID,
     ) -> Optional[SelectionResult]:
         result = await self._get(user_id=user_id, job_id=job_id, target="educations")
+        logger.info(
+            f"Received result: {result.model_dump_json(indent=2) if result else 'no result'}"
+        )
+        return result
+
+    async def select_work_experiences(
+        self,
+        user_id: uuid.UUID,
+        job_id: uuid.UUID,
+        job_description: str,
+    ) -> SelectionResult:
+        logger.info(
+            "Selecting work experiences for user_id=%s, job_id=%s", user_id, job_id
+        )
+        # ask AI to give us back the information using instructor
+        work_experiences = await self.uow.work_repository.get_work_experiences_by_user(
+            user_id
+        )
+        logger.info(f"Found {len(work_experiences)} work experiences.")
+        selection_result = await self.instructor.create(
+            model="claude-4-sonnet",
+            response_model=SelectionResult,
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"""
+Please help me select the most relevant work experiences based on the job description.
+Do not omit foundational roles—such as recent full-time positions, key promotions, or leadership assignments—that demonstrate the core qualifications.
+Provide a justification for each experience that highlights responsibilities, impact, metrics, and technologies tied to the job requirements.
+
+Here is the job description:
+
+{job_description}
+
+Here are the work experiences:
+
+{"\n".join(map(lambda x: x.model_dump_json(), work_experiences))}
+""",
+                }
+            ],
+        )
+        logger.info(
+            "AI selected work experiences: %s",
+            selection_result.model_dump_json(indent=2),
+        )
+        await self._set(
+            user_id=user_id,
+            job_id=job_id,
+            target="work_experiences",
+            selection=selection_result,
+        )
+        await self.status_service.set_and_publish_status(
+            user_id=user_id, job_id=job_id, tag="work-experiences-selected-at"
+        )
+        return selection_result
+
+    async def get_selected_work_experiences(
+        self,
+        user_id: uuid.UUID,
+        job_id: uuid.UUID,
+    ) -> Optional[SelectionResult]:
+        result = await self._get(
+            user_id=user_id, job_id=job_id, target="work_experiences"
+        )
+        logger.info(
+            f"Received result: {result.model_dump_json(indent=2) if result else 'no result'}"
+        )
+        return result
+
+    async def select_projects(
+        self,
+        user_id: uuid.UUID,
+        job_id: uuid.UUID,
+        job_description: str,
+    ) -> SelectionResult:
+        logger.info("Selecting projects for user_id=%s, job_id=%s", user_id, job_id)
+        projects = await self.uow.project_repository.get_projects_by_user(user_id)
+        logger.info("Found %d projects.", len(projects))
+        selection_result = await self.instructor.create(
+            model="claude-4-sonnet",
+            response_model=SelectionResult,
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"""
+Please help me select the most relevant projects based on the job description.
+Keep cornerstone projects that showcase measurable impact, modern tooling, and leadership—even if they predate the most recent work history.
+For each included project, provide a justification that ties outcomes, metrics, and technologies back to the job requirements.
+
+Here is the job description:
+
+{job_description}
+
+Here are the projects:
+
+{"\n".join(map(lambda x: x.model_dump_json(), projects))}
+""",
+                }
+            ],
+        )
+        logger.info(
+            "AI selected projects: %s", selection_result.model_dump_json(indent=2)
+        )
+        await self._set(
+            user_id=user_id, job_id=job_id, target="projects", selection=selection_result
+        )
+        await self.status_service.set_and_publish_status(
+            user_id=user_id, job_id=job_id, tag="projects-selected-at"
+        )
+        return selection_result
+
+    async def get_selected_projects(
+        self,
+        user_id: uuid.UUID,
+        job_id: uuid.UUID,
+    ) -> Optional[SelectionResult]:
+        result = await self._get(user_id=user_id, job_id=job_id, target="projects")
+        logger.info(
+            f"Received result: {result.model_dump_json(indent=2) if result else 'no result'}"
+        )
+        return result
+
+    async def select_skills(
+        self,
+        user_id: uuid.UUID,
+        job_id: uuid.UUID,
+        job_description: str,
+    ) -> SelectionResult:
+        logger.info("Selecting skills for user_id=%s, job_id=%s", user_id, job_id)
+        user_skills = await self.uow.skill_repository.get_user_skills(
+            user_id, include_skill_details=True
+        )
+        logger.info("Found %d skills.", len(user_skills))
+
+        skills_payload: List[dict] = []
+        for skill in user_skills:
+            data = skill.model_dump(mode="json")
+            orm_entity = getattr(skill, "_orm_entity", None)
+            nested_skill = getattr(orm_entity, "skill", None) if orm_entity else None
+            if nested_skill:
+                data["skill_name"] = nested_skill.skill_name
+                data["skill_category"] = nested_skill.skill_category.value
+            skills_payload.append(data)
+
+        skills_json_payload = "\n".join(json.dumps(item) for item in skills_payload)
+
+        selection_result = await self.instructor.create(
+            model="claude-4-sonnet",
+            response_model=SelectionResult,
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"""
+Please help me select the most relevant skills based on the job description.
+Prioritize skills that align with core requirements, highlight advanced proficiency, and note where they've been applied in recent roles or projects.
+Group closely related skills together where it helps show depth, but avoid duplicating essentially identical capabilities.
+
+Here is the job description:
+
+{job_description}
+
+Here are the skills:
+
+{skills_json_payload}
+""",
+                }
+            ],
+        )
+        logger.info(
+            "AI selected skills: %s", selection_result.model_dump_json(indent=2)
+        )
+        await self._set(
+            user_id=user_id, job_id=job_id, target="skills", selection=selection_result
+        )
+        await self.status_service.set_and_publish_status(
+            user_id=user_id, job_id=job_id, tag="skills-selected-at"
+        )
+        return selection_result
+
+    async def get_selected_skills(
+        self,
+        user_id: uuid.UUID,
+        job_id: uuid.UUID,
+    ) -> Optional[SelectionResult]:
+        result = await self._get(user_id=user_id, job_id=job_id, target="skills")
         logger.info(
             f"Received result: {result.model_dump_json(indent=2) if result else 'no result'}"
         )

@@ -211,7 +211,7 @@ export const getJobApiV1JobsJobIdGetResponse = zod.object({
 });
 
 /**
- * Select relevant information from user's resume for the job.
+ * Select relevant educations from user's resume for the job.
  * @summary Get Job Selected Educations
  */
 export const getJobSelectedEducationsApiV1JobsJobIdSelectedEducationsGetParams =
@@ -260,7 +260,7 @@ export const getJobSelectedEducationsApiV1JobsJobIdSelectedEducationsGetResponse
   });
 
 /**
- * Select relevant information from user's resume for the job.
+ * Select relevant work experiences from user's resume for the job.
  * @summary Get Job Selected Work Experiences
  */
 export const getJobSelectedWorkExperiencesApiV1JobsJobIdSelectedWorkExperiencesGetParams =
@@ -269,10 +269,47 @@ export const getJobSelectedWorkExperiencesApiV1JobsJobIdSelectedWorkExperiencesG
   });
 
 export const getJobSelectedWorkExperiencesApiV1JobsJobIdSelectedWorkExperiencesGetResponse =
-  zod.any();
+  zod.object({
+    selected_items: zod
+      .array(
+        zod.object({
+          id: zod
+            .uuid()
+            .describe(
+              "UUID of a profile entity to INCLUDE (education, work, project, skill, certification, award, publication, volunteer, coursework, etc.). Must exist in the source dataset."
+            ),
+          justification: zod
+            .string()
+            .describe(
+              "2–3 sentences explaining why this entity improves fit for the TARGET ROLE. Tie to 1–3 job requirements/keywords and include concrete evidence (scope, metrics, tech, outcomes). Guidance by type: • Education: degree/level match, recency, key coursework/capstone. • Work/Project: responsibilities, impact/metrics, stack/tools. • Skill/Certification: proficiency/level, recency, where it was applied."
+            ),
+        })
+      )
+      .describe(
+        "Entities to INCLUDE in the final resume, ordered by relevance (most relevant first) to the target role. IDs must be unique and must NOT appear in not_selected_items."
+      ),
+    not_selected_items: zod
+      .array(
+        zod.object({
+          id: zod
+            .uuid()
+            .describe(
+              "UUID of a profile entity to OMIT (education, work, project, skill, certification, etc.). Must exist in the source dataset."
+            ),
+          justification: zod
+            .string()
+            .describe(
+              "One clear reason for omission such as: irrelevant to core requirements, outdated, low impact, duplicative/overlaps with a stronger included entity, or space constraints. Reference the mismatched requirement or the overlapping included entity when applicable."
+            ),
+        })
+      )
+      .describe(
+        "Entities to OMIT from the final resume, each with a concise reason. IDs must be unique and must NOT overlap with selected_items."
+      ),
+  });
 
 /**
- * Select relevant information from user's resume for the job.
+ * Select relevant projects from user's resume for the job.
  * @summary Get Job Selected Projects
  */
 export const getJobSelectedProjectsApiV1JobsJobIdSelectedProjectsGetParams =
@@ -281,10 +318,47 @@ export const getJobSelectedProjectsApiV1JobsJobIdSelectedProjectsGetParams =
   });
 
 export const getJobSelectedProjectsApiV1JobsJobIdSelectedProjectsGetResponse =
-  zod.any();
+  zod.object({
+    selected_items: zod
+      .array(
+        zod.object({
+          id: zod
+            .uuid()
+            .describe(
+              "UUID of a profile entity to INCLUDE (education, work, project, skill, certification, award, publication, volunteer, coursework, etc.). Must exist in the source dataset."
+            ),
+          justification: zod
+            .string()
+            .describe(
+              "2–3 sentences explaining why this entity improves fit for the TARGET ROLE. Tie to 1–3 job requirements/keywords and include concrete evidence (scope, metrics, tech, outcomes). Guidance by type: • Education: degree/level match, recency, key coursework/capstone. • Work/Project: responsibilities, impact/metrics, stack/tools. • Skill/Certification: proficiency/level, recency, where it was applied."
+            ),
+        })
+      )
+      .describe(
+        "Entities to INCLUDE in the final resume, ordered by relevance (most relevant first) to the target role. IDs must be unique and must NOT appear in not_selected_items."
+      ),
+    not_selected_items: zod
+      .array(
+        zod.object({
+          id: zod
+            .uuid()
+            .describe(
+              "UUID of a profile entity to OMIT (education, work, project, skill, certification, etc.). Must exist in the source dataset."
+            ),
+          justification: zod
+            .string()
+            .describe(
+              "One clear reason for omission such as: irrelevant to core requirements, outdated, low impact, duplicative/overlaps with a stronger included entity, or space constraints. Reference the mismatched requirement or the overlapping included entity when applicable."
+            ),
+        })
+      )
+      .describe(
+        "Entities to OMIT from the final resume, each with a concise reason. IDs must be unique and must NOT overlap with selected_items."
+      ),
+  });
 
 /**
- * Select relevant information from user's resume for the job.
+ * Select relevant skills from user's resume for the job.
  * @summary Get Job Selected Skills
  */
 export const getJobSelectedSkillsApiV1JobsJobIdSelectedSkillsGetParams =
@@ -293,7 +367,44 @@ export const getJobSelectedSkillsApiV1JobsJobIdSelectedSkillsGetParams =
   });
 
 export const getJobSelectedSkillsApiV1JobsJobIdSelectedSkillsGetResponse =
-  zod.any();
+  zod.object({
+    selected_items: zod
+      .array(
+        zod.object({
+          id: zod
+            .uuid()
+            .describe(
+              "UUID of a profile entity to INCLUDE (education, work, project, skill, certification, award, publication, volunteer, coursework, etc.). Must exist in the source dataset."
+            ),
+          justification: zod
+            .string()
+            .describe(
+              "2–3 sentences explaining why this entity improves fit for the TARGET ROLE. Tie to 1–3 job requirements/keywords and include concrete evidence (scope, metrics, tech, outcomes). Guidance by type: • Education: degree/level match, recency, key coursework/capstone. • Work/Project: responsibilities, impact/metrics, stack/tools. • Skill/Certification: proficiency/level, recency, where it was applied."
+            ),
+        })
+      )
+      .describe(
+        "Entities to INCLUDE in the final resume, ordered by relevance (most relevant first) to the target role. IDs must be unique and must NOT appear in not_selected_items."
+      ),
+    not_selected_items: zod
+      .array(
+        zod.object({
+          id: zod
+            .uuid()
+            .describe(
+              "UUID of a profile entity to OMIT (education, work, project, skill, certification, etc.). Must exist in the source dataset."
+            ),
+          justification: zod
+            .string()
+            .describe(
+              "One clear reason for omission such as: irrelevant to core requirements, outdated, low impact, duplicative/overlaps with a stronger included entity, or space constraints. Reference the mismatched requirement or the overlapping included entity when applicable."
+            ),
+        })
+      )
+      .describe(
+        "Entities to OMIT from the final resume, each with a concise reason. IDs must be unique and must NOT overlap with selected_items."
+      ),
+  });
 
 /**
  * Select relevant information from user's resume for the job.

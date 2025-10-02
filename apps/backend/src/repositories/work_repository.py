@@ -4,6 +4,7 @@ from typing import Optional, List
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, delete
+from sqlalchemy.orm import selectinload
 from src.models.db.profile.work import (
     ProfileWorkExperience,
     ProfileWorkExperienceSchema,
@@ -35,16 +36,21 @@ class WorkRepository:
         )
 
         self.session.add(work)
-        await self.session.commit()
-        await self.session.refresh(work)
 
+        await self.session.commit()
+
+        await self.session.refresh(work)
         return work.schema
 
     async def get_work_experience_by_id(
         self, work_id: uuid.UUID, user_id: Optional[uuid.UUID] = None
     ) -> Optional[ProfileWorkExperienceSchema]:
         """Get a work experience record by ID, optionally filtered by user."""
-        query = select(ProfileWorkExperience).where(ProfileWorkExperience.id == work_id)
+        query = (
+            select(ProfileWorkExperience)
+            .options(selectinload(ProfileWorkExperience.responsibilities))
+            .where(ProfileWorkExperience.id == work_id)
+        )
 
         if user_id:
             query = query.where(ProfileWorkExperience.user_id == user_id)
@@ -60,8 +66,10 @@ class WorkRepository:
         offset: Optional[int] = None,
     ) -> List[ProfileWorkExperienceSchema]:
         """Get all work experience records for a specific user."""
-        query = select(ProfileWorkExperience).where(
-            ProfileWorkExperience.user_id == user_id
+        query = (
+            select(ProfileWorkExperience)
+            .options(selectinload(ProfileWorkExperience.responsibilities))
+            .where(ProfileWorkExperience.user_id == user_id)
         )
 
         # Order by end_date descending (most recent first), with NULL values first (current jobs)
@@ -95,6 +103,7 @@ class WorkRepository:
         """Update work experience fields."""
         query = (
             select(ProfileWorkExperience)
+            .options(selectinload(ProfileWorkExperience.responsibilities))
             .where(ProfileWorkExperience.id == work_id)
             .where(ProfileWorkExperience.user_id == user_id)
         )
@@ -109,9 +118,7 @@ class WorkRepository:
                 setattr(work, key, value)
 
         await self.session.commit()
-        await self.session.refresh(work)
-
-        return work.schema
+        return await self.get_work_experience_by_id(work_id, user_id)
 
     async def delete_work_experience(
         self, work_id: uuid.UUID, user_id: uuid.UUID

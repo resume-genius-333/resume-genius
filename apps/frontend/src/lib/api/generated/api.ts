@@ -234,7 +234,7 @@ export const getJobApiV1JobsJobIdGet = (jobId: string) => {
 };
 
 /**
- * Select relevant information from user's resume for the job.
+ * Select relevant educations from user's resume for the job.
  * @summary Get Job Selected Educations
  */
 export const getJobSelectedEducationsApiV1JobsJobIdSelectedEducationsGet = (
@@ -247,38 +247,38 @@ export const getJobSelectedEducationsApiV1JobsJobIdSelectedEducationsGet = (
 };
 
 /**
- * Select relevant information from user's resume for the job.
+ * Select relevant work experiences from user's resume for the job.
  * @summary Get Job Selected Work Experiences
  */
 export const getJobSelectedWorkExperiencesApiV1JobsJobIdSelectedWorkExperiencesGet =
   (jobId: string) => {
-    return customAxiosInstance<unknown>({
+    return customAxiosInstance<SelectionResult>({
       url: `/api/v1/jobs/${jobId}/selected_work_experiences`,
       method: "GET",
     });
   };
 
 /**
- * Select relevant information from user's resume for the job.
+ * Select relevant projects from user's resume for the job.
  * @summary Get Job Selected Projects
  */
 export const getJobSelectedProjectsApiV1JobsJobIdSelectedProjectsGet = (
   jobId: string
 ) => {
-  return customAxiosInstance<unknown>({
+  return customAxiosInstance<SelectionResult>({
     url: `/api/v1/jobs/${jobId}/selected_projects`,
     method: "GET",
   });
 };
 
 /**
- * Select relevant information from user's resume for the job.
+ * Select relevant skills from user's resume for the job.
  * @summary Get Job Selected Skills
  */
 export const getJobSelectedSkillsApiV1JobsJobIdSelectedSkillsGet = (
   jobId: string
 ) => {
-  return customAxiosInstance<unknown>({
+  return customAxiosInstance<SelectionResult>({
     url: `/api/v1/jobs/${jobId}/selected_skills`,
     method: "GET",
   });
