@@ -36,22 +36,21 @@ class WorkRepository:
         )
 
         self.session.add(work)
-        await self.session.flush()
-        await self.session.refresh(work)
-
-        work_schema = work.schema
 
         await self.session.commit()
 
-        return work_schema
+        await self.session.refresh(work)
+        return work.schema
 
     async def get_work_experience_by_id(
         self, work_id: uuid.UUID, user_id: Optional[uuid.UUID] = None
     ) -> Optional[ProfileWorkExperienceSchema]:
         """Get a work experience record by ID, optionally filtered by user."""
-        query = select(ProfileWorkExperience).options(
-            selectinload(ProfileWorkExperience.responsibilities)
-        ).where(ProfileWorkExperience.id == work_id)
+        query = (
+            select(ProfileWorkExperience)
+            .options(selectinload(ProfileWorkExperience.responsibilities))
+            .where(ProfileWorkExperience.id == work_id)
+        )
 
         if user_id:
             query = query.where(ProfileWorkExperience.user_id == user_id)
@@ -67,9 +66,11 @@ class WorkRepository:
         offset: Optional[int] = None,
     ) -> List[ProfileWorkExperienceSchema]:
         """Get all work experience records for a specific user."""
-        query = select(ProfileWorkExperience).options(
-            selectinload(ProfileWorkExperience.responsibilities)
-        ).where(ProfileWorkExperience.user_id == user_id)
+        query = (
+            select(ProfileWorkExperience)
+            .options(selectinload(ProfileWorkExperience.responsibilities))
+            .where(ProfileWorkExperience.user_id == user_id)
+        )
 
         # Order by end_date descending (most recent first), with NULL values first (current jobs)
         query = query.order_by(ProfileWorkExperience.end_date.desc().nullsfirst())
