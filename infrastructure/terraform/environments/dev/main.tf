@@ -48,12 +48,6 @@ module "network" {
   tags = local.tags
 }
 
-# Resolve the Redis AUTH token from Secrets Manager so the sensitive value never needs to
-# live in source control. The secret should contain the raw token string (not JSON).
-data "aws_secretsmanager_secret_version" "redis_auth_token" {
-  secret_id = var.redis_auth_token_secret_arn
-}
-
 # Shared security group that allows east-west traffic between LiteLLM components such as
 # the ECS service, Redis, and Postgres. Outbound is fully open because AWS SGs are
 # stateful and we only rely on other groups to restrict inbound traffic.
@@ -128,47 +122,35 @@ module "rds" {
   tags = local.tags
 }
 
-# Redis cache used by LiteLLM for session and rate-limiting data. Like the RDS module, we
-# rely on a shared implementation to enforce secure defaults.
-module "redis" {
-  source = "../../modules/elasticache_redis"
-  # Prefix name identifies the replication group and all nested resources.
-  name = "${var.name_prefix}-${var.environment}-litellm-redis"
-  # Attach to the same VPC as the rest of the stack for private networking.
-  vpc_id = module.network.vpc_id
-  # Private subnets isolate the cache from the public internet.
-  subnet_ids = module.network.private_subnet_ids
-  # Allow ECS tasks (plus any additional groups) to connect to Redis on its TCP port.
-  allowed_security_group_ids = concat([aws_security_group.litellm_internal.id], var.additional_redis_allowed_security_group_ids)
-  # Engine and node sizing dictate latency, throughput, and cost characteristics.
-  engine_version = var.redis_engine_version
-  node_type      = var.redis_node_type
-  # When cluster mode is disabled, this is the number of standalone cache nodes.
-  num_cache_nodes = var.redis_num_cache_nodes
-  # Cluster mode enables sharding for higher scale; toggles below further shape topology.
-  cluster_mode_enabled    = var.redis_cluster_mode_enabled
-  num_node_groups         = var.redis_num_node_groups
-  replicas_per_node_group = var.redis_replicas_per_node_group
-  # Automatic failover promotes replicas when primaries fail; Multi-AZ spreads nodes across
-  # zones for resilience.
-  automatic_failover_enabled = var.redis_automatic_failover_enabled
-  multi_az_enabled           = var.redis_multi_az_enabled
-  # Encryption settings protect data as it traverses the network and while stored on disk.
-  transit_encryption_enabled = var.redis_transit_encryption_enabled
-  at_rest_encryption_enabled = var.redis_at_rest_encryption_enabled
-  # Optional auth token enforces password-based access; recommended for production.
-  auth_token = data.aws_secretsmanager_secret_version.redis_auth_token.secret_string
-  # Maintenance/snapshot windows schedule disruptive operations; leave null to let AWS pick
-  # defaults or set explicit off-peak times.
-  maintenance_window       = var.redis_maintenance_window
-  snapshot_window          = var.redis_snapshot_window
-  snapshot_retention_limit = var.redis_snapshot_retention_limit
-  # Preferred AZs dictate which subnets host cache nodes when multiple are available.
-  preferred_cache_cluster_azs = var.redis_preferred_cache_cluster_azs
-  # Port defaults to 6379; change only if network policies require it.
-  port = var.redis_port
-  # Propagate consistent tagging.
-  tags = local.tags
+# S3 bucket used by LiteLLM for response caching so we avoid keeping a Redis cluster
+# running around the clock. A random suffix keeps the bucket name globally unique.
+resource "random_id" "litellm_cache_suffix" {
+  byte_length = 4
+}
+
+resource "aws_s3_bucket" "litellm_cache" {
+  bucket = lower("${var.name_prefix}-${var.environment}-litellm-cache-${random_id.litellm_cache_suffix.hex}")
+  tags   = local.tags
+}
+
+# Block any form of public access on the cache bucket since it only needs to serve ECS tasks.
+resource "aws_s3_bucket_public_access_block" "litellm_cache" {
+  bucket                  = aws_s3_bucket.litellm_cache.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+# Enforce server-side encryption so cached responses are protected at rest.
+resource "aws_s3_bucket_server_side_encryption_configuration" "litellm_cache" {
+  bucket = aws_s3_bucket.litellm_cache.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
 }
 
 # ECS Fargate service that runs the LiteLLM container behind an Application Load Balancer.
@@ -185,7 +167,7 @@ module "litellm" {
   container_port    = var.litellm_container_port
   # Networking parameters tie the service and load balancer to our VPC layout.
   vpc_id            = module.network.vpc_id
-  subnet_ids        = module.network.private_subnet_ids
+  subnet_ids        = var.litellm_assign_public_ip ? module.network.public_subnet_ids : module.network.private_subnet_ids
   alb_subnet_ids    = module.network.public_subnet_ids
   alb_ingress_cidrs = var.alb_ingress_cidrs
   # Service scaling and sizing knobs control availability and cost.
@@ -204,11 +186,12 @@ module "litellm" {
       AWS_REGION = var.aws_region
       # LiteLLM reads config from this path inside the container image.
       LITELLM_CONFIG_PATH = var.litellm_config_path
-      # The app needs hostnames for database and cache connections supplied by modules.
+      # The app needs hostnames for database connections supplied by modules.
       LITELLM_DATABASE_HOST = module.rds.endpoint
-      LITELLM_REDIS_HOST    = module.redis.primary_endpoint_address
-      # Redis port is numeric, but ECS environment variables must be strings.
-      LITELLM_REDIS_PORT = tostring(module.redis.port)
+      # Configure LiteLLM cache integration to use the dedicated S3 bucket instead of Redis.
+      LITELLM_CACHE_TYPE      = "s3"
+      LITELLM_CACHE_S3_BUCKET = aws_s3_bucket.litellm_cache.bucket
+      LITELLM_CACHE_S3_REGION = var.aws_region
     },
     var.litellm_environment
   )
@@ -228,4 +211,29 @@ module "litellm" {
   log_retention_days = var.litellm_log_retention_days
   # Apply consistent tagging to every resource the module generates.
   tags = local.tags
+}
+
+# Allow the LiteLLM ECS task role to read and write cached responses in the dedicated S3 bucket.
+data "aws_iam_role" "litellm_task" {
+  name = module.litellm.task_role_name
+}
+
+resource "aws_iam_role_policy" "litellm_cache_s3" {
+  name = "${var.name_prefix}-${var.environment}-litellm-cache-s3"
+  role = data.aws_iam_role.litellm_task.name
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["s3:ListBucket"]
+        Resource = [aws_s3_bucket.litellm_cache.arn]
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
+        Resource = ["${aws_s3_bucket.litellm_cache.arn}/*"]
+      }
+    ]
+  })
 }

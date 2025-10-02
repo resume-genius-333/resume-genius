@@ -37,10 +37,6 @@ litellm_environment = {
   LITELLM_DATABASE_NAME = "litellm"
 }
 
-# Secrets Manager ARN that holds the Redis AUTH token string. The secret value must be the
-# plain token (not JSON) so Terraform can apply it to ElastiCache.
-redis_auth_token_secret_arn = "arn:aws:secretsmanager:ap-southeast-1:084828573819:secret:litellm/REDIS_AUTH_TOKEN"
-
 # TLS termination (optional)
 # alb_https_certificate_arn = "arn:aws:acm:ap-southeast-1:084828573819:certificate/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 # alb_redirect_http_to_https = true
