@@ -1,13 +1,16 @@
 "use client";
 
 import {
-  EducationSelectionResult,
+  ResumeSelectionResult,
   ProcessingStatusOutput,
   streamProcessingStatus,
 } from "@/lib/api/custom";
 import {
   getJobApiV1JobsJobIdGet,
   getJobSelectedEducationsApiV1JobsJobIdSelectedEducationsGet,
+  getJobSelectedProjectsApiV1JobsJobIdSelectedProjectsGet,
+  getJobSelectedSkillsApiV1JobsJobIdSelectedSkillsGet,
+  getJobSelectedWorkExperiencesApiV1JobsJobIdSelectedWorkExperiencesGet,
 } from "@/lib/api/generated/api";
 import {
   JobSchema,
@@ -42,7 +45,13 @@ export default function JobPage({ params }: JobPageInput) {
   const [job, setJob] = useState<JobSchema | null>(null);
   const [jobDescription, setJobDescription] = useState<string | null>(null);
   const [educationSelected, setEducationSelected] =
-    useState<EducationSelectionResult | null>(null);
+    useState<ResumeSelectionResult | null>(null);
+  const [workExperienceSelected, setWorkExperienceSelected] =
+    useState<ResumeSelectionResult | null>(null);
+  const [projectSelected, setProjectSelected] =
+    useState<ResumeSelectionResult | null>(null);
+  const [skillSelected, setSkillSelected] =
+    useState<ResumeSelectionResult | null>(null);
 
   const setStatus = useCallback((status: ProcessingStatusOutput) => {
     _setStatus(status);
@@ -98,6 +107,26 @@ export default function JobPage({ params }: JobPageInput) {
     setEducationSelected(education);
   }, [jobId]);
 
+  const fetchWorkExperience = useCallback(async () => {
+    const workExperience =
+      await getJobSelectedWorkExperiencesApiV1JobsJobIdSelectedWorkExperiencesGet(
+        jobId
+      );
+    setWorkExperienceSelected(workExperience);
+  }, [jobId]);
+
+  const fetchProject = useCallback(async () => {
+    const project =
+      await getJobSelectedProjectsApiV1JobsJobIdSelectedProjectsGet(jobId);
+    setProjectSelected(project);
+  }, [jobId]);
+
+  const fetchSkill = useCallback(async () => {
+    const skill =
+      await getJobSelectedSkillsApiV1JobsJobIdSelectedSkillsGet(jobId);
+    setSkillSelected(skill);
+  }, [jobId]);
+
   const updateStatus = useCallback(
     async (newStatus: ProcessingStatusOutput) => {
       const promises: Promise<unknown>[] = [];
@@ -107,9 +136,25 @@ export default function JobPage({ params }: JobPageInput) {
       if (checkAndUpdateStatusFor("educationsSelectedAt", newStatus)) {
         promises.push(fetchEducation());
       }
+      if (checkAndUpdateStatusFor("workExperiencesSelectedAt", newStatus)) {
+        promises.push(fetchWorkExperience());
+      }
+      if (checkAndUpdateStatusFor("projectsSelectedAt", newStatus)) {
+        promises.push(fetchProject());
+      }
+      if (checkAndUpdateStatusFor("skillsSelectedAt", newStatus)) {
+        promises.push(fetchSkill());
+      }
       await Promise.all(promises);
     },
-    [checkAndUpdateStatusFor, fetchJob, fetchEducation]
+    [
+      checkAndUpdateStatusFor,
+      fetchJob,
+      fetchEducation,
+      fetchWorkExperience,
+      fetchProject,
+      fetchSkill,
+    ]
   );
 
   async function createReader(jobId: string) {
@@ -171,6 +216,56 @@ export default function JobPage({ params }: JobPageInput) {
         <h3>Not Selected Educations</h3>
         {educationSelected &&
           educationSelected.not_selected_items.map((item: NotSelectedItem) => (
+            <li key={item.id}>
+              {item.id}: {item.justification}
+            </li>
+          ))}
+      </div>
+      <div className="mt-4">
+        <h3>Selected Work Experiences</h3>
+        {workExperienceSelected &&
+          workExperienceSelected.selected_items.map((item: SelectedItem) => (
+            <li key={item.id}>
+              {item.id}: {item.justification}
+            </li>
+          ))}
+        <h3>Not Selected Work Experiences</h3>
+        {workExperienceSelected &&
+          workExperienceSelected.not_selected_items.map(
+            (item: NotSelectedItem) => (
+              <li key={item.id}>
+                {item.id}: {item.justification}
+              </li>
+            )
+          )}
+      </div>
+      <div className="mt-4">
+        <h3>Selected Projects</h3>
+        {projectSelected &&
+          projectSelected.selected_items.map((item: SelectedItem) => (
+            <li key={item.id}>
+              {item.id}: {item.justification}
+            </li>
+          ))}
+        <h3>Not Selected Projects</h3>
+        {projectSelected &&
+          projectSelected.not_selected_items.map((item: NotSelectedItem) => (
+            <li key={item.id}>
+              {item.id}: {item.justification}
+            </li>
+          ))}
+      </div>
+      <div className="mt-4">
+        <h3>Selected Skills</h3>
+        {skillSelected &&
+          skillSelected.selected_items.map((item: SelectedItem) => (
+            <li key={item.id}>
+              {item.id}: {item.justification}
+            </li>
+          ))}
+        <h3>Not Selected Skills</h3>
+        {skillSelected &&
+          skillSelected.not_selected_items.map((item: NotSelectedItem) => (
             <li key={item.id}>
               {item.id}: {item.justification}
             </li>
