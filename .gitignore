@@ -11,6 +11,7 @@
 **/terraform.tfstate
 **/terraform.tfstate.*
 **/*.tfplan
+**/litellm_autoscaler.zip
 *.tfvars
 !*.tfvars.example
 

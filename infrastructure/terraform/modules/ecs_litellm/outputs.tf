@@ -14,6 +14,11 @@ output "task_role_arn" {
   value       = aws_iam_role.task.arn
 }
 
+output "task_role_name" {
+  description = "Name of the IAM role assumed by LiteLLM tasks."
+  value       = aws_iam_role.task.name
+}
+
 output "service_security_group_id" {
   description = "Security group attached to service ENIs, useful for whitelisting access."
   value       = aws_security_group.service.id
