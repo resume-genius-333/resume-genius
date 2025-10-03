@@ -87,6 +87,12 @@ Outputs include the ALB DNS name, ECS service/cluster identifiers, datastore end
 - Duplicate `environments/dev` for additional stages and adjust the backend key + `environment` variable.
 - Attach extra security groups to `additional_*_allowed_security_group_ids` when other services need datastore access.
 - Override ECS sizing (`litellm_task_cpu`, `litellm_task_memory`, `litellm_desired_count`) and ALB settings through variables.
+- When `litellm_manual_control_enabled` and `backend_db_bastion_enabled` are set to `true`, the **LiteLLM manual override API** + bastion combo can keep the service online for a fixed window. Capture the outputs `litellm_manual_control_api_url`, `backend_rds_endpoint`, and `backend_db_bastion_instance_id`, then use `scripts/litellm-boost.sh 4` to request a four-hour boost. The script will start the bastion, open an SSM port forward to RDS, update `.env`, and stop the instance when you exit.
+
+## Known Issues
+
+- The backend PostgreSQL database (and its bastion host + manual override API) can be disabled by setting `backend_rds_enabled = false`, `backend_db_bastion_enabled = false`, and `litellm_manual_control_enabled = false` in your environment `terraform.tfvars`. We have encountered intermittent connectivity problems with the SSM-managed bastion on Ubuntu images; the current workaround is to keep the database stack disabled until the access pattern is stabilised.
+- `scripts/litellm-boost.sh` now only enforces the LiteLLM ECS service desired count (no more port forwarding). Use `./scripts/litellm-boost.sh` to scale up to one task and `./scripts/litellm-boost.sh --off` to scale back down.
 
 > **Security tip:** Avoid committing real secrets. Populate them through Terraform Cloud/Terragrunt variables, or pass with `TF_VAR_` environment variables during workflows.
 
