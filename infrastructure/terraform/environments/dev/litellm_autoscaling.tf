@@ -9,7 +9,27 @@ locals {
     "arn:aws:elasticloadbalancing:${var.aws_region}:${data.aws_caller_identity.current.account_id}:loadbalancer/",
     ""
   )
-  litellm_autoscaler_name = "${var.name_prefix}-${var.environment}-litellm-autoscaler"
+  litellm_autoscaler_name         = "${var.name_prefix}-${var.environment}-litellm-autoscaler"
+  litellm_override_parameter_name = var.litellm_manual_control_enabled ? "/${var.name_prefix}/${var.environment}/litellm/manual_override" : null
+}
+
+# Parameter describing manual overrides for LiteLLM desired count. Lambda automation updates the
+# value; Terraform seeds it once and then ignores subsequent changes to avoid drift.
+resource "aws_ssm_parameter" "litellm_manual_override" {
+  count = var.litellm_manual_control_enabled ? 1 : 0
+
+  name = local.litellm_override_parameter_name
+  type = "String"
+  value = jsonencode({
+    desired_count = 0
+    expires_at    = "1970-01-01T00:00:00Z"
+  })
+  overwrite = true
+  tags      = local.tags
+
+  lifecycle {
+    ignore_changes = [value]
+  }
 }
 
 resource "aws_iam_role" "litellm_autoscaler" {
@@ -37,22 +57,28 @@ resource "aws_iam_role_policy" "litellm_autoscaler_permissions" {
   name = "${local.litellm_autoscaler_name}-policy"
   role = aws_iam_role.litellm_autoscaler.id
   policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
+    Version = "2012-10-17"
+    Statement = concat([
       {
-        Effect = "Allow",
+        Effect = "Allow"
         Action = [
           "ecs:UpdateService",
           "ecs:DescribeServices"
-        ],
+        ]
         Resource = "*"
       },
       {
-        Effect   = "Allow",
-        Action   = ["cloudwatch:GetMetricStatistics", "cloudwatch:GetMetricData"],
+        Effect   = "Allow"
+        Action   = ["cloudwatch:GetMetricStatistics", "cloudwatch:GetMetricData"]
         Resource = "*"
       }
-    ]
+      ], var.litellm_manual_control_enabled ? [
+      {
+        Effect   = "Allow"
+        Action   = ["ssm:GetParameter", "ssm:GetParameters"]
+        Resource = aws_ssm_parameter.litellm_manual_override[0].arn
+      }
+    ] : [])
   })
 }
 
@@ -61,6 +87,13 @@ data "archive_file" "litellm_autoscaler" {
   type        = "zip"
   source_file = "${path.module}/litellm_autoscaler.py"
   output_path = "${path.module}/litellm_autoscaler.zip"
+}
+
+data "archive_file" "litellm_manual_control" {
+  count       = var.litellm_manual_control_enabled ? 1 : 0
+  type        = "zip"
+  source_file = "${path.module}/litellm_manual_control.py"
+  output_path = "${path.module}/litellm_manual_control.zip"
 }
 
 resource "aws_lambda_function" "litellm_autoscaler" {
@@ -74,15 +107,124 @@ resource "aws_lambda_function" "litellm_autoscaler" {
   timeout = 30
 
   environment {
-    variables = {
+    variables = merge({
       CLUSTER_NAME            = module.litellm.cluster_name
       SERVICE_NAME            = module.litellm.service_name
       LOAD_BALANCER_DIMENSION = local.litellm_load_balancer_dimension
       KEEPALIVE_MINUTES       = tostring(var.litellm_idle_shutdown_minutes)
+      ENABLE_EXECUTE_COMMAND  = var.litellm_enable_execute_command ? "true" : "false"
+      }, var.litellm_manual_control_enabled && local.litellm_override_parameter_name != null ? {
+      MANUAL_OVERRIDE_PARAMETER = local.litellm_override_parameter_name
+    } : {})
+  }
+
+  tags = local.tags
+}
+
+# Lambda exposed via API Gateway so operators can request LiteLLM capacity for a fixed window.
+resource "aws_iam_role" "litellm_manual_control" {
+  count = var.litellm_manual_control_enabled ? 1 : 0
+  name  = "${local.litellm_autoscaler_name}-manual-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect = "Allow",
+      Principal = {
+        Service = "lambda.amazonaws.com"
+      },
+      Action = "sts:AssumeRole"
+    }]
+  })
+  tags = local.tags
+}
+
+resource "aws_iam_role_policy_attachment" "litellm_manual_control_logs" {
+  count      = var.litellm_manual_control_enabled ? 1 : 0
+  role       = aws_iam_role.litellm_manual_control[0].name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+resource "aws_iam_role_policy" "litellm_manual_control_permissions" {
+  count = var.litellm_manual_control_enabled ? 1 : 0
+  name  = "${local.litellm_autoscaler_name}-manual-policy"
+  role  = aws_iam_role.litellm_manual_control[0].id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["ecs:UpdateService", "ecs:DescribeServices"]
+        Resource = "*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["ssm:PutParameter", "ssm:GetParameter"]
+        Resource = aws_ssm_parameter.litellm_manual_override[0].arn
+      }
+    ]
+  })
+}
+
+resource "aws_lambda_function" "litellm_manual_control" {
+  count            = var.litellm_manual_control_enabled ? 1 : 0
+  function_name    = "${local.litellm_autoscaler_name}-manual"
+  role             = aws_iam_role.litellm_manual_control[0].arn
+  handler          = "litellm_manual_control.handler"
+  runtime          = "python3.12"
+  filename         = data.archive_file.litellm_manual_control[0].output_path
+  source_code_hash = data.archive_file.litellm_manual_control[0].output_base64sha256
+  timeout          = 30
+
+  environment {
+    variables = {
+      CLUSTER_NAME              = module.litellm.cluster_name
+      SERVICE_NAME              = module.litellm.service_name
+      MANUAL_OVERRIDE_PARAMETER = local.litellm_override_parameter_name
+      DEFAULT_HOURS             = tostring(var.litellm_manual_override_default_hours)
     }
   }
 
   tags = local.tags
+}
+
+resource "aws_apigatewayv2_api" "litellm_control" {
+  count         = var.litellm_manual_control_enabled ? 1 : 0
+  name          = "${local.litellm_autoscaler_name}-api"
+  protocol_type = "HTTP"
+  tags          = local.tags
+}
+
+resource "aws_apigatewayv2_integration" "litellm_control" {
+  count                  = var.litellm_manual_control_enabled ? 1 : 0
+  api_id                 = aws_apigatewayv2_api.litellm_control[0].id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.litellm_manual_control[0].invoke_arn
+  integration_method     = "POST"
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "litellm_control" {
+  count     = var.litellm_manual_control_enabled ? 1 : 0
+  api_id    = aws_apigatewayv2_api.litellm_control[0].id
+  route_key = "POST /litellm/override"
+  target    = "integrations/${aws_apigatewayv2_integration.litellm_control[0].id}"
+}
+
+resource "aws_apigatewayv2_stage" "litellm_control" {
+  count       = var.litellm_manual_control_enabled ? 1 : 0
+  api_id      = aws_apigatewayv2_api.litellm_control[0].id
+  name        = "prod"
+  auto_deploy = true
+  tags        = local.tags
+}
+
+resource "aws_lambda_permission" "allow_apigw_manual_control" {
+  count         = var.litellm_manual_control_enabled ? 1 : 0
+  statement_id  = "AllowAPIGatewayInvokeManualControl"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.litellm_manual_control[0].function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.litellm_control[0].execution_arn}/*"
 }
 
 # SNS topic that receives CloudWatch alarm notifications and triggers the autoscaler.

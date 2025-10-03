@@ -108,6 +108,14 @@ variable "assign_public_ip" {
   default     = false
 }
 
+# Enables ECS Exec so operators can open SSM sessions into running tasks. Requires the task
+# role to have SSM message permissions and network access to the SSM endpoints.
+variable "enable_execute_command" {
+  type        = bool
+  description = "Enable ECS Exec (SSM) connectivity to the service tasks."
+  default     = false
+}
+
 # Additional security groups attached to the task ENIs. Use this to grant access to shared services.
 variable "additional_service_security_groups" {
   type        = list(string)

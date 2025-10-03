@@ -68,6 +68,38 @@ variable "enable_nat_gateway" {
   default     = false
 }
 
+# Bastion instance used for SSM port forwarding into the backend database. The instance can
+# be stopped when not in use to avoid cost; automation and scripts reference its tags/outputs.
+variable "backend_db_bastion_enabled" {
+  type        = bool
+  description = "Provision a small SSM-managed EC2 instance for database access."
+  default     = true
+}
+
+variable "backend_db_bastion_instance_type" {
+  type        = string
+  description = "Instance type for the bastion EC2 host."
+  default     = "t4g.micro"
+}
+
+variable "backend_db_bastion_root_volume_size" {
+  type        = number
+  description = "Root volume size (GiB) for the bastion instance."
+  default     = 16
+}
+
+variable "backend_db_bastion_key_name" {
+  type        = string
+  description = "Optional EC2 key pair name to enable SSH access to the bastion."
+  default     = null
+}
+
+variable "backend_db_bastion_ingress_cidrs" {
+  type        = list(string)
+  description = "CIDR blocks allowed to SSH into the bastion (optional). Leave empty for SSM-only access."
+  default     = []
+}
+
 # RDS
 # Master username Terraform configures on the Postgres instance. Use a value that meets
 # AWS requirements; you will use it for direct administrative access.
@@ -213,6 +245,12 @@ variable "additional_rds_allowed_security_group_ids" {
 }
 
 # Backend RDS (Resume Genius API)
+variable "backend_rds_enabled" {
+  type        = bool
+  description = "Provision the backend PostgreSQL database."
+  default     = true
+}
+
 variable "backend_rds_master_username" {
   type        = string
   description = "Master username for the backend Postgres database."
@@ -386,8 +424,6 @@ variable "litellm_desired_count" {
   default     = 1
 }
 
-# Minutes to keep the LiteLLM service running after the last request. Automation can
-# override the desired count to zero when idle for longer than this window.
 variable "litellm_idle_shutdown_minutes" {
   type        = number
   description = "Idle window in minutes before scaling LiteLLM tasks to zero."
@@ -401,6 +437,21 @@ variable "litellm_idle_check_interval_minutes" {
   type        = number
   description = "Interval in minutes for LiteLLM idle checks."
   default     = 5
+}
+
+# Toggle deployment of the manual override API (Lambda + API Gateway) that keeps LiteLLM online for a time window.
+variable "litellm_manual_control_enabled" {
+  type        = bool
+  description = "Provision the manual LiteLLM override Lambda and API."
+  default     = true
+}
+
+# Default number of hours that the manual override API keeps the LiteLLM service online when no
+# explicit duration is supplied.
+variable "litellm_manual_override_default_hours" {
+  type        = number
+  description = "Default hours to keep LiteLLM running when manual override is triggered."
+  default     = 2
 }
 
 # CPU units allocated per task. Fargate enforces mappings between CPU and memory; refer to
@@ -425,6 +476,15 @@ variable "litellm_assign_public_ip" {
   type        = bool
   description = "Assign public IPs to LiteLLM tasks."
   default     = true
+}
+
+# Turn on ECS Exec so operators can open SSM sessions into LiteLLM tasks. Leave disabled if
+# the environment lacks outbound access to the SSM endpoints or if interactive shells are
+# not desired.
+variable "litellm_enable_execute_command" {
+  type        = bool
+  description = "Enable ECS Exec (SSM) access to the LiteLLM service."
+  default     = false
 }
 
 # Plain-text environment variables injected into the container. Good place for non-secret
