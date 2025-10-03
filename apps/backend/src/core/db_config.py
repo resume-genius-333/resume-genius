@@ -4,6 +4,10 @@ import os
 from typing import Optional
 from dotenv import load_dotenv
 
+# Optional override that points the backend at a remote database. When provided, the
+# backend skips composing URLs from individual components and simply reuses this value.
+BACKEND_DATABASE_URL_ENV = "BACKEND_DATABASE_URL"
+
 # Load environment variables
 load_dotenv()
 
@@ -11,6 +15,27 @@ load_dotenv()
 def is_docker_environment() -> bool:
     """Check if running in Docker environment."""
     return os.path.exists('/.dockerenv') or os.getenv('DOCKER_CONTAINER', 'false').lower() == 'true'
+
+
+def _get_database_url_override(driver: str) -> Optional[str]:
+    """Return an override URL from BACKEND_DATABASE_URL for the requested driver."""
+    override = os.getenv(BACKEND_DATABASE_URL_ENV)
+    if not override:
+        return None
+
+    # Allow callers to supply driver-specific URLs (e.g., postgresql+asyncpg://...).
+    if override.startswith(f"{driver}://"):
+        return override
+
+    # Smoothly convert between sync and async Postgres drivers so a single override works.
+    if driver == "postgresql+asyncpg" and override.startswith("postgresql://"):
+        return override.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+    if driver == "postgresql" and override.startswith("postgresql+asyncpg://"):
+        return override.replace("postgresql+asyncpg://", "postgresql://", 1)
+
+    # Fallback: return the override unchanged so custom schemes continue to work.
+    return override
 
 
 def construct_database_url(
@@ -69,6 +94,10 @@ def construct_database_url(
 
 def get_async_database_url(is_docker: Optional[bool] = None) -> str:
     """Get the async database URL for the application."""
+    override = _get_database_url_override(driver="postgresql+asyncpg")
+    if override:
+        return override
+
     return construct_database_url(
         driver="postgresql+asyncpg",
         is_docker=is_docker
@@ -77,6 +106,10 @@ def get_async_database_url(is_docker: Optional[bool] = None) -> str:
 
 def get_sync_database_url(is_docker: Optional[bool] = None) -> str:
     """Get the sync database URL for migrations."""
+    override = _get_database_url_override(driver="postgresql")
+    if override:
+        return override
+
     return construct_database_url(
         driver="postgresql",
         is_docker=is_docker
