@@ -14,6 +14,20 @@ availability_zones = ["ap-southeast-1a", "ap-southeast-1b"]
 rds_master_username = "litellm"
 rds_master_password = "REPLACE_ME"
 
+# Backend database configuration. Terraform will generate a strong password and store it in
+# AWS Secrets Manager at the secret name provided here.
+backend_rds_master_username = "backend"
+backend_rds_database_name   = "resume_genius"
+backend_rds_secret_name     = "resume-genius/backend/postgres"
+
+# Optional: publish and consume a friendlier hostname for the backend database. Uncomment
+# and adjust these values if you manage the domain in Route 53 or another DNS provider.
+# backend_rds_custom_hostname   = "dev-db.resumegenius.parkourlabs.io"
+# backend_rds_dns_zone_name     = "resumegenius.parkourlabs.io."
+# backend_rds_dns_zone_private  = true
+# backend_rds_dns_record_name   = "dev-db"
+# backend_rds_dns_record_ttl    = 300
+
 # Container image to deploy. Update the tag when shipping new application versions.
 litellm_container_image = "084828573819.dkr.ecr.ap-southeast-1.amazonaws.com/litellm:latest"
 

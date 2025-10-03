@@ -29,3 +29,23 @@ output "litellm_cache_bucket" {
   description = "Name of the S3 bucket storing LiteLLM cached responses."
   value       = aws_s3_bucket.litellm_cache.bucket
 }
+
+output "backend_rds_endpoint" {
+  description = "Hostname for the Resume Genius backend database."
+  value       = module.backend_rds.endpoint
+}
+
+output "backend_rds_hostname" {
+  description = "Preferred hostname (custom alias when configured) for the backend database."
+  value       = local.backend_rds_hostname
+}
+
+output "backend_rds_secret_arn" {
+  description = "ARN of the Secrets Manager secret that stores backend DB credentials."
+  value       = aws_secretsmanager_secret.backend_db.arn
+}
+
+output "backend_security_group_id" {
+  description = "Security group ID assigned to backend services for database access."
+  value       = aws_security_group.backend_internal.id
+}

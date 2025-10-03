@@ -73,6 +73,26 @@ resource "aws_security_group" "litellm_internal" {
   })
 }
 
+# Dedicated security group for the Resume Genius backend service. The backend ECS tasks (or
+# other compute) will attach to this group so the database can grant it ingress without
+# exposing Postgres more broadly.
+resource "aws_security_group" "backend_internal" {
+  name        = "${var.name_prefix}-${var.environment}-backend"
+  description = "Security group shared by Resume Genius backend components"
+  vpc_id      = module.network.vpc_id
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(local.tags, {
+    Name = "${var.name_prefix}-${var.environment}-backend"
+  })
+}
+
 # Managed PostgreSQL database that stores LiteLLM metadata. Using the reusable module
 # keeps security-group plumbing and encryption settings consistent across environments.
 module "rds" {
@@ -120,6 +140,95 @@ module "rds" {
   performance_insights_kms_key_id = var.rds_performance_insights_kms_key_id
   # Pass environment-aware tags for governance.
   tags = local.tags
+}
+
+# Generate unique credentials for the backend database so Terraform never needs a hardcoded
+# password. The resulting secret is stored in AWS Secrets Manager for the application to read.
+resource "random_password" "backend_rds_master" {
+  length  = 24
+  special = false
+}
+
+# Managed PostgreSQL instance dedicated to the FastAPI backend. Sized for dev workloads and
+# isolated from the LiteLLM database so each service can evolve independently.
+module "backend_rds" {
+  source = "../../modules/rds_postgres"
+
+  name   = "${var.name_prefix}-${var.environment}-backend-db"
+  vpc_id = module.network.vpc_id
+
+  subnet_ids = module.network.private_subnet_ids
+
+  allowed_security_group_ids = concat([
+    aws_security_group.backend_internal.id
+  ], var.additional_backend_rds_allowed_security_group_ids)
+
+  engine_version                  = var.backend_rds_engine_version
+  instance_class                  = var.backend_rds_instance_class
+  username                        = var.backend_rds_master_username
+  password                        = random_password.backend_rds_master.result
+  db_name                         = var.backend_rds_database_name
+  allocated_storage               = var.backend_rds_allocated_storage
+  max_allocated_storage           = var.backend_rds_max_allocated_storage
+  storage_type                    = var.backend_rds_storage_type
+  storage_encrypted               = var.backend_rds_storage_encrypted
+  kms_key_id                      = var.backend_rds_kms_key_id
+  multi_az                        = var.backend_rds_multi_az
+  backup_retention_period         = var.backend_rds_backup_retention_period
+  skip_final_snapshot             = var.backend_rds_skip_final_snapshot
+  apply_immediately               = var.backend_rds_apply_immediately
+  deletion_protection             = var.backend_rds_deletion_protection
+  performance_insights_enabled    = var.backend_rds_performance_insights_enabled
+  performance_insights_kms_key_id = var.backend_rds_performance_insights_kms_key_id
+  tags                            = local.tags
+}
+
+locals {
+  # Prefer a friendly hostname for clients when one is supplied; otherwise fall back to
+  # the native RDS endpoint. Keeping this local centralizes how we reference the database
+  # host across secrets and outputs.
+  backend_rds_hostname = coalesce(var.backend_rds_custom_hostname, module.backend_rds.endpoint)
+}
+
+# Optionally publish a custom DNS record in Route 53 to point the friendly hostname at the
+# RDS endpoint. This is gated behind variables so environments without hosted zones skip it.
+data "aws_route53_zone" "backend_rds" {
+  count        = var.backend_rds_dns_zone_name == null ? 0 : 1
+  name         = var.backend_rds_dns_zone_name
+  private_zone = var.backend_rds_dns_zone_private
+}
+
+resource "aws_route53_record" "backend_rds" {
+  count           = var.backend_rds_dns_zone_name == null || var.backend_rds_dns_record_name == null ? 0 : 1
+  zone_id         = data.aws_route53_zone.backend_rds[0].zone_id
+  name            = var.backend_rds_dns_record_name
+  type            = "CNAME"
+  ttl             = var.backend_rds_dns_record_ttl
+  allow_overwrite = true
+  records         = [module.backend_rds.endpoint]
+}
+
+# Secret that stores the backend connection details in JSON form. Both local development and
+# deployed services can reference this ARN to fetch credentials without baking them into
+# environment variables or Terraform state outputs.
+resource "aws_secretsmanager_secret" "backend_db" {
+  name        = var.backend_rds_secret_name
+  description = "Resume Genius backend database credentials"
+  tags        = local.tags
+}
+
+resource "aws_secretsmanager_secret_version" "backend_db" {
+  secret_id = aws_secretsmanager_secret.backend_db.id
+  secret_string = jsonencode({
+    engine   = "postgresql"
+    host     = local.backend_rds_hostname
+    aws_host = module.backend_rds.endpoint
+    port     = module.backend_rds.port
+    username = var.backend_rds_master_username
+    password = random_password.backend_rds_master.result
+    dbname   = var.backend_rds_database_name
+    url      = "postgresql://${var.backend_rds_master_username}:${random_password.backend_rds_master.result}@${local.backend_rds_hostname}/${var.backend_rds_database_name}"
+  })
 }
 
 # S3 bucket used by LiteLLM for response caching so we avoid keeping a Redis cluster
