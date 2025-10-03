@@ -54,6 +54,7 @@ services:
 
   # PostgreSQL Database for Resume Genius
   resume-genius-postgres:
+    profiles: [backend-local-db]
     image: pgvector/pgvector:pg16
     container_name: resume-genius-postgres
     restart: always
@@ -167,8 +168,6 @@ services:
       - AWS_REGION=${AWS_REGION}
       - STORAGE_BUCKET_NAME=${STORAGE_BUCKET_NAME}
     depends_on:
-      resume-genius-postgres:
-        condition: service_healthy
       resume-genius-redis:
         condition: service_healthy
     restart: unless-stopped
