@@ -1,18 +1,7 @@
 name: LiteLLM Deploy
 
 on:
-  push:
-    branches: ["main"]
-    paths:
-      - "infrastructure/docker/**"
-      - "infrastructure/terraform/**"
-      - ".github/workflows/litellm-deploy.yml"
-      - "apps/backend/**"
-  pull_request:
-    paths:
-      - "infrastructure/docker/**"
-      - "infrastructure/terraform/**"
-      - ".github/workflows/litellm-deploy.yml"
+  # Temporarily disable automatic CI triggers; keep manual runs available.
   workflow_dispatch:
     inputs:
       image_tag:
@@ -107,10 +96,12 @@ jobs:
       id-token: write
       contents: read
     env:
-      IMAGE_URI: ${{ needs.docker-build-push.outputs.image_uri || format('{0}:{1}', env.ECR_REPOSITORY, github.sha) }}
+      IMAGE_URI: ${{ needs.docker-build-push.outputs.image_uri || format('{0}:{1}', secrets.LITELLM_ECR_REPOSITORY, github.sha) }}
       TERRAFORM_ENVIRONMENT: ${{ vars.TERRAFORM_ENVIRONMENT || 'dev' }}
       RDS_MASTER_USERNAME: ${{ vars.RDS_MASTER_USERNAME || 'litellm' }}
       RDS_DATABASE_NAME: ${{ vars.RDS_DATABASE_NAME || 'litellm' }}
+      BACKEND_RDS_MASTER_USERNAME: ${{ vars.BACKEND_RDS_MASTER_USERNAME || 'postgres' }}
+      BACKEND_RDS_DATABASE_NAME: ${{ vars.BACKEND_RDS_DATABASE_NAME || 'resume_genius' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -139,19 +130,28 @@ jobs:
           TF_VAR_litellm_secrets: ${{ secrets.LITELLM_SECRETS_JSON }}
         run: terraform apply -input=false -auto-approve
 
-      - name: Update LiteLLM DATABASE_URL secret
+      - name: Update database connection secrets
         working-directory: ${{ env.TF_WORKING_DIR }}
         env:
           LITELLM_SECRETS_JSON: ${{ secrets.LITELLM_SECRETS_JSON }}
           DB_PASSWORD: ${{ secrets.LITELLM_DB_MASTER_PASSWORD }}
+          BACKEND_SECRETS_JSON: ${{ secrets.BACKEND_SECRETS_JSON }}
+          BACKEND_DB_PASSWORD: ${{ secrets.BACKEND_DB_MASTER_PASSWORD }}
         run: |
           set -euo pipefail
-          if [ -z "${DB_PASSWORD}" ]; then
+          if [ -z "${LITELLM_SECRETS_JSON:-}" ]; then
+            echo "LITELLM_SECRETS_JSON secret is empty" >&2
+            exit 1
+          fi
+
+          if [ -z "${DB_PASSWORD:-}" ]; then
             echo "LiteLLM DB password secret is empty" >&2
             exit 1
           fi
 
-          RDS_ENDPOINT=$(terraform output -raw rds_endpoint)
+          terraform_outputs=$(terraform output -json 2>/dev/null || echo '{}')
+
+          RDS_ENDPOINT=$(echo "${terraform_outputs}" | jq -r '.rds_endpoint.value // empty')
           if [ -z "${RDS_ENDPOINT}" ]; then
             echo "Unable to read rds_endpoint output" >&2
             exit 1
@@ -172,3 +172,29 @@ jobs:
             --secret-string "${DB_URL}" >/dev/null
 
           echo "Updated DATABASE_URL secret for LiteLLM"
+
+          if [ -n "${BACKEND_SECRETS_JSON:-}" ] && [ -n "${BACKEND_DB_PASSWORD:-}" ]; then
+            BACKEND_SECRET_ARN=$(echo "${BACKEND_SECRETS_JSON}" | jq -r '.BACKEND_DATABASE_URL // empty')
+
+            if [ -n "${BACKEND_SECRET_ARN}" ]; then
+              BACKEND_ENDPOINT=$(echo "${terraform_outputs}" | jq -r '.backend_rds_endpoint.value // empty')
+
+              if [ -n "${BACKEND_ENDPOINT}" ]; then
+                BACKEND_DB_USERNAME="${BACKEND_RDS_MASTER_USERNAME}"
+                BACKEND_DB_NAME="${BACKEND_RDS_DATABASE_NAME}"
+                BACKEND_DB_URL="postgresql://${BACKEND_DB_USERNAME}:${BACKEND_DB_PASSWORD}@${BACKEND_ENDPOINT}:5432/${BACKEND_DB_NAME}"
+
+                aws secretsmanager put-secret-value \
+                  --secret-id "${BACKEND_SECRET_ARN}" \
+                  --secret-string "${BACKEND_DB_URL}" >/dev/null
+
+                echo "Updated BACKEND_DATABASE_URL secret"
+              else
+                echo "Skipping backend secret update: terraform output backend_rds_endpoint not found or empty"
+              fi
+            else
+              echo "Skipping backend secret update: BACKEND_DATABASE_URL ARN missing from BACKEND_SECRETS_JSON"
+            fi
+          else
+            echo "Skipping backend secret update: BACKEND_SECRETS_JSON or BACKEND_DB_PASSWORD not provided"
+          fi
