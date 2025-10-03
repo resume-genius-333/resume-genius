@@ -21,6 +21,8 @@ locals {
   # Collect the unique set of secret ARNs so IAM policies can grant access without
   # duplicates that would bloat the policy document.
   litellm_secret_arns = distinct(values(var.litellm_secrets))
+
+  backend_db_bastion_name = "${var.name_prefix}-${var.environment}-db-bastion"
 }
 
 # Provision the VPC, subnets, and routing needed by all other stacks. Centralising this
@@ -93,6 +95,109 @@ resource "aws_security_group" "backend_internal" {
   })
 }
 
+resource "aws_security_group" "backend_db_bastion" {
+  count       = var.backend_db_bastion_enabled ? 1 : 0
+  name        = "${local.backend_db_bastion_name}-sg"
+  description = "Bastion host security group for backend database access"
+  vpc_id      = module.network.vpc_id
+
+  dynamic "ingress" {
+    for_each = var.backend_db_bastion_ingress_cidrs
+    content {
+      description = "SSH access"
+      from_port   = 22
+      to_port     = 22
+      protocol    = "tcp"
+      cidr_blocks = [ingress.value]
+    }
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(local.tags, {
+    Name = "${local.backend_db_bastion_name}-sg"
+    Role = "db-bastion"
+  })
+}
+
+data "aws_ssm_parameter" "backend_db_bastion_ami" {
+  count = var.backend_db_bastion_enabled ? 1 : 0
+  name  = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-arm64"
+}
+
+resource "aws_iam_role" "backend_db_bastion" {
+  count = var.backend_db_bastion_enabled ? 1 : 0
+  name  = "${local.backend_db_bastion_name}-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Service = "ec2.amazonaws.com"
+      }
+      Action = "sts:AssumeRole"
+    }]
+  })
+  tags = merge(local.tags, {
+    Name = "${local.backend_db_bastion_name}-role"
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "backend_db_bastion_ssm" {
+  count      = var.backend_db_bastion_enabled ? 1 : 0
+  role       = aws_iam_role.backend_db_bastion[0].name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_service_linked_role" "ssm" {
+  count            = var.backend_db_bastion_enabled ? 1 : 0
+  aws_service_name = "ssm.amazonaws.com"
+  description      = "Enables AWS Systems Manager access for resume-genius bastion instances"
+}
+
+resource "aws_iam_instance_profile" "backend_db_bastion" {
+  count = var.backend_db_bastion_enabled ? 1 : 0
+  name  = "${local.backend_db_bastion_name}-profile"
+  role  = aws_iam_role.backend_db_bastion[0].name
+  tags  = local.tags
+}
+
+resource "aws_instance" "backend_db_bastion" {
+  count = var.backend_db_bastion_enabled ? 1 : 0
+
+  ami                         = data.aws_ssm_parameter.backend_db_bastion_ami[0].value
+  instance_type               = var.backend_db_bastion_instance_type
+  subnet_id                   = module.network.public_subnet_ids[0]
+  associate_public_ip_address = true
+  iam_instance_profile        = aws_iam_instance_profile.backend_db_bastion[0].name
+  vpc_security_group_ids = compact([
+    aws_security_group.backend_db_bastion[0].id
+  ])
+  key_name = var.backend_db_bastion_key_name
+
+  root_block_device {
+    volume_size = var.backend_db_bastion_root_volume_size
+    volume_type = "gp3"
+    encrypted   = true
+  }
+
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 2
+  }
+
+  tags = merge(local.tags, {
+    Name = local.backend_db_bastion_name
+    Role = "db-bastion"
+  })
+}
+
 # Managed PostgreSQL database that stores LiteLLM metadata. Using the reusable module
 # keeps security-group plumbing and encryption settings consistent across environments.
 module "rds" {
@@ -145,6 +250,7 @@ module "rds" {
 # Generate unique credentials for the backend database so Terraform never needs a hardcoded
 # password. The resulting secret is stored in AWS Secrets Manager for the application to read.
 resource "random_password" "backend_rds_master" {
+  count   = var.backend_rds_enabled ? 1 : 0
   length  = 24
   special = false
 }
@@ -152,6 +258,7 @@ resource "random_password" "backend_rds_master" {
 # Managed PostgreSQL instance dedicated to the FastAPI backend. Sized for dev workloads and
 # isolated from the LiteLLM database so each service can evolve independently.
 module "backend_rds" {
+  count  = var.backend_rds_enabled ? 1 : 0
   source = "../../modules/rds_postgres"
 
   name   = "${var.name_prefix}-${var.environment}-backend-db"
@@ -160,13 +267,14 @@ module "backend_rds" {
   subnet_ids = module.network.private_subnet_ids
 
   allowed_security_group_ids = concat([
-    aws_security_group.backend_internal.id
+    aws_security_group.backend_internal.id,
+    aws_security_group.litellm_internal.id
   ], var.additional_backend_rds_allowed_security_group_ids)
 
   engine_version                  = var.backend_rds_engine_version
   instance_class                  = var.backend_rds_instance_class
   username                        = var.backend_rds_master_username
-  password                        = random_password.backend_rds_master.result
+  password                        = random_password.backend_rds_master[0].result
   db_name                         = var.backend_rds_database_name
   allocated_storage               = var.backend_rds_allocated_storage
   max_allocated_storage           = var.backend_rds_max_allocated_storage
@@ -187,7 +295,9 @@ locals {
   # Prefer a friendly hostname for clients when one is supplied; otherwise fall back to
   # the native RDS endpoint. Keeping this local centralizes how we reference the database
   # host across secrets and outputs.
-  backend_rds_hostname = coalesce(var.backend_rds_custom_hostname, module.backend_rds.endpoint)
+  backend_rds_hostname = var.backend_rds_enabled ? coalesce(var.backend_rds_custom_hostname, module.backend_rds[0].endpoint) : null
+  backend_rds_endpoint = var.backend_rds_enabled ? module.backend_rds[0].endpoint : null
+  backend_rds_port     = var.backend_rds_enabled ? module.backend_rds[0].port : null
 }
 
 # Optionally publish a custom DNS record in Route 53 to point the friendly hostname at the
@@ -199,35 +309,37 @@ data "aws_route53_zone" "backend_rds" {
 }
 
 resource "aws_route53_record" "backend_rds" {
-  count           = var.backend_rds_dns_zone_name == null || var.backend_rds_dns_record_name == null ? 0 : 1
+  count           = var.backend_rds_enabled && var.backend_rds_dns_zone_name != null && var.backend_rds_dns_record_name != null ? 1 : 0
   zone_id         = data.aws_route53_zone.backend_rds[0].zone_id
   name            = var.backend_rds_dns_record_name
   type            = "CNAME"
   ttl             = var.backend_rds_dns_record_ttl
   allow_overwrite = true
-  records         = [module.backend_rds.endpoint]
+  records         = [local.backend_rds_endpoint]
 }
 
 # Secret that stores the backend connection details in JSON form. Both local development and
 # deployed services can reference this ARN to fetch credentials without baking them into
 # environment variables or Terraform state outputs.
 resource "aws_secretsmanager_secret" "backend_db" {
+  count       = var.backend_rds_enabled ? 1 : 0
   name        = var.backend_rds_secret_name
   description = "Resume Genius backend database credentials"
   tags        = local.tags
 }
 
 resource "aws_secretsmanager_secret_version" "backend_db" {
-  secret_id = aws_secretsmanager_secret.backend_db.id
+  count     = var.backend_rds_enabled ? 1 : 0
+  secret_id = aws_secretsmanager_secret.backend_db[0].id
   secret_string = jsonencode({
     engine   = "postgresql"
     host     = local.backend_rds_hostname
-    aws_host = module.backend_rds.endpoint
-    port     = module.backend_rds.port
+    aws_host = local.backend_rds_endpoint
+    port     = local.backend_rds_port
     username = var.backend_rds_master_username
-    password = random_password.backend_rds_master.result
+    password = random_password.backend_rds_master[0].result
     dbname   = var.backend_rds_database_name
-    url      = "postgresql://${var.backend_rds_master_username}:${random_password.backend_rds_master.result}@${local.backend_rds_hostname}/${var.backend_rds_database_name}"
+    url      = "postgresql://${var.backend_rds_master_username}:${random_password.backend_rds_master[0].result}@${local.backend_rds_hostname}/${var.backend_rds_database_name}"
   })
 }
 
@@ -284,7 +396,8 @@ module "litellm" {
   task_cpu      = var.litellm_task_cpu
   task_memory   = var.litellm_task_memory
   # Assigning a public IP is only needed when private subnets lack NAT or for debugging.
-  assign_public_ip = var.litellm_assign_public_ip
+  assign_public_ip       = var.litellm_assign_public_ip
+  enable_execute_command = var.litellm_enable_execute_command
   # Attach the shared internal security group plus any caller-specified ones (e.g. to allow
   # observability agents to reach the tasks).
   additional_service_security_groups = concat([aws_security_group.litellm_internal.id], var.additional_service_security_group_ids)

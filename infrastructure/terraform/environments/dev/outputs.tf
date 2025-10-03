@@ -32,7 +32,7 @@ output "litellm_cache_bucket" {
 
 output "backend_rds_endpoint" {
   description = "Hostname for the Resume Genius backend database."
-  value       = module.backend_rds.endpoint
+  value       = var.backend_rds_enabled ? module.backend_rds[0].endpoint : null
 }
 
 output "backend_rds_hostname" {
@@ -40,9 +40,24 @@ output "backend_rds_hostname" {
   value       = local.backend_rds_hostname
 }
 
+output "litellm_manual_control_api_url" {
+  description = "Invoke URL for the LiteLLM manual override API."
+  value       = var.litellm_manual_control_enabled ? aws_apigatewayv2_stage.litellm_control[0].invoke_url : null
+}
+
+output "backend_db_bastion_instance_id" {
+  description = "Instance ID of the SSM-managed bastion host used for database access."
+  value       = var.backend_db_bastion_enabled ? aws_instance.backend_db_bastion[0].id : null
+}
+
+output "backend_db_bastion_public_dns" {
+  description = "Public DNS name of the bastion (useful for debugging)."
+  value       = var.backend_db_bastion_enabled ? aws_instance.backend_db_bastion[0].public_dns : null
+}
+
 output "backend_rds_secret_arn" {
   description = "ARN of the Secrets Manager secret that stores backend DB credentials."
-  value       = aws_secretsmanager_secret.backend_db.arn
+  value       = try(aws_secretsmanager_secret.backend_db[0].arn, null)
 }
 
 output "backend_security_group_id" {
