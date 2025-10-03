@@ -197,12 +197,32 @@ The application runs several Docker services:
 - Security hardening
 - Health checks enabled
 
+## Backend Database Configuration
+
+### Local container (default)
+`just up` enables the `backend-local-db` Docker Compose profile whenever `BACKEND_DATABASE_URL` is empty, which spins up the `resume-genius-postgres` container (PostgreSQL 16 with pgvector). Update the `BACKEND_POSTGRES_*` values in `.env` if you want different credentials or ports, then apply migrations with `just migrate` once the stack is running.
+
+### Remote database (managed)
+1. Edit `infrastructure/terraform/environments/dev/terraform.tfvars` and update `backend_rds_master_username`, `backend_rds_database_name`, and (optionally) `backend_rds_secret_name` to match the credentials you want Terraform to create.
+2. Run `terraform -chdir=infrastructure/terraform/environments/dev plan` followed by `terraform -chdir=infrastructure/terraform/environments/dev apply` to provision the new RDS instance. Terraform generates a random password, allows ingress from the `backend` security group, and writes a JSON payload into Secrets Manager at the configured name.
+3. Capture the outputs `backend_rds_endpoint` and `backend_rds_secret_arn` (see `terraform output`). The secret’s JSON includes `engine`, `host`, `port`, `username`, `password`, `dbname`, and a ready-to-use `url` field.
+4. Give any runtime (local dev, ECS task, CI job) IAM permission to call `secretsmanager:GetSecretValue` on that ARN and, if it runs inside AWS, attach the exported `backend_security_group_id` to its network interface so it can reach the database. Either inject the secret JSON directly or set `BACKEND_DATABASE_URL` to the `url` string so the backend skips the local container automatically.
+5. After deploying new infrastructure, run `just migrate` (pointing at the remote database) to initialise the schema and verify that the security group rules allow connections from your workload.
+6. The Terraform defaults keep the dev instance inexpensive (`db.t4g.micro`, 20 GB storage, 1-day backups, no Multi-AZ). Increase these knobs through the `backend_rds_*` variables when you move beyond development.
+
+### Useful toggles
+Set `BACKEND_DATABASE_ECHO=true` to print SQL queries during debugging. Commands like `just db-shell`, `just db-backup`, and `just db-restore` read the same environment variables, so they automatically target whichever database (local or remote) you have configured.
+
+### Remote Redis (managed)
+Point the backend at a managed Redis service (for example, AWS ElastiCache or Valkey) by overriding the Docker defaults. Set `BACKEND_REDIS_HOST_DOCKER` and `BACKEND_REDIS_PORT_DOCKER` to the cluster endpoint and port injected into your container environment. Local CLI tools continue to use the `_LOCAL` variants, letting you test against a local cache while production points at the managed instance. Enable Redis snapshots and multi-AZ from your infrastructure layer so the cache maintains persistence and survives node failures.
+
 ## Environment Variables
 
 Key environment variables (see `.env.example` for full list):
 
 - `LITELLM_API_KEY`: API key for LiteLLM proxy
-- `DATABASE_URL`: PostgreSQL connection string
+- `BACKEND_DATABASE_URL`: Optional override that points the backend at a managed PostgreSQL instance
+- `DATABASE_URL`: PostgreSQL connection string for the LiteLLM proxy
 - `OPENAI_API_KEY`: OpenAI API key (if using GPT models)
 - `ANTHROPIC_API_KEY`: Anthropic API key (if using Claude)
 
@@ -249,6 +269,14 @@ just down
 just clean
 just up
 ```
+
+## Cloud Deployment
+
+- **Workflow** `litellm-deploy` builds the LiteLLM container, runs Terraform in `infrastructure/terraform/environments/dev`, and updates AWS Secrets Manager values for both LiteLLM (`DATABASE_URL`) and, when available, the backend (`BACKEND_DATABASE_URL`). Trigger it by pushing to `main` or via the manual `workflow_dispatch` input when you need to roll out a specific image tag.
+- **Terraform outputs** must expose `rds_endpoint` (for LiteLLM) and, if you provision a managed backend database, `backend_rds_endpoint`. The workflow skips backend secret updates when those outputs are missing, so you can opt in gradually.
+- **GitHub secrets** to configure: AWS access (`AWS_REGION`, `AWS_ROLE_TO_ASSUME`), Terraform state (`TF_STATE_BUCKET`, `TF_STATE_LOCK_TABLE`), LiteLLM deployment (`LITELLM_ECR_REPOSITORY`, `LITELLM_DB_MASTER_PASSWORD`, `LITELLM_SECRETS_JSON`, `LITELLM_REDIS_AUTH_TOKEN_SECRET_ARN`), plus backend database credentials when you manage it via Terraform (`BACKEND_DB_MASTER_PASSWORD`, `BACKEND_SECRETS_JSON`).
+- **Secrets JSON format** expects an object mapping environment variable names to secret ARNs, for example `{"DATABASE_URL":"arn:aws:secretsmanager:...","BACKEND_DATABASE_URL":"arn:aws:secretsmanager:..."}`. The workflow reads these maps to know which secret entry to update after Terraform applies.
+- **Repository variables** let you tune resource names without editing the workflow: `TERRAFORM_ENVIRONMENT`, `RDS_MASTER_USERNAME`, `RDS_DATABASE_NAME`, `BACKEND_RDS_MASTER_USERNAME`, `BACKEND_RDS_DATABASE_NAME`.
 
 ## Contributing
 

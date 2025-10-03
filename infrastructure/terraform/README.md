@@ -5,7 +5,7 @@ This Terraform configuration provisions the AWS infrastructure required to run L
 ## Layout
 
 - `modules/network` – VPC, subnets, routing, optional NAT gateway.
-- `modules/rds_postgres` – Encrypted PostgreSQL instance, subnet group, security group rules.
+- `modules/rds_postgres` – Encrypted PostgreSQL instance, subnet group, security group rules (re-used for LiteLLM and the Resume Genius backend).
 - `modules/elasticache_redis` – Redis replication group with encryption and access control.
 - `modules/ecs_litellm` – ECS cluster/service, ALB, IAM roles, CloudWatch logs.
 - `environments/dev` – Sample stack wiring the modules together. Duplicate this folder per environment.
@@ -73,7 +73,14 @@ Key variables:
 - `rds_master_password`, `redis_auth_token_secret_arn` – inject secure values via tfvars or environment variables when planning/applying.
 - `alb_https_certificate_arn` – optional ACM certificate for enabling HTTPS at the load balancer.
 
-Outputs include the ALB DNS name, ECS service/cluster identifiers, and datastore endpoints for verification.
+Outputs include the ALB DNS name, ECS service/cluster identifiers, datastore endpoints, and the Secrets Manager ARN for the backend database credentials.
+
+### Backend application database
+
+1. Update `environments/dev/terraform.tfvars` with `backend_rds_master_username`, `backend_rds_database_name`, and an optional `backend_rds_secret_name` to control how the secret appears in Secrets Manager.
+2. Run `terraform -chdir=environments/dev plan` and `terraform -chdir=environments/dev apply`. Terraform provisions a separate `db.t4g.micro` instance, generates a strong password, and writes a JSON payload (`engine`, `host`, `port`, `username`, `password`, `dbname`, `url`) to the named secret.
+3. Grant your backend runtime IAM access to `backend_rds_secret_arn` and attach the exported `backend_security_group_id` so it can reach the database over port 5432. Use the `url` field to populate `BACKEND_DATABASE_URL` for the FastAPI service.
+4. Defaults are tuned for cost-effective development (single AZ, 20 GB storage, 1-day backups, deletion protection off). Override the `backend_rds_*` variables when you need higher durability or capacity.
 
 ## Extending
 
