@@ -104,11 +104,16 @@ services:
       # Mount .next for faster rebuilds
       - /app/.next
     environment:
-      - NODE_ENV=development
-      - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}
+      NODE_ENV: development
+      NODE_OPTIONS: '--max-old-space-size=6144 --trace-uncaught --trace-warnings --unhandled-rejections=strict'
+      NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL:-http://backend:8000}
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+      WDS_SOCKET_PORT: "0"
     depends_on:
       - backend
     restart: unless-stopped
+    stdin_open: true
 
   # Backend Service (Development with hot reload)
   backend:
