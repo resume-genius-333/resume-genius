@@ -9,11 +9,9 @@ Usage:
 """
 
 import sys
-import os
 import secrets
 import hashlib
 from pathlib import Path
-from dotenv import load_dotenv
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -24,6 +22,8 @@ from sqlalchemy.orm import Session
 # Direct import to avoid loading all models
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.models.db.auth.api_key import APIKey
+from src.config.environment import load_environment
+from src.core.db_config import get_sync_database_url
 
 
 def hash_key(key: str) -> str:
@@ -33,13 +33,13 @@ def hash_key(key: str) -> str:
 
 def get_engine():
     """Get database engine."""
-    # Load environment variables
-    load_dotenv()
+    load_environment()
 
     # Get database URL
-    db_url = os.getenv("DATABASE_SYNC_URL")
-    if not db_url:
-        print("Error: DATABASE_SYNC_URL not set in environment")
+    try:
+        db_url = get_sync_database_url()
+    except ValueError as exc:
+        print(f"Error: {exc}")
         sys.exit(1)
 
     return create_engine(db_url)
