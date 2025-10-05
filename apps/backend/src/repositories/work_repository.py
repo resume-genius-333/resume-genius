@@ -40,6 +40,8 @@ class WorkRepository:
         await self.session.commit()
 
         await self.session.refresh(work)
+        # Ensure async relationship data is loaded before Pydantic validation
+        await self.session.refresh(work, attribute_names=["responsibilities"])
         return work.schema
 
     async def get_work_experience_by_id(
