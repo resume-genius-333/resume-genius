@@ -39,18 +39,15 @@ class BaseExtractor(ABC, Generic[T]):
     @staticmethod
     def _create_default_client() -> instructor.AsyncInstructor:
         """Create default Instructor client from environment variables."""
-        import os
-        from dotenv import load_dotenv
+        from src.config.settings import get_settings
 
-        load_dotenv()
+        settings = get_settings()
 
-        base_url = os.environ.get("LITELLM_BASE_URL")
-        api_key = os.environ.get("LITELLM_API_KEY")
+        base_url = settings.litellm_base_url()
+        api_key = settings.litellm_api_key
 
-        if not base_url or not api_key:
-            raise ValueError(
-                "LITELLM_BASE_URL and LITELLM_API_KEY must be set in environment"
-            )
+        if not api_key:
+            raise ValueError("LITELLM_API_KEY must be set in the environment")
 
         return instructor.from_openai(
             AsyncOpenAI(
