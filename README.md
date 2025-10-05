@@ -67,21 +67,23 @@ The project uses `just` as a command runner. Run `just` or `just help` to see al
 
 **Starting Services:**
 ```bash
-just up         # Start development mode with hot-reload
-just up-prod    # Start production mode
-just down       # Stop all services
+just up             # Start development mode with hot-reload
+just up redis       # Start only the Redis dependency
+just up-prod        # Start production mode
+just down           # Stop all services
 ```
 
 **Development:**
 ```bash
-just logs           # View all logs
-just logs backend   # View specific service logs
-just restart        # Restart all services
+just logs              # View all logs
+just logs backend      # View specific service logs
+just restart           # Restart all services
 just restart frontend  # Restart specific service
 ```
 
 **Backend:**
 ```bash
+just dev backend    # Run backend locally with .env (auto-starts Redis if needed)
 just backend-dev    # Run backend locally (without Docker)
 just migrate        # Run database migrations
 just makemigration "description"  # Create new migration
@@ -91,6 +93,7 @@ just backend-test   # Run tests
 
 **Frontend:**
 ```bash
+just dev frontend   # Run frontend locally with .env
 just frontend-dev   # Run frontend locally (without Docker)
 just frontend-build # Build for production
 just frontend-lint  # Run linting
