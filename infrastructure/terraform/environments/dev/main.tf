@@ -396,8 +396,8 @@ module "litellm" {
   task_cpu      = var.litellm_task_cpu
   task_memory   = var.litellm_task_memory
   # Assigning a public IP is only needed when private subnets lack NAT or for debugging.
-  assign_public_ip       = var.litellm_assign_public_ip
-  enable_execute_command = var.litellm_enable_execute_command
+  assign_public_ip = var.litellm_assign_public_ip
+  # enable_execute_command = var.litellm_enable_execute_command
   # Attach the shared internal security group plus any caller-specified ones (e.g. to allow
   # observability agents to reach the tasks).
   additional_service_security_groups = concat([aws_security_group.litellm_internal.id], var.additional_service_security_group_ids)

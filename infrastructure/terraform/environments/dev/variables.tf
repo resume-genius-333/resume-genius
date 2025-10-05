@@ -286,7 +286,7 @@ variable "additional_rds_allowed_security_group_ids" {
 variable "backend_rds_enabled" {
   type        = bool
   description = "Provision the backend PostgreSQL database."
-  default     = true
+  default     = false
 }
 
 variable "backend_rds_master_username" {

@@ -40,6 +40,9 @@ resume_genius_backend_rds_master_username = "resume_genius"
 resume_genius_backend_rds_secret_name     = "resume-genius-dev-backend-db"
 resume_genius_backend_rds_allowed_cidrs  = ["0.0.0.0/0"]
 
+# Disable the legacy backend RDS module when you only need the public dev instance.
+backend_rds_enabled = false
+
 # Container image to deploy. Update the tag when shipping new application versions.
 litellm_container_image = "084828573819.dkr.ecr.ap-southeast-1.amazonaws.com/litellm:latest"
 
