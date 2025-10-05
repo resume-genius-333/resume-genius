@@ -139,21 +139,91 @@ ensure-runtime:
     exit 1
 
 # Start all services in development mode with hot reload
-up:
+up target="":
     @just ensure-runtime
-    @echo "{{GREEN}}Starting services in development mode (LiteLLM remote)...{{NC}}"
-    @if [ -z "$${BACKEND_DATABASE_URL}" ]; then \
-        echo "{{BLUE}}No BACKEND_DATABASE_URL set - starting local Postgres via backend-local-db profile.{{NC}}"; \
-        {{docker_compose}} --profile backend-local-db up -d; \
-    else \
-        echo "{{BLUE}}BACKEND_DATABASE_URL detected - skipping local Postgres container.{{NC}}"; \
-        {{docker_compose}} up -d; \
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    target="{{target}}"
+    backend_pref="${COMPOSE_LAUNCH_BACKEND:-false}"
+    frontend_pref="${COMPOSE_LAUNCH_FRONTEND:-false}"
+
+    if [[ -n "$target" && "$target" != "app" ]]; then
+        echo "${RED}Unknown target '$target'. Use 'app' or leave empty.${NC}" >&2
+        exit 1
     fi
-    @echo "{{GREEN}}Services started!{{NC}}"
-    @echo "Frontend: http://localhost:3000"
-    @echo "Backend:  http://localhost:8000/docs"
-    @echo "Redis:    localhost:6380"
-    @echo "LiteLLM:  remote (run 'just up-litellm' for local proxy)"
+
+    if [[ "$target" == "app" ]]; then
+        backend_pref="true"
+        frontend_pref="true"
+    fi
+
+    to_bool() {
+        case "$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')" in
+            1|true|yes|on) return 0 ;;
+            *) return 1 ;;
+        esac
+    }
+
+    start_backend=false
+    start_frontend=false
+
+    if to_bool "$backend_pref"; then
+        start_backend=true
+    fi
+
+    if to_bool "$frontend_pref"; then
+        start_frontend=true
+    fi
+
+    services=("resume-genius-redis")
+    profiles=()
+
+    if [[ "$start_frontend" == true && "$start_backend" != true ]]; then
+        echo "${YELLOW}Frontend depends on backend; enabling backend container.${NC}"
+        start_backend=true
+    fi
+
+    if [[ "$start_backend" == true ]]; then
+        services+=("backend")
+        if [[ -z "${BACKEND_DATABASE_URL:-}" ]]; then
+            profiles+=("--profile" "backend-local-db")
+            services+=("resume-genius-postgres")
+        fi
+    fi
+
+    if [[ "$start_frontend" == true ]]; then
+        services+=("frontend")
+    fi
+
+    compose_cmd=({{docker_compose}})
+    if ((${#profiles[@]})); then
+        compose_cmd+=("${profiles[@]}")
+    fi
+    compose_cmd+=("up" "-d")
+    compose_cmd+=("${services[@]}")
+
+    echo "{{GREEN}}Starting services in development mode (LiteLLM remote)...{{NC}}"
+    echo "{{BLUE}}Launching:{{NC}} ${services[*]}"
+
+    "${compose_cmd[@]}"
+
+    echo "{{GREEN}}Services started!{{NC}}"
+    if [[ "$start_frontend" == true ]]; then
+        echo "Frontend: http://localhost:3000"
+    else
+        echo "Frontend: not started (set COMPOSE_LAUNCH_FRONTEND=true or use 'just up app')"
+    fi
+    if [[ "$start_backend" == true ]]; then
+        echo "Backend:  http://localhost:8000/docs"
+    else
+        echo "Backend:  not started (set COMPOSE_LAUNCH_BACKEND=true or use 'just up app')"
+    fi
+    echo "Redis:    localhost:6380"
+    if [[ "$start_frontend" != true || "$start_backend" != true ]]; then
+        echo "{{YELLOW}}Use 'just up app' to start the full application stack.${NC}"
+    fi
+    echo "LiteLLM:  remote (run 'just up-litellm' for local proxy)"
 
 # Start all services including local LiteLLM profile
 up-litellm:
@@ -329,6 +399,28 @@ rebuild-backend:
 # ============================================================================
 # Frontend Commands
 # ============================================================================
+
+# Unified local development runner (loads environment from .env via just)
+dev target:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    case "{{target}}" in
+        frontend)
+            echo "{{GREEN}}Starting frontend development server (local runtime)...{{NC}}"
+            cd apps/frontend
+            pnpm run dev
+            ;;
+        backend)
+            echo "{{GREEN}}Starting backend development server (local runtime)...{{NC}}"
+            cd apps/backend
+            uv run python main.py
+            ;;
+        *)
+            echo "${RED}Unknown target '{{target}}'. Use 'frontend' or 'backend'.${NC}" >&2
+            exit 1
+            ;;
+    esac
 
 # Run frontend locally without Docker
 frontend-dev:
@@ -530,7 +622,9 @@ env-check:
     @[ -n "${LITELLM_POSTGRES_PASSWORD}" ] && echo "✓ LITELLM_POSTGRES_PASSWORD is set" || echo "✗ LITELLM_POSTGRES_PASSWORD is missing"
     @echo ""
     @echo "{{GREEN}}Backend Configuration:{{NC}}"
-    @[ -n "${BACKEND_POSTGRES_PASSWORD}" ] && echo "✓ BACKEND_POSTGRES_PASSWORD is set" || echo "✗ BACKEND_POSTGRES_PASSWORD is missing"
+    @[ -n "${BACKEND_DATABASE_URL}" ] && echo "✓ BACKEND_DATABASE_URL is set" || echo "✗ BACKEND_DATABASE_URL is missing"
+    @[ -n "${BACKEND_DATABASE_URL_DOCKER}" ] && echo "✓ BACKEND_DATABASE_URL_DOCKER is set" || echo "○ BACKEND_DATABASE_URL_DOCKER not set (containers will use BACKEND_DATABASE_URL)"
+    @[ -n "${BACKEND_DATABASE_SYNC_URL}" ] && echo "✓ BACKEND_DATABASE_SYNC_URL is set" || echo "○ BACKEND_DATABASE_SYNC_URL not set (using BACKEND_DATABASE_URL)"
     @[ -n "${BACKEND_JWT_SECRET_KEY}" ] && echo "✓ BACKEND_JWT_SECRET_KEY is set" || echo "✗ BACKEND_JWT_SECRET_KEY is missing"
     @echo ""
     @echo "{{GREEN}}LLM Provider API Keys:{{NC}}"
@@ -542,8 +636,11 @@ env-check:
     @echo ""
     @echo "{{BLUE}}Database URLs:{{NC}}"
     @echo "LiteLLM DB (Docker): postgresql://${LITELLM_POSTGRES_USER}:***@${LITELLM_POSTGRES_HOST_DOCKER}:${LITELLM_POSTGRES_PORT_DOCKER}/${LITELLM_POSTGRES_DB}"
-    @echo "Backend DB (Docker): postgresql://${BACKEND_POSTGRES_USER}:***@${BACKEND_POSTGRES_HOST_DOCKER}:${BACKEND_POSTGRES_PORT_DOCKER}/${BACKEND_POSTGRES_DB}"
-    @echo "Backend DB (Local):  postgresql://${BACKEND_POSTGRES_USER}:***@${BACKEND_POSTGRES_HOST_LOCAL}:${BACKEND_POSTGRES_PORT_LOCAL}/${BACKEND_POSTGRES_DB}"
+    @if [ -n "${BACKEND_DATABASE_URL}" ]; then \
+        echo "Backend DB URL: set"; \
+    else \
+        echo "Backend DB URL: not set"; \
+    fi
     @echo ""
     @echo "{{BLUE}}Service URLs:{{NC}}"
     @echo "LiteLLM (Docker): ${LITELLM_BASE_URL_DOCKER}"
@@ -621,6 +718,8 @@ help:
     @echo "  just ps             - Show service status"
     @echo ""
     @echo "{{GREEN}}Development:{{NC}}"
+    @echo "  just dev frontend   - Run frontend locally with .env"
+    @echo "  just dev backend    - Run backend locally with .env"
     @echo "  just backend-dev    - Run backend locally"
     @echo "  just frontend-dev   - Run frontend locally"
     @echo "  just migrate        - Run database migrations"

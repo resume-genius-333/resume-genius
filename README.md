@@ -200,7 +200,7 @@ The application runs several Docker services:
 ## Backend Database Configuration
 
 ### Local container (default)
-`just up` enables the `backend-local-db` Docker Compose profile whenever `BACKEND_DATABASE_URL` is empty, which spins up the `resume-genius-postgres` container (PostgreSQL 16 with pgvector). Update the `BACKEND_POSTGRES_*` values in `.env` if you want different credentials or ports, then apply migrations with `just migrate` once the stack is running.
+`just up` enables the `backend-local-db` Docker Compose profile whenever `BACKEND_DATABASE_URL` is empty, which spins up the `resume-genius-postgres` container (PostgreSQL 16 with pgvector). Set `BACKEND_DATABASE_URL` to the connection string your local tooling should use, and `BACKEND_DATABASE_URL_DOCKER` to the hostname that the backend container should reach (for the bundled database, use `postgresql://…@resume-genius-postgres:5432/resume_genius`). If you rely on the optional local Postgres container, tweak the `RESUME_GENIUS_POSTGRES_*` values in `.env` to control its bootstrap credentials, then run `just migrate` once the stack is running.
 
 ### Remote database (managed)
 1. Edit `infrastructure/terraform/environments/dev/terraform.tfvars` and update `backend_rds_master_username`, `backend_rds_database_name`, and (optionally) `backend_rds_secret_name` to match the credentials you want Terraform to create.
