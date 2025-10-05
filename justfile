@@ -80,7 +80,7 @@ ensure-runtime:
         if colima status >/dev/null 2>&1; then
             echo "${GREEN}Colima already running.${NC}"
         else
-            memory="${COLIMA_MEMORY:-8}"
+            memory="${COLIMA_MEMORY:-2}"
             cpus="${COLIMA_CPUS:-4}"
             echo "${YELLOW}Starting Colima with ${memory}GB RAM and ${cpus} CPUs...${NC}"
             colima start --memory "${memory}" --cpu "${cpus}"
@@ -138,92 +138,40 @@ ensure-runtime:
     echo "${RED}Docker daemon did not become ready. Start it manually and rerun the command.${NC}" >&2
     exit 1
 
-# Start all services in development mode with hot reload
+# Start development services (optional 'redis' target limits to Redis only)
 up target="":
-    @just ensure-runtime
     #!/usr/bin/env bash
     set -euo pipefail
 
-    target="{{target}}"
-    backend_pref="${COMPOSE_LAUNCH_BACKEND:-false}"
-    frontend_pref="${COMPOSE_LAUNCH_FRONTEND:-false}"
-
-    if [[ -n "$target" && "$target" != "app" ]]; then
-        echo "${RED}Unknown target '$target'. Use 'app' or leave empty.${NC}" >&2
-        exit 1
-    fi
-
-    if [[ "$target" == "app" ]]; then
-        backend_pref="true"
-        frontend_pref="true"
-    fi
-
-    to_bool() {
-        case "$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')" in
-            1|true|yes|on) return 0 ;;
-            *) return 1 ;;
-        esac
-    }
-
-    start_backend=false
-    start_frontend=false
-
-    if to_bool "$backend_pref"; then
-        start_backend=true
-    fi
-
-    if to_bool "$frontend_pref"; then
-        start_frontend=true
-    fi
-
-    services=("resume-genius-redis")
-    profiles=()
-
-    if [[ "$start_frontend" == true && "$start_backend" != true ]]; then
-        echo "${YELLOW}Frontend depends on backend; enabling backend container.${NC}"
-        start_backend=true
-    fi
-
-    if [[ "$start_backend" == true ]]; then
-        services+=("backend")
-        if [[ -z "${BACKEND_DATABASE_URL:-}" ]]; then
-            profiles+=("--profile" "backend-local-db")
-            services+=("resume-genius-postgres")
-        fi
-    fi
-
-    if [[ "$start_frontend" == true ]]; then
-        services+=("frontend")
-    fi
-
-    compose_cmd=({{docker_compose}})
-    if ((${#profiles[@]})); then
-        compose_cmd+=("${profiles[@]}")
-    fi
-    compose_cmd+=("up" "-d")
-    compose_cmd+=("${services[@]}")
-
-    echo "{{GREEN}}Starting services in development mode (LiteLLM remote)...{{NC}}"
-    echo "{{BLUE}}Launching:{{NC}} ${services[*]}"
-
-    "${compose_cmd[@]}"
-
-    echo "{{GREEN}}Services started!{{NC}}"
-    if [[ "$start_frontend" == true ]]; then
-        echo "Frontend: http://localhost:3000"
-    else
-        echo "Frontend: not started (set COMPOSE_LAUNCH_FRONTEND=true or use 'just up app')"
-    fi
-    if [[ "$start_backend" == true ]]; then
-        echo "Backend:  http://localhost:8000/docs"
-    else
-        echo "Backend:  not started (set COMPOSE_LAUNCH_BACKEND=true or use 'just up app')"
-    fi
-    echo "Redis:    localhost:6380"
-    if [[ "$start_frontend" != true || "$start_backend" != true ]]; then
-        echo "{{YELLOW}}Use 'just up app' to start the full application stack.${NC}"
-    fi
-    echo "LiteLLM:  remote (run 'just up-litellm' for local proxy)"
+    case "{{target}}" in
+        "")
+            just --quiet ensure-runtime
+            echo "{{GREEN}}Starting services in development mode (LiteLLM remote)...{{NC}}"
+            if [ -z "${BACKEND_DATABASE_URL:-}" ]; then
+                echo "{{BLUE}}No BACKEND_DATABASE_URL set - starting local Postgres via backend-local-db profile.{{NC}}"
+                {{docker_compose}} --profile backend-local-db up -d
+            else
+                echo "{{BLUE}}BACKEND_DATABASE_URL detected - skipping local Postgres container.{{NC}}"
+                {{docker_compose}} up -d
+            fi
+            echo "{{GREEN}}Services started!{{NC}}"
+            echo "Frontend: http://localhost:3000"
+            echo "Backend:  http://localhost:8000/docs"
+            echo "Redis:    localhost:6380"
+            echo "LiteLLM:  remote (run 'just up-litellm' for local proxy)"
+            ;;
+        "redis")
+            just --quiet ensure-runtime
+            echo "{{GREEN}}Starting Redis service only...{{NC}}"
+            {{docker_compose}} up -d resume-genius-redis
+            echo "{{GREEN}}Redis service started!{{NC}}"
+            echo "Redis:    localhost:6380"
+            ;;
+        *)
+            echo "${RED}Unknown target '{{target}}'. Use 'redis' or leave blank.${NC}" >&2
+            exit 1
+            ;;
+    esac
 
 # Start all services including local LiteLLM profile
 up-litellm:
@@ -413,6 +361,40 @@ dev target:
             ;;
         backend)
             echo "{{GREEN}}Starting backend development server (local runtime)...{{NC}}"
+            redis_host="${BACKEND_REDIS_HOST_LOCAL:-localhost}"
+            redis_port="${BACKEND_REDIS_PORT_LOCAL:-6380}"
+
+            if ! command -v python3 >/dev/null 2>&1; then
+                echo "${RED}python3 is required to check Redis availability.${NC}" >&2
+                exit 1
+            fi
+
+            check_redis() {
+                python3 -c "import socket, sys; sock = socket.socket(); sock.settimeout(1); sys.exit(sock.connect_ex((sys.argv[1], int(sys.argv[2]))))" "$redis_host" "$redis_port"
+            }
+
+            if ! check_redis; then
+                echo "{{YELLOW}}Redis not detected at ${redis_host}:${redis_port}. Starting container...{{NC}}"
+                just --quiet ensure-runtime
+                if ! {{docker_compose}} up -d resume-genius-redis >/dev/null; then
+                    echo "${RED}Failed to start Redis container via docker compose.${NC}" >&2
+                    exit 1
+                fi
+                echo "{{BLUE}}Waiting for Redis to be ready...{{NC}}"
+                for attempt in {1..15}; do
+                    if check_redis; then
+                        echo "{{GREEN}}Redis is ready on ${redis_host}:${redis_port}.{{NC}}"
+                        break
+                    fi
+                    sleep 1
+                done
+                if ! check_redis; then
+                    echo "${RED}Redis failed to start on ${redis_host}:${redis_port}.${NC}" >&2
+                    exit 1
+                fi
+            else
+                echo "{{GREEN}}Redis already reachable on ${redis_host}:${redis_port}.{{NC}}"
+            fi
             cd apps/backend
             uv run python main.py
             ;;
@@ -707,6 +689,7 @@ help:
     @echo "{{GREEN}}Quick Start:{{NC}}"
     @echo "  just setup          - Initial project setup"
     @echo "  just up             - Start development services"
+    @echo "  just up redis       - Start only the Redis service"
     @echo "  just up-litellm     - Start development services with local LiteLLM"
     @echo "  just down           - Stop all services"
     @echo ""
