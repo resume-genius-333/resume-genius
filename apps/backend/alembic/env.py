@@ -2,13 +2,13 @@ import os
 import sys
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
 from alembic import context
-from dotenv import load_dotenv
+from sqlalchemy import engine_from_config, pool
 
-# Load environment variables
-load_dotenv()
+from src.config.environment import load_environment
+
+# Load environment variables only when required (non-Docker workflows)
+load_environment()
 
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
