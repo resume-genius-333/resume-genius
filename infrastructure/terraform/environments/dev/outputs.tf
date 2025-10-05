@@ -64,3 +64,14 @@ output "backend_security_group_id" {
   description = "Security group ID assigned to backend services for database access."
   value       = aws_security_group.backend_internal.id
 }
+
+output "resume_genius_backend_rds_connection" {
+  description = "Connection details for the public Resume Genius development database."
+  value = {
+    host       = aws_db_instance.resume_genius_backend.address
+    port       = aws_db_instance.resume_genius_backend.port
+    database   = var.resume_genius_backend_rds_database_name
+    username   = var.resume_genius_backend_rds_master_username
+    secret_arn = aws_secretsmanager_secret.resume_genius_backend.arn
+  }
+}

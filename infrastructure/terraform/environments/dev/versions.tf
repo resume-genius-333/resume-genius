@@ -12,6 +12,10 @@ terraform {
       # while avoiding the breaking changes that typically accompany major version bumps.
       version = "~> 5.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.5"
+    }
   }
 
   backend "s3" {
