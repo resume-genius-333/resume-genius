@@ -14,8 +14,32 @@ availability_zones = ["ap-southeast-1a", "ap-southeast-1b"]
 rds_master_username = "litellm"
 rds_master_password = "REPLACE_ME"
 
+# Backend database configuration. Terraform will generate a strong password and store it in
+# AWS Secrets Manager at the secret name provided here.
+backend_rds_master_username = "backend"
+backend_rds_database_name   = "resume_genius"
+backend_rds_secret_name     = "resume-genius/backend/postgres"
+
+# Optional: publish and consume a friendlier hostname for the backend database. Uncomment
+# and adjust these values if you manage the domain in Route 53 or another DNS provider.
+# backend_rds_custom_hostname   = "dev-db.resumegenius.parkourlabs.io"
+# backend_rds_dns_zone_name     = "resumegenius.parkourlabs.io."
+# backend_rds_dns_zone_private  = true
+# backend_rds_dns_record_name   = "dev-db"
+# backend_rds_dns_record_ttl    = 300
+
+# Bastion used for SSM port forwarding into the backend database
+# backend_db_bastion_enabled        = true
+# backend_db_bastion_instance_type  = "t4g.micro"
+# backend_db_bastion_root_volume_size = 16
+# backend_db_bastion_key_name       = "your-keypair"  # optional for SSH access
+# backend_db_bastion_ingress_cidrs  = ["203.0.113.42/32"]
+
 # Container image to deploy. Update the tag when shipping new application versions.
 litellm_container_image = "084828573819.dkr.ecr.ap-southeast-1.amazonaws.com/litellm:latest"
+
+# Uncomment to enable ECS Exec access to LiteLLM tasks (requires network access to SSM endpoints).
+# litellm_enable_execute_command = true
 
 # Environment variable -> secret ARN map. ECS injects secrets at runtime without exposing
 # plaintext in logs or state. Keep this in sync with the secrets you manage in AWS.

@@ -5,10 +5,22 @@ from datetime import datetime, timedelta, timezone
 
 from boto3.session import Session
 
+def _configure_logger() -> logging.Logger:
+    logger = logging.getLogger(__name__)
+    if not logger.handlers:
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s %(levelname)s %(message)s",
+        )
+    logger.setLevel(logging.INFO)
+    return logger
+
 ECS_CLUSTER = os.environ["CLUSTER_NAME"]
 ECS_SERVICE = os.environ["SERVICE_NAME"]
 LOAD_BALANCER_DIMENSION = os.environ["LOAD_BALANCER_DIMENSION"]
 KEEPALIVE_MINUTES = int(os.environ["KEEPALIVE_MINUTES"])
+MANUAL_OVERRIDE_PARAMETER = os.environ.get("MANUAL_OVERRIDE_PARAMETER")
+ENABLE_EXECUTE_COMMAND = os.environ.get("ENABLE_EXECUTE_COMMAND", "false").lower() == "true"
 
 session = Session()
 REGION = os.environ.get("AWS_REGION", session.region_name)
@@ -16,10 +28,9 @@ if REGION is None:
     raise RuntimeError("AWS region not resolved for LiteLLM autoscaler Lambda")
 ecs = session.client("ecs", region_name=REGION)
 cloudwatch = session.client("cloudwatch", region_name=REGION)
+ssm = session.client("ssm", region_name=REGION)
 
-logger = logging.getLogger(__name__)
-if not logger.handlers:
-    logging.basicConfig(level=logging.INFO)
+logger = _configure_logger()
 
 
 def _scale_service(desired_count: int) -> None:
@@ -68,29 +79,85 @@ def _last_request_time(window_end: datetime) -> datetime | None:
 
 
 def _handle_scale_up() -> None:
-    if _current_service_desired_count() >= 1:
+    now = datetime.now(timezone.utc)
+    minimum_running = max(1, _manual_override_floor(now))
+    if ENABLE_EXECUTE_COMMAND:
+        minimum_running = max(minimum_running, 1)
+    if _current_service_desired_count() >= minimum_running:
         logger.info("Scale-up request ignored; service already running")
         return
     logger.info("Scale-up triggered after incoming traffic")
-    _scale_service(1)
+    _scale_service(minimum_running)
 
 
 def _handle_idle_check() -> None:
     now = datetime.now(timezone.utc)
+    override_floor = _manual_override_floor(now)
+    if ENABLE_EXECUTE_COMMAND and override_floor > 0:
+        override_floor = max(override_floor, 1)
+
+    current_desired = _current_service_desired_count()
+    if current_desired < override_floor:
+        logger.info(
+            "Service desired count %s below override floor %s; bumping up",
+            current_desired,
+            override_floor,
+        )
+        _scale_service(override_floor)
+        current_desired = override_floor
+
     last_request = _last_request_time(now)
     if last_request and last_request >= _recent_request_cutoff():
-        # Ensure the service is running while traffic continues and refresh desired count
-        if _current_service_desired_count() == 0:
+        if current_desired < max(1, override_floor):
             logger.info("Recent traffic found; restarting service")
-            _scale_service(1)
+            _scale_service(max(1, override_floor, 1))
         return
 
-    # No traffic in the keepalive window; shut down to save cost.
-    if _current_service_desired_count() > 0:
-        logger.info("Idle window exceeded; scaling service down")
-        _scale_service(0)
+    if current_desired > override_floor:
+        logger.info("Idle window exceeded; scaling service down to override floor %s", override_floor)
+        _scale_service(override_floor)
     else:
-        logger.info("Service already at zero desired count; nothing to do")
+        logger.info("Service already at override floor %s; nothing to do", override_floor)
+
+
+def _manual_override_floor(now: datetime) -> int:
+    if not MANUAL_OVERRIDE_PARAMETER:
+        return 0
+
+    try:
+        response = ssm.get_parameter(Name=MANUAL_OVERRIDE_PARAMETER)
+    except ssm.exceptions.ParameterNotFound:
+        return 0
+    except Exception:  # pragma: no cover - defensive logging
+        logger.exception("Failed to read manual override parameter")
+        return 0
+
+    try:
+        payload = json.loads(response["Parameter"]["Value"])
+    except (KeyError, json.JSONDecodeError):
+        logger.warning("Manual override parameter has invalid payload")
+        return 0
+
+    try:
+        expires_raw = payload.get("expires_at")
+        if not expires_raw:
+            return 0
+        expires_at = datetime.fromisoformat(expires_raw.replace("Z", "+00:00")).astimezone(timezone.utc)
+    except (ValueError, TypeError):
+        logger.warning("Invalid expires_at in manual override parameter: %s", payload)
+        return 0
+
+    if expires_at <= now:
+        return 0
+
+    desired = payload.get("desired_count", 0)
+    try:
+        desired_int = int(desired)
+    except (TypeError, ValueError):
+        logger.warning("Invalid desired_count in manual override parameter: %s", payload)
+        return 0
+
+    return max(desired_int, 0)
 
 
 def handler(event, _context):

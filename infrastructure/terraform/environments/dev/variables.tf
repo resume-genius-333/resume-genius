@@ -68,6 +68,38 @@ variable "enable_nat_gateway" {
   default     = false
 }
 
+# Bastion instance used for SSM port forwarding into the backend database. The instance can
+# be stopped when not in use to avoid cost; automation and scripts reference its tags/outputs.
+variable "backend_db_bastion_enabled" {
+  type        = bool
+  description = "Provision a small SSM-managed EC2 instance for database access."
+  default     = true
+}
+
+variable "backend_db_bastion_instance_type" {
+  type        = string
+  description = "Instance type for the bastion EC2 host."
+  default     = "t4g.micro"
+}
+
+variable "backend_db_bastion_root_volume_size" {
+  type        = number
+  description = "Root volume size (GiB) for the bastion instance."
+  default     = 16
+}
+
+variable "backend_db_bastion_key_name" {
+  type        = string
+  description = "Optional EC2 key pair name to enable SSH access to the bastion."
+  default     = null
+}
+
+variable "backend_db_bastion_ingress_cidrs" {
+  type        = list(string)
+  description = "CIDR blocks allowed to SSH into the bastion (optional). Leave empty for SSM-only access."
+  default     = []
+}
+
 # RDS
 # Master username Terraform configures on the Postgres instance. Use a value that meets
 # AWS requirements; you will use it for direct administrative access.
@@ -212,6 +244,154 @@ variable "additional_rds_allowed_security_group_ids" {
   default     = []
 }
 
+# Backend RDS (Resume Genius API)
+variable "backend_rds_enabled" {
+  type        = bool
+  description = "Provision the backend PostgreSQL database."
+  default     = true
+}
+
+variable "backend_rds_master_username" {
+  type        = string
+  description = "Master username for the backend Postgres database."
+  default     = "backend"
+}
+
+variable "backend_rds_database_name" {
+  type        = string
+  description = "Initial database name for the backend API."
+  default     = "resume_genius"
+}
+
+variable "backend_rds_engine_version" {
+  type        = string
+  description = "PostgreSQL engine version for the backend database."
+  default     = "16.3"
+}
+
+variable "backend_rds_instance_class" {
+  type        = string
+  description = "Instance class for the backend Postgres instance."
+  default     = "db.t4g.micro"
+}
+
+variable "backend_rds_allocated_storage" {
+  type        = number
+  description = "Allocated storage in GB for the backend database."
+  default     = 20
+}
+
+variable "backend_rds_max_allocated_storage" {
+  type        = number
+  description = "Maximum autoscaled storage in GB for the backend database."
+  default     = 20
+}
+
+variable "backend_rds_storage_type" {
+  type        = string
+  description = "Storage type for the backend database (gp2, gp3, io1)."
+  default     = "gp3"
+}
+
+variable "backend_rds_storage_encrypted" {
+  type        = bool
+  description = "Enable storage encryption for the backend database."
+  default     = true
+}
+
+variable "backend_rds_kms_key_id" {
+  type        = string
+  description = "Optional customer-managed KMS key ARN for backend database encryption."
+  default     = null
+}
+
+variable "backend_rds_multi_az" {
+  type        = bool
+  description = "Whether to provision the backend database with Multi-AZ redundancy."
+  default     = false
+}
+
+variable "backend_rds_backup_retention_period" {
+  type        = number
+  description = "Number of days to retain automated backups for the backend database."
+  default     = 1
+}
+
+variable "backend_rds_skip_final_snapshot" {
+  type        = bool
+  description = "Skip the final snapshot when destroying the backend database (dev only)."
+  default     = true
+}
+
+variable "backend_rds_apply_immediately" {
+  type        = bool
+  description = "Apply backend database modifications immediately instead of waiting for the maintenance window."
+  default     = true
+}
+
+variable "backend_rds_deletion_protection" {
+  type        = bool
+  description = "Enable deletion protection for the backend database."
+  default     = false
+}
+
+variable "backend_rds_performance_insights_enabled" {
+  type        = bool
+  description = "Enable Performance Insights for the backend database."
+  default     = false
+}
+
+variable "backend_rds_performance_insights_kms_key_id" {
+  type        = string
+  description = "KMS key ARN for encrypting backend Performance Insights data."
+  default     = null
+}
+
+variable "backend_rds_secret_name" {
+  type        = string
+  description = "Name to assign to the AWS Secrets Manager secret that stores backend database credentials."
+  default     = "resume-genius/backend/postgres"
+}
+
+# Optional DNS settings so the backend database can be reached via a friendly hostname
+# in Route 53. When unset the configuration skips record creation and keeps using the
+# native RDS endpoint.
+variable "backend_rds_custom_hostname" {
+  type        = string
+  description = "Fully qualified hostname clients should use for the backend database (optional)."
+  default     = null
+}
+
+variable "backend_rds_dns_zone_name" {
+  type        = string
+  description = "Route 53 hosted zone name used to publish the backend database alias (optional)."
+  default     = null
+}
+
+variable "backend_rds_dns_zone_private" {
+  type        = bool
+  description = "Set to true when the hosted zone is private to the VPC."
+  default     = true
+}
+
+variable "backend_rds_dns_record_name" {
+  type        = string
+  description = "Record name within the hosted zone for the backend database alias (optional)."
+  default     = null
+}
+
+variable "backend_rds_dns_record_ttl" {
+  type        = number
+  description = "TTL for the backend database CNAME record when one is created."
+  default     = 300
+}
+
+variable "additional_backend_rds_allowed_security_group_ids" {
+  type        = list(string)
+  description = "Extra security groups allowed to connect to the backend database."
+  default     = []
+}
+
 # LiteLLM ECS
 # Full ECR (or Docker Hub) image URI that Fargate pulls when starting the task. Update
 # this when shipping new application versions.
@@ -244,8 +424,6 @@ variable "litellm_desired_count" {
   default     = 1
 }
 
-# Minutes to keep the LiteLLM service running after the last request. Automation can
-# override the desired count to zero when idle for longer than this window.
 variable "litellm_idle_shutdown_minutes" {
   type        = number
   description = "Idle window in minutes before scaling LiteLLM tasks to zero."
@@ -259,6 +437,21 @@ variable "litellm_idle_check_interval_minutes" {
   type        = number
   description = "Interval in minutes for LiteLLM idle checks."
   default     = 5
+}
+
+# Toggle deployment of the manual override API (Lambda + API Gateway) that keeps LiteLLM online for a time window.
+variable "litellm_manual_control_enabled" {
+  type        = bool
+  description = "Provision the manual LiteLLM override Lambda and API."
+  default     = true
+}
+
+# Default number of hours that the manual override API keeps the LiteLLM service online when no
+# explicit duration is supplied.
+variable "litellm_manual_override_default_hours" {
+  type        = number
+  description = "Default hours to keep LiteLLM running when manual override is triggered."
+  default     = 2
 }
 
 # CPU units allocated per task. Fargate enforces mappings between CPU and memory; refer to
@@ -283,6 +476,15 @@ variable "litellm_assign_public_ip" {
   type        = bool
   description = "Assign public IPs to LiteLLM tasks."
   default     = true
+}
+
+# Turn on ECS Exec so operators can open SSM sessions into LiteLLM tasks. Leave disabled if
+# the environment lacks outbound access to the SSM endpoints or if interactive shells are
+# not desired.
+variable "litellm_enable_execute_command" {
+  type        = bool
+  description = "Enable ECS Exec (SSM) access to the LiteLLM service."
+  default     = false
 }
 
 # Plain-text environment variables injected into the container. Good place for non-secret

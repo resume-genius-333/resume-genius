@@ -71,7 +71,13 @@ docker-clean:
 # Start all services in development mode with hot reload
 up:
     @echo "{{GREEN}}Starting services in development mode (LiteLLM remote)...{{NC}}"
-    {{docker_compose}} up -d
+    @if [ -z "$${BACKEND_DATABASE_URL}" ]; then \
+        echo "{{BLUE}}No BACKEND_DATABASE_URL set - starting local Postgres via backend-local-db profile.{{NC}}"; \
+        {{docker_compose}} --profile backend-local-db up -d; \
+    else \
+        echo "{{BLUE}}BACKEND_DATABASE_URL detected - skipping local Postgres container.{{NC}}"; \
+        {{docker_compose}} up -d; \
+    fi
     @echo "{{GREEN}}Services started!{{NC}}"
     @echo "Frontend: http://localhost:3000"
     @echo "Backend:  http://localhost:8000/docs"
@@ -81,7 +87,13 @@ up:
 # Start all services including local LiteLLM profile
 up-litellm:
     @echo "{{GREEN}}Starting services with local LiteLLM profile...{{NC}}"
-    {{docker_compose}} --profile litellm-local up -d
+    @if [ -z "$${BACKEND_DATABASE_URL}" ]; then \
+        echo "{{BLUE}}No BACKEND_DATABASE_URL set - starting local Postgres alongside LiteLLM.{{NC}}"; \
+        {{docker_compose}} --profile backend-local-db --profile litellm-local up -d; \
+    else \
+        echo "{{BLUE}}BACKEND_DATABASE_URL detected - starting services without local Postgres.{{NC}}"; \
+        {{docker_compose}} --profile litellm-local up -d; \
+    fi
     @echo "{{GREEN}}Services started with local LiteLLM!{{NC}}"
     @echo "Frontend: http://localhost:3000"
     @echo "Backend:  http://localhost:8000/docs"

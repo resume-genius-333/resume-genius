@@ -143,6 +143,33 @@ resource "aws_iam_role_policy" "task_secrets" {
   })
 }
 
+# Allow SSM Exec (ECS Exec) to establish control/data channels and write session logs when
+# the feature is explicitly enabled by the caller.
+resource "aws_iam_role_policy" "task_execute_command" {
+  count = var.enable_execute_command ? 1 : 0
+  name  = "${var.name_prefix}-exec"
+  role  = aws_iam_role.task.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ssmmessages:CreateControlChannel",
+          "ssmmessages:CreateDataChannel",
+          "ssmmessages:OpenControlChannel",
+          "ssmmessages:OpenDataChannel",
+          "logs:DescribeLogGroups",
+          "logs:DescribeLogStreams",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 # Application Load Balancer that fronts the service.
 resource "aws_lb" "this" {
   name                       = "${var.name_prefix}-alb"
@@ -317,6 +344,7 @@ resource "aws_ecs_service" "this" {
   task_definition                    = aws_ecs_task_definition.this.arn
   desired_count                      = var.desired_count
   launch_type                        = "FARGATE"
+  enable_execute_command             = var.enable_execute_command
   deployment_minimum_healthy_percent = 50
   deployment_maximum_percent         = 200
   network_configuration {
