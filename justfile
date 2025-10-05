@@ -68,8 +68,79 @@ docker-clean:
     @echo "{{BLUE}}New disk usage:{{NC}}"
     @docker system df
 
+# Ensure the container runtime is running before Docker Compose commands execute
+ensure-runtime:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    echo "${YELLOW}Ensuring container runtime is ready...${NC}"
+
+    if command -v colima >/dev/null 2>&1; then
+        echo "${YELLOW}Checking Colima status...${NC}"
+        if colima status >/dev/null 2>&1; then
+            echo "${GREEN}Colima already running.${NC}"
+        else
+            memory="${COLIMA_MEMORY:-8}"
+            cpus="${COLIMA_CPUS:-4}"
+            echo "${YELLOW}Starting Colima with ${memory}GB RAM and ${cpus} CPUs...${NC}"
+            colima start --memory "${memory}" --cpu "${cpus}"
+        fi
+
+        echo "${YELLOW}Waiting for Docker to connect to Colima...${NC}"
+        for _ in $(seq 1 30); do
+            if docker info >/dev/null 2>&1; then
+                echo "${GREEN}Docker client connected via Colima.${NC}"
+                exit 0
+            fi
+            sleep 2
+        done
+
+        echo "${RED}Docker did not become ready after starting Colima.${NC}" >&2
+        exit 1
+    fi
+
+    if ! command -v docker >/dev/null 2>&1; then
+        echo "${RED}Docker CLI not found. Install Colima or Docker.${NC}" >&2
+        exit 1
+    fi
+
+    echo "${YELLOW}Checking Docker daemon status...${NC}"
+    if docker info >/dev/null 2>&1; then
+        echo "${GREEN}Docker daemon already running.${NC}"
+        exit 0
+    fi
+
+    echo "${YELLOW}Attempting to start Docker daemon...${NC}"
+    os="$(uname -s)"
+    case "$os" in
+        Darwin)
+            open -g -a Docker >/dev/null 2>&1 || true
+            ;;
+        Linux)
+            if command -v systemctl >/dev/null 2>&1; then
+                sudo systemctl start docker >/dev/null 2>&1 || true
+            fi
+            ;;
+        *)
+            echo "${RED}Unsupported OS (${os}). Start Docker manually.${NC}" >&2
+            ;;
+    esac
+
+    echo "${YELLOW}Waiting for Docker daemon to become ready...${NC}"
+    for _ in $(seq 1 30); do
+        if docker info >/dev/null 2>&1; then
+            echo "${GREEN}Docker daemon is running.${NC}"
+            exit 0
+        fi
+        sleep 2
+    done
+
+    echo "${RED}Docker daemon did not become ready. Start it manually and rerun the command.${NC}" >&2
+    exit 1
+
 # Start all services in development mode with hot reload
 up:
+    @just ensure-runtime
     @echo "{{GREEN}}Starting services in development mode (LiteLLM remote)...{{NC}}"
     @if [ -z "$${BACKEND_DATABASE_URL}" ]; then \
         echo "{{BLUE}}No BACKEND_DATABASE_URL set - starting local Postgres via backend-local-db profile.{{NC}}"; \
@@ -86,6 +157,7 @@ up:
 
 # Start all services including local LiteLLM profile
 up-litellm:
+    @just ensure-runtime
     @echo "{{GREEN}}Starting services with local LiteLLM profile...{{NC}}"
     @if [ -z "$${BACKEND_DATABASE_URL}" ]; then \
         echo "{{BLUE}}No BACKEND_DATABASE_URL set - starting local Postgres alongside LiteLLM.{{NC}}"; \
@@ -138,10 +210,14 @@ build service="":
     #!/usr/bin/env bash
     if [ -z "{{service}}" ]; then
         echo "{{BLUE}}Building all services...{{NC}}"
-        {{docker_compose}} build
+        {{docker_compose}} build --no-cache
+        echo "{{BLUE}}Cleaning up old images...{{NC}}"
+        docker image prune -f
     else
         echo "{{BLUE}}Building {{service}}...{{NC}}"
-        {{docker_compose}} build {{service}}
+        {{docker_compose}} build --no-cache {{service}}
+        echo "{{BLUE}}Cleaning up old images...{{NC}}"
+        docker image prune -f
     fi
 
 # Show status of all services
