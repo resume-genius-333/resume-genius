@@ -32,6 +32,14 @@ from .resumes import (
     ResumeSkill,
 )
 from .status.status import Status, ProcessingStatusTag
+from .selection import (
+    SelectionResult,
+    SelectionResultItem,
+    SelectionItemType,
+    SelectionTarget,
+    SelectionResultRecordSchema,
+    SelectionResultItemSchema,
+)
 
 __all__ = [
     "Base",
@@ -69,4 +77,11 @@ __all__ = [
     # Status tracking
     "Status",
     "ProcessingStatusTag",
+    # Selection results
+    "SelectionResult",
+    "SelectionResultItem",
+    "SelectionItemType",
+    "SelectionTarget",
+    "SelectionResultRecordSchema",
+    "SelectionResultItemSchema",
 ]
