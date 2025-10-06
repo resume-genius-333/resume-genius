@@ -45,7 +45,7 @@ class JobService:
             # Extract job information using LLM
             logger.info("Calling LLM with job description")
             llm_result = await self.instructor.create(
-                model="claude-4-sonnet",
+                model="claude-4.5-sonnet",
                 response_model=JobLLMSchema,
                 messages=[
                     {
