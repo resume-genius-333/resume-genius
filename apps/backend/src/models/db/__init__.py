@@ -31,6 +31,7 @@ from .resumes import (
     ResumeProject,
     ResumeSkill,
 )
+from .status.status import Status, ProcessingStatusTag
 
 __all__ = [
     "Base",
@@ -65,4 +66,7 @@ __all__ = [
     "ResumeWorkExperience",
     "ResumeProject",
     "ResumeSkill",
+    # Status tracking
+    "Status",
+    "ProcessingStatusTag",
 ]
