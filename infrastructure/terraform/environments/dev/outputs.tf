@@ -75,3 +75,14 @@ output "resume_genius_backend_rds_connection" {
     secret_arn = aws_secretsmanager_secret.resume_genius_backend.arn
   }
 }
+
+output "sns_topics" {
+  description = "Map of SNS topic ARNs keyed by logical name."
+  value = {
+    for key, topic in aws_sns_topic.additional :
+    key => {
+      name = topic.name
+      arn  = topic.arn
+    }
+  }
+}

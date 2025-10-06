@@ -622,3 +622,30 @@ variable "alb_deletion_protection" {
   description = "Enable ALB deletion protection."
   default     = false
 }
+
+# Simple Notification Service
+variable "sns_topics" {
+  description = "Map of SNS topics to provision, keyed by a short logical name."
+  type = map(object({
+    name                        = optional(string)
+    display_name                = optional(string)
+    fifo_topic                  = optional(bool)
+    content_based_deduplication = optional(bool)
+    delivery_policy             = optional(string)
+    policy                      = optional(string)
+    kms_master_key_id           = optional(string)
+    tracing_config              = optional(string)
+    subscriptions = optional(list(object({
+      protocol              = string
+      endpoint              = string
+      raw_message_delivery  = optional(bool)
+      filter_policy         = optional(string)
+      filter_policy_scope   = optional(string)
+      redrive_policy        = optional(string)
+      delivery_policy       = optional(string)
+      subscription_role_arn = optional(string)
+    })))
+    tags = optional(map(string))
+  }))
+  default = {}
+}
