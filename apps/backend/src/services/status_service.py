@@ -1,26 +1,20 @@
 """Service for managing processing status and SSE streaming."""
 
-import asyncio
 from datetime import datetime, timezone
-from typing import AsyncGenerator, Literal, Optional
+from typing import AsyncGenerator, Optional
 import uuid
 import redis.asyncio as redis
 from pydantic import BaseModel
 import logging
 from dependency_injector.wiring import Provide, inject
+from sqlalchemy.ext.asyncio import async_sessionmaker
+
 from src.containers import Container, container
+from src.models.db.status.status import ProcessingStatusTag
+from src.repositories.status_repository import StatusRepository
 
 logger = logging.getLogger(__name__)
 container.wire(modules=[__name__])
-
-
-type ProcessingStatusType = Literal[
-    "job-parsed-at",
-    "educations-selected-at",
-    "work-experiences-selected-at",
-    "projects-selected-at",
-    "skills-selected-at",
-]
 
 
 class ProcessingStatus(BaseModel):
@@ -37,19 +31,24 @@ class ProcessingStatusUpdate(BaseModel):
     """Status update for SSE streaming."""
 
     timestamp: datetime
-    tag: ProcessingStatusType
+    tag: ProcessingStatusTag
 
 
 class StatusService:
     """Service for managing job processing status and SSE streaming."""
 
     @inject
-    def __init__(self, redis_client: redis.Redis = Provide[Container.redis_client]):
+    def __init__(
+        self,
+        redis_client: redis.Redis = Provide[Container.redis_client],
+        session_factory: async_sessionmaker = Provide[Container.async_session_factory],
+    ):
         """Initialize status service with Redis client."""
         self.redis_client = redis_client
+        self._session_factory = session_factory
 
     def _status_key(
-        self, user_id: uuid.UUID, job_id: uuid.UUID, tag: ProcessingStatusType
+        self, user_id: uuid.UUID, job_id: uuid.UUID, tag: ProcessingStatusTag
     ) -> str:
         """Generate Redis key for status storage."""
         return f"user:{user_id}:job:{job_id}:{tag}:status"
@@ -62,61 +61,67 @@ class StatusService:
         self, user_id: uuid.UUID, job_id: uuid.UUID
     ) -> ProcessingStatus:
         """Get current processing status for a job."""
+        async with self._session_factory() as session:
+            repository = StatusRepository(session)
+            statuses = await repository.get_statuses_for_job(user_id, job_id)
 
-        def convert(date: Optional[str]) -> Optional[datetime]:
-            if not date:
-                return None
-            return datetime.fromisoformat(date)
-
-        job_parsed_at = self.redis_client.get(
-            self._status_key(user_id, job_id, "job-parsed-at")
-        )
-        educations_selected_at = self.redis_client.get(
-            self._status_key(user_id, job_id, "educations-selected-at")
-        )
-        work_experiences_selected_at = self.redis_client.get(
-            self._status_key(user_id, job_id, "work-experiences-selected-at")
-        )
-        projects_selected_at = self.redis_client.get(
-            self._status_key(user_id, job_id, "projects-selected-at")
-        )
-        skills_selected_at = self.redis_client.get(
-            self._status_key(user_id, job_id, "skills-selected-at")
-        )
-        (
-            job_parsed_at,
-            educations_selected_at,
-            work_experiences_selected_at,
-            projects_selected_at,
-            skills_selected_at,
-        ) = await asyncio.gather(
-            job_parsed_at,
-            educations_selected_at,
-            work_experiences_selected_at,
-            projects_selected_at,
-            skills_selected_at,
-        )
+        status_map = {
+            status.tag.value: status.recorded_at
+            for status in statuses
+            if status.recorded_at
+        }
 
         return ProcessingStatus(
-            job_parsed_at=convert(job_parsed_at),
-            educations_selected_at=convert(educations_selected_at),
-            work_experiences_selected_at=convert(work_experiences_selected_at),
-            projects_selected_at=convert(projects_selected_at),
-            skills_selected_at=convert(skills_selected_at),
+            job_parsed_at=status_map.get(ProcessingStatusTag.JOB_PARSED_AT.value),
+            educations_selected_at=status_map.get(
+                ProcessingStatusTag.EDUCATIONS_SELECTED_AT.value
+            ),
+            work_experiences_selected_at=status_map.get(
+                ProcessingStatusTag.WORK_EXPERIENCES_SELECTED_AT.value
+            ),
+            projects_selected_at=status_map.get(
+                ProcessingStatusTag.PROJECTS_SELECTED_AT.value
+            ),
+            skills_selected_at=status_map.get(
+                ProcessingStatusTag.SKILLS_SELECTED_AT.value
+            ),
         )
 
     async def set_and_publish_status(
         self,
         user_id: uuid.UUID,
         job_id: uuid.UUID,
-        tag: ProcessingStatusType,
+        tag: ProcessingStatusTag | str,
         timestamp: Optional[datetime] = None,
     ) -> None:
         """Set status in Redis and publish update to subscribers."""
         if not timestamp:
             timestamp = datetime.now(timezone.utc)
 
-        # Store status
+        if isinstance(tag, str):
+            tag = ProcessingStatusTag(tag)
+
+        async with self._session_factory() as session:
+            repository = StatusRepository(session)
+            try:
+                await repository.upsert_status(
+                    user_id=user_id,
+                    job_id=job_id,
+                    tag=tag,
+                    recorded_at=timestamp,
+                )
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                logger.exception(
+                    "Failed to persist status update for user_id=%s job_id=%s tag=%s",
+                    user_id,
+                    job_id,
+                    tag,
+                )
+                raise
+
+        # Mirror status in Redis for quick lookups and SSE listeners
         await self.redis_client.set(
             self._status_key(user_id, job_id, tag), timestamp.isoformat()
         )
@@ -128,7 +133,10 @@ class StatusService:
         )
 
         logger.info(
-            f"Published status update: user_id={user_id}, job_id={job_id}, tag={tag}"
+            "Published status update: user_id=%s, job_id=%s, tag=%s",
+            user_id,
+            job_id,
+            tag,
         )
 
     async def stream_status(
