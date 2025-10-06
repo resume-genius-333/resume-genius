@@ -73,6 +73,7 @@ class JobService:
                 user_id=user_id,
                 job_id=job_id,
                 tag="job-parsed-at",
+                uow=self.uow,
             )
 
             return job_schema

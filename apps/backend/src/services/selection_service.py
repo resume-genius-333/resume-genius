@@ -8,9 +8,10 @@ from pydantic import BaseModel, Field
 from src.core.unit_of_work import UnitOfWork
 from dependency_injector.wiring import Provide, inject
 from src.containers import Container, container
-import redis.asyncio as redis
 
 from src.services.status_service import StatusService
+from src.models.db.selection import SelectionItemType, SelectionTarget
+from src.repositories.selection_repository import SelectionItemInput
 
 
 container.wire(modules=[__name__])
@@ -114,19 +115,17 @@ class SelectionService:
         self,
         uow: UnitOfWork,
         instructor: AsyncInstructor = Provide[Container.async_instructor],
-        redis_client: Optional[redis.Redis] = Provide[Container.redis_client],
     ):
         self.uow = uow
         self.instructor = instructor
-        if redis_client is None:
-            raise RuntimeError("Redis client is required for SelectionService but is not configured.")
-        self.redis_client = redis_client
         self.status_service = StatusService()
 
-    def _get_selection_key(
-        self, user_id: uuid.UUID, job_id: uuid.UUID, target: SelectionServiceTarget
-    ) -> str:
-        return f"user:{user_id}:job:{job_id}:target:{target}:selection"
+    _TARGET_MAP = {
+        "educations": SelectionTarget.EDUCATIONS,
+        "work_experiences": SelectionTarget.WORK_EXPERIENCES,
+        "projects": SelectionTarget.PROJECTS,
+        "skills": SelectionTarget.SKILLS,
+    }
 
     async def _set(
         self,
@@ -135,26 +134,83 @@ class SelectionService:
         target: SelectionServiceTarget,
         selection: SelectionResult,
     ):
-        key = self._get_selection_key(user_id=user_id, job_id=job_id, target=target)
-        logger.info(f"!!!!!!!!!!!!!!!!!!!!!!! SETTING [{key}] !!!!!!!!!!!!!!!!!!!!!!!")
-        await self.redis_client.set(key, selection.model_dump_json())
+        target_enum = self._TARGET_MAP[target]
+        items: List[SelectionItemInput] = []
+
+        for position, item in enumerate(selection.selected_items):
+            items.append(
+                SelectionItemInput(
+                    profile_item_id=item.id,
+                    justification=item.justification,
+                    item_type=SelectionItemType.SELECTED,
+                    position=position,
+                )
+            )
+
+        for position, item in enumerate(selection.not_selected_items):
+            items.append(
+                SelectionItemInput(
+                    profile_item_id=item.id,
+                    justification=item.justification,
+                    item_type=SelectionItemType.NOT_SELECTED,
+                    position=position,
+                )
+            )
+
+        await self.uow.selection_repository.upsert_selection(
+            user_id=user_id,
+            job_id=job_id,
+            target=target_enum,
+            items=items,
+        )
 
     async def _get(
         self, user_id: uuid.UUID, job_id: uuid.UUID, target: SelectionServiceTarget
     ) -> Optional[SelectionResult]:
-        key = self._get_selection_key(user_id=user_id, job_id=job_id, target=target)
-        logger.info(f"!!!!!!!!!!!!!!!!!!!!!!! GETTING [{key}] !!!!!!!!!!!!!!!!!!!!!!!")
-        result = await self.redis_client.get(key)
-        if result is None:
-            logger.warning("No results found for selection.")
-            return None
-        if not isinstance(result, str):
+        target_enum = self._TARGET_MAP[target]
+        record = await self.uow.selection_repository.get_selection(
+            user_id=user_id,
+            job_id=job_id,
+            target=target_enum,
+        )
+        if record is None:
             logger.warning(
-                f"Received unsupported result type: {type(result)}: {result}"
+                "No results found for selection (user=%s job=%s target=%s)",
+                user_id,
+                job_id,
+                target,
             )
             return None
-        logger.info("Received %s selection result: %s", target, result)
-        return SelectionResult.model_validate_json(result)
+
+        selected_items = sorted(
+            (
+                item
+                for item in record.items
+                if item.item_type == SelectionItemType.SELECTED
+            ),
+            key=lambda item: item.position,
+        )
+        not_selected_items = sorted(
+            (
+                item
+                for item in record.items
+                if item.item_type == SelectionItemType.NOT_SELECTED
+            ),
+            key=lambda item: item.position,
+        )
+
+        return SelectionResult(
+            selected_items=[
+                SelectedItem(id=item.profile_item_id, justification=item.justification)
+                for item in selected_items
+            ],
+            not_selected_items=[
+                NotSelectedItem(
+                    id=item.profile_item_id, justification=item.justification
+                )
+                for item in not_selected_items
+            ],
+        )
 
     async def select_educations(
         self,
@@ -162,9 +218,7 @@ class SelectionService:
         job_id: uuid.UUID,
         job_description: str,
     ) -> SelectionResult:
-        logger.info(
-            "Selecting educations for user_id=%s, job_id=%s", user_id, job_id
-        )
+        logger.info("Selecting educations for user_id=%s, job_id=%s", user_id, job_id)
         # ask AI to give us back the information using instructor
         educations = await self.uow.education_repository.get_educations_by_user(user_id)
         logger.info(f"Found {len(educations)} educations.")
@@ -201,7 +255,7 @@ Here are the educations:
             selection=selection_result,
         )
         await self.status_service.set_and_publish_status(
-            user_id=user_id, job_id=job_id, tag="educations-selected-at"
+            user_id=user_id, job_id=job_id, tag="educations-selected-at", uow=self.uow
         )
         return selection_result
 
@@ -263,7 +317,10 @@ Here are the work experiences:
             selection=selection_result,
         )
         await self.status_service.set_and_publish_status(
-            user_id=user_id, job_id=job_id, tag="work-experiences-selected-at"
+            user_id=user_id,
+            job_id=job_id,
+            tag="work-experiences-selected-at",
+            uow=self.uow,
         )
         return selection_result
 
@@ -315,10 +372,13 @@ Here are the projects:
             "AI selected projects: %s", selection_result.model_dump_json(indent=2)
         )
         await self._set(
-            user_id=user_id, job_id=job_id, target="projects", selection=selection_result
+            user_id=user_id,
+            job_id=job_id,
+            target="projects",
+            selection=selection_result,
         )
         await self.status_service.set_and_publish_status(
-            user_id=user_id, job_id=job_id, tag="projects-selected-at"
+            user_id=user_id, job_id=job_id, tag="projects-selected-at", uow=self.uow
         )
         return selection_result
 
@@ -386,7 +446,7 @@ Here are the skills:
             user_id=user_id, job_id=job_id, target="skills", selection=selection_result
         )
         await self.status_service.set_and_publish_status(
-            user_id=user_id, job_id=job_id, tag="skills-selected-at"
+            user_id=user_id, job_id=job_id, tag="skills-selected-at", uow=self.uow
         )
         return selection_result
 
