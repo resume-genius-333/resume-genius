@@ -69,13 +69,6 @@ litellm_environment = {
   LITELLM_DATABASE_NAME = "litellm"
 }
 
-# Optional SNS topics used for alerts or fan-out messaging.
-sns_topics = {
-  job_status_updates = {
-    display_name = "Job Status Updates"
-  }
-}
-
 # TLS termination (optional)
 # alb_https_certificate_arn = "arn:aws:acm:ap-southeast-1:084828573819:certificate/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 # alb_redirect_http_to_https = true
