@@ -1,26 +1,24 @@
 """Service for managing processing status and SSE streaming."""
 
 import asyncio
-from datetime import datetime, timezone
-from typing import AsyncGenerator, Literal, Optional
-import uuid
-import redis.asyncio as redis
-from pydantic import BaseModel
 import logging
+import uuid
+from datetime import datetime, timezone
+from typing import AsyncGenerator, Optional
+
+import redis.asyncio as redis
 from dependency_injector.wiring import Provide, inject
+from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import async_sessionmaker
+
 from src.containers import Container, container
+from src.config.settings import StatusStreamBackend
+from src.core.queue_manager import QueueService
+from src.models.db.status.status import ProcessingStatusTag
+from src.repositories.status_repository import StatusRepository
 
 logger = logging.getLogger(__name__)
 container.wire(modules=[__name__])
-
-
-type ProcessingStatusType = Literal[
-    "job-parsed-at",
-    "educations-selected-at",
-    "work-experiences-selected-at",
-    "projects-selected-at",
-    "skills-selected-at",
-]
 
 
 class ProcessingStatus(BaseModel):
@@ -37,140 +35,314 @@ class ProcessingStatusUpdate(BaseModel):
     """Status update for SSE streaming."""
 
     timestamp: datetime
-    tag: ProcessingStatusType
+    tag: ProcessingStatusTag
 
 
 class StatusService:
     """Service for managing job processing status and SSE streaming."""
 
     @inject
-    def __init__(self, redis_client: redis.Redis = Provide[Container.redis_client]):
-        """Initialize status service with Redis client."""
+    def __init__(
+        self,
+        session_factory: async_sessionmaker = Provide[Container.async_session_factory],
+        redis_client: Optional[redis.Redis] = Provide[Container.redis_client],
+        queue_service: QueueService = Provide[Container.queue_service],
+        backend_preference: str = Provide[Container.config.status_stream.backend],
+    ):
+        """Initialize status service with streaming backend preferences."""
+        self._session_factory = session_factory
         self.redis_client = redis_client
+        self._queue_service = queue_service
+
+        try:
+            if isinstance(backend_preference, StatusStreamBackend):
+                self._backend_preference = backend_preference
+            else:
+                self._backend_preference = StatusStreamBackend(backend_preference)
+        except ValueError:
+            logger.warning(
+                "Unknown status stream backend preference '%s'; defaulting to auto",
+                backend_preference,
+            )
+            self._backend_preference = StatusStreamBackend.AUTO
+
+        self._active_backend: StatusStreamBackend | None = None
+        self._backend_lock = asyncio.Lock()
+        self._redis_health_checked = False
+        self._redis_available = False
+
+    async def _ensure_stream_backend(self) -> StatusStreamBackend:
+        if self._active_backend is not None:
+            return self._active_backend
+
+        async with self._backend_lock:
+            if self._active_backend is not None:
+                return self._active_backend
+
+            if self._backend_preference == StatusStreamBackend.QUEUE:
+                logger.info(
+                    "Status streaming backend forced to in-memory queue manager by configuration."
+                )
+                self._active_backend = StatusStreamBackend.QUEUE
+                return self._active_backend
+
+            redis_available = await self._try_enable_redis()
+
+            if self._backend_preference == StatusStreamBackend.REDIS:
+                if redis_available:
+                    logger.info(
+                        "Status streaming backend set to Redis pub/sub as requested."
+                    )
+                    self._active_backend = StatusStreamBackend.REDIS
+                    return self._active_backend
+
+                logger.warning(
+                    "Redis backend requested but unavailable; falling back to in-memory queue manager."
+                )
+                self._active_backend = StatusStreamBackend.QUEUE
+                return self._active_backend
+
+            # AUTO selection
+            if redis_available:
+                logger.info("Status streaming backend auto-selected Redis pub/sub.")
+                self._active_backend = StatusStreamBackend.REDIS
+            else:
+                logger.info(
+                    "Status streaming backend auto-selected in-memory queue manager (Redis unavailable)."
+                )
+                self._active_backend = StatusStreamBackend.QUEUE
+
+            return self._active_backend
+
+    async def _try_enable_redis(self) -> bool:
+        if self.redis_client is None:
+            logger.info(
+                "Redis client not configured; queue manager will be used for status streaming."
+            )
+            self._redis_health_checked = True
+            self._redis_available = False
+            return False
+
+        if self._redis_health_checked:
+            return self._redis_available
+
+        try:
+            await self.redis_client.ping()
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "Redis health check failed; status streaming will use queue manager.",
+                exc_info=exc,
+            )
+            self._redis_available = False
+        else:
+            logger.info("Redis health check succeeded for status streaming backend.")
+            self._redis_available = True
+        finally:
+            self._redis_health_checked = True
+
+        return self._redis_available
+
+    async def _downgrade_to_queue(
+        self, reason: str, exc: Optional[Exception] = None
+    ) -> None:
+        async with self._backend_lock:
+            self._active_backend = StatusStreamBackend.QUEUE
+            self._redis_available = False
+            self._redis_health_checked = True
+
+        if exc is not None:
+            logger.warning(
+                "%s; falling back to in-memory queue manager.",
+                reason,
+                exc_info=exc,
+            )
+        else:
+            logger.warning(
+                "%s; falling back to in-memory queue manager.",
+                reason,
+            )
 
     def _status_key(
-        self, user_id: uuid.UUID, job_id: uuid.UUID, tag: ProcessingStatusType
+        self, user_id: uuid.UUID, job_id: uuid.UUID, tag: ProcessingStatusTag
     ) -> str:
-        """Generate Redis key for status storage."""
+        """Generate key for caching status snapshots in Redis."""
         return f"user:{user_id}:job:{job_id}:{tag}:status"
 
     def _status_channel(self, user_id: uuid.UUID, job_id: uuid.UUID) -> str:
-        """Generate Redis pub/sub channel for SSE streaming."""
+        """Generate logical channel identifier for status streaming."""
         return f"user:{user_id}:job:{job_id}:status-stream"
 
     async def get_processing_status(
         self, user_id: uuid.UUID, job_id: uuid.UUID
     ) -> ProcessingStatus:
         """Get current processing status for a job."""
+        async with self._session_factory() as session:
+            repository = StatusRepository(session)
+            statuses = await repository.get_statuses_for_job(user_id, job_id)
 
-        def convert(date: Optional[str]) -> Optional[datetime]:
-            if not date:
-                return None
-            return datetime.fromisoformat(date)
-
-        job_parsed_at = self.redis_client.get(
-            self._status_key(user_id, job_id, "job-parsed-at")
-        )
-        educations_selected_at = self.redis_client.get(
-            self._status_key(user_id, job_id, "educations-selected-at")
-        )
-        work_experiences_selected_at = self.redis_client.get(
-            self._status_key(user_id, job_id, "work-experiences-selected-at")
-        )
-        projects_selected_at = self.redis_client.get(
-            self._status_key(user_id, job_id, "projects-selected-at")
-        )
-        skills_selected_at = self.redis_client.get(
-            self._status_key(user_id, job_id, "skills-selected-at")
-        )
-        (
-            job_parsed_at,
-            educations_selected_at,
-            work_experiences_selected_at,
-            projects_selected_at,
-            skills_selected_at,
-        ) = await asyncio.gather(
-            job_parsed_at,
-            educations_selected_at,
-            work_experiences_selected_at,
-            projects_selected_at,
-            skills_selected_at,
-        )
+        status_map = {
+            status.tag.value: status.recorded_at
+            for status in statuses
+            if status.recorded_at
+        }
 
         return ProcessingStatus(
-            job_parsed_at=convert(job_parsed_at),
-            educations_selected_at=convert(educations_selected_at),
-            work_experiences_selected_at=convert(work_experiences_selected_at),
-            projects_selected_at=convert(projects_selected_at),
-            skills_selected_at=convert(skills_selected_at),
+            job_parsed_at=status_map.get(ProcessingStatusTag.JOB_PARSED_AT.value),
+            educations_selected_at=status_map.get(
+                ProcessingStatusTag.EDUCATIONS_SELECTED_AT.value
+            ),
+            work_experiences_selected_at=status_map.get(
+                ProcessingStatusTag.WORK_EXPERIENCES_SELECTED_AT.value
+            ),
+            projects_selected_at=status_map.get(
+                ProcessingStatusTag.PROJECTS_SELECTED_AT.value
+            ),
+            skills_selected_at=status_map.get(
+                ProcessingStatusTag.SKILLS_SELECTED_AT.value
+            ),
         )
 
     async def set_and_publish_status(
         self,
         user_id: uuid.UUID,
         job_id: uuid.UUID,
-        tag: ProcessingStatusType,
+        tag: ProcessingStatusTag | str,
         timestamp: Optional[datetime] = None,
     ) -> None:
-        """Set status in Redis and publish update to subscribers."""
+        """Persist a status update and publish it to the active streaming backend."""
         if not timestamp:
             timestamp = datetime.now(timezone.utc)
 
-        # Store status
-        await self.redis_client.set(
-            self._status_key(user_id, job_id, tag), timestamp.isoformat()
-        )
+        if isinstance(tag, str):
+            tag = ProcessingStatusTag(tag)
 
-        # Publish update
+        async with self._session_factory() as session:
+            repository = StatusRepository(session)
+            try:
+                await repository.upsert_status(
+                    user_id=user_id,
+                    job_id=job_id,
+                    tag=tag,
+                    recorded_at=timestamp,
+                )
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                logger.exception(
+                    "Failed to persist status update for user_id=%s job_id=%s tag=%s",
+                    user_id,
+                    job_id,
+                    tag,
+                )
+                raise
+
         update = ProcessingStatusUpdate(timestamp=timestamp, tag=tag)
-        await self.redis_client.publish(
-            self._status_channel(user_id, job_id), update.model_dump_json()
-        )
+        payload = update.model_dump_json()
+        channel = self._status_channel(user_id, job_id)
 
-        logger.info(
-            f"Published status update: user_id={user_id}, job_id={job_id}, tag={tag}"
-        )
+        backend = await self._ensure_stream_backend()
+
+        if backend == StatusStreamBackend.REDIS and self.redis_client is not None:
+            try:
+                await self.redis_client.set(
+                    self._status_key(user_id, job_id, tag), timestamp.isoformat()
+                )
+                await self.redis_client.publish(channel, payload)
+                logger.info(
+                    "Published status update via Redis: user_id=%s, job_id=%s, tag=%s",
+                    user_id,
+                    job_id,
+                    tag,
+                )
+                return
+            except Exception as exc:  # noqa: BLE001
+                await self._downgrade_to_queue(
+                    "Redis publish failed for status update",
+                    exc,
+                )
+                backend = StatusStreamBackend.QUEUE
+
+        if backend == StatusStreamBackend.QUEUE:
+            await self._queue_service.notify(channel, payload)
+            logger.info(
+                "Published status update via queue manager: user_id=%s, job_id=%s, tag=%s",
+                user_id,
+                job_id,
+                tag,
+            )
+        else:
+            logger.error(
+                "Status update not published: no active backend for user_id=%s job_id=%s tag=%s",
+                user_id,
+                job_id,
+                tag,
+            )
 
     async def stream_status(
         self, user_id: uuid.UUID, job_id: uuid.UUID
     ) -> AsyncGenerator[str, None]:
         """Stream status updates via Server-Sent Events."""
         channel = self._status_channel(user_id, job_id)
-        pubsub = self.redis_client.pubsub()
+        backend = await self._ensure_stream_backend()
 
-        await pubsub.subscribe(channel)
-        logger.info(f"SSE: Subscribed to channel {channel}")
+        if backend == StatusStreamBackend.REDIS and self.redis_client is not None:
+            pubsub = self.redis_client.pubsub()
+            await pubsub.subscribe(channel)
+            logger.info("SSE: Subscribed to Redis channel %s", channel)
 
-        try:
-            # Send initial status
-            initial_status = await self.get_processing_status(user_id, job_id)
-            yield f"data: {initial_status.model_dump_json()}\n\n"
+            try:
+                initial_status = await self.get_processing_status(user_id, job_id)
+                yield f"data: {initial_status.model_dump_json()}\n\n"
 
-            # Listen for updates
-            async for message in pubsub.listen():
-                if message["type"] == "message":
-                    data = message["data"]
+                async for message in pubsub.listen():
+                    if message["type"] == "message":
+                        data = message["data"]
+                        info = ProcessingStatusUpdate.model_validate_json(data)
+                        logger.info(
+                            "Redis SSE update received: user_id=%s job_id=%s tag=%s",
+                            user_id,
+                            job_id,
+                            info.tag,
+                        )
+                        result = await self.get_processing_status(user_id, job_id)
+                        yield f"data: {result.model_dump_json()}\n\n"
+                    elif message["type"] == "unsubscribe":
+                        logger.info("SSE: Redis unsubscribe signal for %s", channel)
+                        break
+            except Exception as exc:  # noqa: BLE001
+                logger.error("SSE: Error in Redis stream for %s: %s", channel, exc)
+                raise
+            finally:
+                logger.info("SSE: Cleaning up Redis pubsub for %s", channel)
+                await pubsub.unsubscribe(channel)
+                await pubsub.close()
+                logger.info("SSE: Redis stream closed for %s", channel)
+            return
+
+        context = self._queue_service.create_listening_context(channel)
+        logger.info("SSE: Subscribed to in-memory queue channel %s", channel)
+
+        async with context as queue:
+            try:
+                initial_status = await self.get_processing_status(user_id, job_id)
+                yield f"data: {initial_status.model_dump_json()}\n\n"
+
+                while True:
+                    data = await queue.get()
                     info = ProcessingStatusUpdate.model_validate_json(data)
-                    logger.info(f"Received update: {info.model_dump_json(indent=2)}")
-
-                    # Send current status after update
+                    logger.info(
+                        "Queue SSE update received: user_id=%s job_id=%s tag=%s",
+                        user_id,
+                        job_id,
+                        info.tag,
+                    )
                     result = await self.get_processing_status(user_id, job_id)
                     yield f"data: {result.model_dump_json()}\n\n"
-
-                elif message["type"] == "subscribe":
-                    logger.info("SSE: Successfully subscribed to channel")
-
-                elif message["type"] == "unsubscribe":
-                    logger.info("SSE: Successfully unsubscribed from channel")
-                    break
-
-        except Exception as e:
-            logger.error(f"SSE: Error in stream: {str(e)}")
-            raise
-
-        finally:
-            # Clean up
-            logger.info(f"SSE: Cleaning up - unsubscribing from {channel}")
-            await pubsub.unsubscribe(channel)
-            await pubsub.close()
-            logger.info(f"SSE: Stream closed for {channel}")
+            except asyncio.CancelledError:
+                logger.info("SSE: Queue stream cancelled for %s", channel)
+                raise
+            except Exception as exc:  # noqa: BLE001
+                logger.error("SSE: Error in queue stream for %s: %s", channel, exc)
+                raise
+            finally:
+                logger.info("SSE: Queue stream closed for %s", channel)

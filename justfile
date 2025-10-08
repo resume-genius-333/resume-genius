@@ -361,40 +361,54 @@ dev target:
             ;;
         backend)
             echo "{{GREEN}}Starting backend development server (local runtime)...{{NC}}"
-            redis_host="${BACKEND_REDIS_HOST_LOCAL:-localhost}"
-            redis_port="${BACKEND_REDIS_PORT_LOCAL:-6380}"
+            stream_backend="${BACKEND_STATUS_STREAM_BACKEND:-auto}"
+            stream_backend="$(printf '%s' "$stream_backend" | tr '[:upper:]' '[:lower:]')"
+            use_redis=true
 
-            if ! command -v python3 >/dev/null 2>&1; then
-                echo "${RED}python3 is required to check Redis availability.${NC}" >&2
-                exit 1
+            if [ "$stream_backend" = "queue" ]; then
+                use_redis=false
+                echo "${YELLOW}Redis disabled by BACKEND_STATUS_STREAM_BACKEND=queue; using in-memory queues.${NC}"
             fi
 
-            check_redis() {
-                python3 -c "import socket, sys; sock = socket.socket(); sock.settimeout(1); sys.exit(sock.connect_ex((sys.argv[1], int(sys.argv[2]))))" "$redis_host" "$redis_port"
-            }
+            if $use_redis; then
+                redis_host="${BACKEND_REDIS_HOST_LOCAL:-localhost}"
+                redis_port="${BACKEND_REDIS_PORT_LOCAL:-6380}"
 
-            if ! check_redis; then
-                echo "{{YELLOW}}Redis not detected at ${redis_host}:${redis_port}. Starting container...{{NC}}"
-                just --quiet ensure-runtime
-                if ! {{docker_compose}} up -d resume-genius-redis >/dev/null; then
-                    echo "${RED}Failed to start Redis container via docker compose.${NC}" >&2
+                if ! command -v python3 >/dev/null 2>&1; then
+                    echo "${RED}python3 is required to check Redis availability.${NC}" >&2
                     exit 1
                 fi
-                echo "{{BLUE}}Waiting for Redis to be ready...{{NC}}"
-                for attempt in {1..15}; do
-                    if check_redis; then
-                        echo "{{GREEN}}Redis is ready on ${redis_host}:${redis_port}.{{NC}}"
-                        break
-                    fi
-                    sleep 1
-                done
+
+                check_redis() {
+                    python3 -c "import socket, sys; sock = socket.socket(); sock.settimeout(1); sys.exit(sock.connect_ex((sys.argv[1], int(sys.argv[2]))))" "$redis_host" "$redis_port"
+                }
+
                 if ! check_redis; then
-                    echo "${RED}Redis failed to start on ${redis_host}:${redis_port}.${NC}" >&2
-                    exit 1
+                    echo "{{YELLOW}}Redis not detected at ${redis_host}:${redis_port}. Starting container...{{NC}}"
+                    just --quiet ensure-runtime
+                    if ! {{docker_compose}} up -d resume-genius-redis >/dev/null; then
+                        echo "${RED}Failed to start Redis container via docker compose.${NC}" >&2
+                        exit 1
+                    fi
+                    echo "{{BLUE}}Waiting for Redis to be ready...{{NC}}"
+                    for attempt in {1..15}; do
+                        if check_redis; then
+                            echo "{{GREEN}}Redis is ready on ${redis_host}:${redis_port}.{{NC}}"
+                            break
+                        fi
+                        sleep 1
+                    done
+                    if ! check_redis; then
+                        echo "${RED}Redis failed to start on ${redis_host}:${redis_port}.${NC}" >&2
+                        exit 1
+                    fi
+                else
+                    echo "{{GREEN}}Redis already reachable on ${redis_host}:${redis_port}.{{NC}}"
                 fi
             else
-                echo "{{GREEN}}Redis already reachable on ${redis_host}:${redis_port}.{{NC}}"
+                echo "${GREEN}Skipping Redis startup; backend will rely on queue manager.${NC}"
             fi
+
             cd apps/backend
             uv run python main.py
             ;;

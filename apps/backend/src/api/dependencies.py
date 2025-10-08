@@ -41,9 +41,15 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token", auto_error=F
 
 @inject
 def get_redis_client(
-    redis_client: redis.Redis = Provide[Container.redis_client],
+    redis_client: Optional[redis.Redis] = Provide[Container.redis_client],
 ) -> redis.Redis:
     """Get Redis client."""
+    if redis_client is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Redis client is not configured",
+        )
+
     return redis_client
 
 

@@ -114,10 +114,12 @@ class SelectionService:
         self,
         uow: UnitOfWork,
         instructor: AsyncInstructor = Provide[Container.async_instructor],
-        redis_client: redis.Redis = Provide[Container.redis_client],
+        redis_client: Optional[redis.Redis] = Provide[Container.redis_client],
     ):
         self.uow = uow
         self.instructor = instructor
+        if redis_client is None:
+            raise RuntimeError("Redis client is required for SelectionService but is not configured.")
         self.redis_client = redis_client
         self.status_service = StatusService()
 

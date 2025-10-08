@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
+import logging
+from enum import Enum
 from functools import cached_property, lru_cache
 from pathlib import Path
 from typing import Optional
 
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+logger = logging.getLogger(__name__)
 
 
 class DatabaseConfig(BaseModel):
@@ -145,11 +150,24 @@ class ContainerRedisConfig(BaseModel):
     health_check_interval: int
 
 
+class StatusStreamBackend(str, Enum):
+    """Available backends for status streaming."""
+
+    AUTO = "auto"
+    REDIS = "redis"
+    QUEUE = "queue"
+
+
+class ContainerStatusStreamConfig(BaseModel):
+    backend: str = Field(default=StatusStreamBackend.AUTO.value)
+
+
 class ContainerConfig(BaseModel):
     litellm: ContainerLiteLLMConfig
     database: ContainerDatabaseConfig
     auth: ContainerAuthConfig
-    redis: ContainerRedisConfig
+    redis: ContainerRedisConfig | None
+    status_stream: ContainerStatusStreamConfig
 
 
 class Settings(BaseSettings):
@@ -189,6 +207,10 @@ class Settings(BaseSettings):
     backend_redis_socket_timeout: int = Field(default=5, alias="BACKEND_REDIS_SOCKET_TIMEOUT")
     backend_redis_retry_on_timeout: bool = Field(default=True, alias="BACKEND_REDIS_RETRY_ON_TIMEOUT")
     backend_redis_health_check_interval: int = Field(default=30, alias="BACKEND_REDIS_HEALTH_CHECK_INTERVAL")
+    backend_status_stream_backend: StatusStreamBackend = Field(
+        default=StatusStreamBackend.AUTO,
+        alias="BACKEND_STATUS_STREAM_BACKEND",
+    )
 
     litellm_api_key: Optional[str] = Field(default=None, alias="LITELLM_API_KEY")
     litellm_base_url_docker: str = Field(default="http://litellm:4000", alias="LITELLM_BASE_URL_DOCKER")
@@ -234,6 +256,16 @@ class Settings(BaseSettings):
             retry_on_timeout=self.backend_redis_retry_on_timeout,
             health_check_interval=self.backend_redis_health_check_interval,
         )
+
+    def has_redis_config(self) -> bool:
+        required_values = [
+            self.backend_redis_host_docker,
+            self.backend_redis_host_local,
+            self.backend_redis_port_docker,
+            self.backend_redis_port_local,
+            self.backend_redis_db,
+        ]
+        return all(value not in (None, "") for value in required_values)
 
     @cached_property
     def auth(self) -> AuthConfig:
@@ -309,6 +341,26 @@ class Settings(BaseSettings):
         if not self.auth.jwt_secret_key:
             raise RuntimeError("BACKEND_JWT_SECRET_KEY environment variable must be set")
 
+        redis_config: ContainerRedisConfig | None = None
+        if self.has_redis_config():
+            try:
+                redis_config = ContainerRedisConfig(
+                    url=self.redis.url(is_docker=is_docker),
+                    max_connections=self.redis.max_connections,
+                    encoding=self.redis.encoding,
+                    decode_responses=self.redis.decode_responses,
+                    socket_connect_timeout=self.redis.socket_connect_timeout,
+                    socket_timeout=self.redis.socket_timeout,
+                    retry_on_timeout=self.redis.retry_on_timeout,
+                    health_check_interval=self.redis.health_check_interval,
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "Invalid Redis configuration detected; falling back to queue manager. error=%s",
+                    exc,
+                )
+                redis_config = None
+
         return ContainerConfig(
             litellm=ContainerLiteLLMConfig(
                 api_key=self.litellm.api_key,
@@ -327,15 +379,9 @@ class Settings(BaseSettings):
                 password_reset_token_expire_hours=self.auth.password_reset_token_expire_hours,
                 email_verification_token_expire_hours=self.auth.email_verification_token_expire_hours,
             ),
-            redis=ContainerRedisConfig(
-                url=self.redis.url(is_docker=is_docker),
-                max_connections=self.redis.max_connections,
-                encoding=self.redis.encoding,
-                decode_responses=self.redis.decode_responses,
-                socket_connect_timeout=self.redis.socket_connect_timeout,
-                socket_timeout=self.redis.socket_timeout,
-                retry_on_timeout=self.redis.retry_on_timeout,
-                health_check_interval=self.redis.health_check_interval,
+            redis=redis_config,
+            status_stream=ContainerStatusStreamConfig(
+                backend=self.backend_status_stream_backend.value,
             ),
         )
 
@@ -355,6 +401,9 @@ __all__ = [
     "LangfuseConfig",
     "AWSConfig",
     "ContainerConfig",
+    "ContainerRedisConfig",
+    "ContainerStatusStreamConfig",
+    "StatusStreamBackend",
     "Settings",
     "get_settings",
 ]

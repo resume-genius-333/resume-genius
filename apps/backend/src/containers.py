@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 from dependency_injector import containers, providers
 
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
@@ -8,6 +8,33 @@ import redis.asyncio as redis
 from instructor import AsyncInstructor, Instructor, from_openai
 
 from src.services.storage_service import StorageService
+from src.core.queue_manager import QueueService
+from src.config.settings import ContainerRedisConfig
+
+
+def _create_redis_client(
+    redis_config: Optional[Union[ContainerRedisConfig, dict]],
+) -> Optional[redis.Redis]:
+    if not redis_config:
+        return None
+
+    if isinstance(redis_config, dict):
+        # Configuration provider emits plain dicts after model_dump(); normalise to model.
+        try:
+            redis_config = ContainerRedisConfig(**redis_config)
+        except Exception:  # noqa: BLE001
+            return None
+
+    return redis.from_url(
+        redis_config.url,
+        encoding=redis_config.encoding,
+        decode_responses=redis_config.decode_responses,
+        max_connections=redis_config.max_connections,
+        socket_connect_timeout=redis_config.socket_connect_timeout,
+        socket_timeout=redis_config.socket_timeout,
+        retry_on_timeout=redis_config.retry_on_timeout,
+        health_check_interval=redis_config.health_check_interval,
+    )
 
 if TYPE_CHECKING:
     from openai import OpenAI, AsyncOpenAI
@@ -78,17 +105,12 @@ class Container(containers.DeclarativeContainer):
         expire_on_commit=False,
     )
 
-    # Redis client (async)
+    queue_service = providers.Singleton(QueueService)
+
+    # Redis client (async) -- may be None when Redis is not configured
     redis_client = providers.Singleton(
-        redis.from_url,
-        config.redis.url,
-        encoding=config.redis.encoding,
-        decode_responses=config.redis.decode_responses,
-        max_connections=config.redis.max_connections,
-        socket_connect_timeout=config.redis.socket_connect_timeout,
-        socket_timeout=config.redis.socket_timeout,
-        retry_on_timeout=config.redis.retry_on_timeout,
-        health_check_interval=config.redis.health_check_interval,
+        _create_redis_client,
+        config.redis,
     )
 
 
