@@ -67,21 +67,23 @@ The project uses `just` as a command runner. Run `just` or `just help` to see al
 
 **Starting Services:**
 ```bash
-just up         # Start development mode with hot-reload
-just up-prod    # Start production mode
-just down       # Stop all services
+just up             # Start development mode with hot-reload
+just up redis       # Start only the Redis dependency
+just up-prod        # Start production mode
+just down           # Stop all services
 ```
 
 **Development:**
 ```bash
-just logs           # View all logs
-just logs backend   # View specific service logs
-just restart        # Restart all services
+just logs              # View all logs
+just logs backend      # View specific service logs
+just restart           # Restart all services
 just restart frontend  # Restart specific service
 ```
 
 **Backend:**
 ```bash
+just dev backend    # Run backend locally with .env (auto-starts Redis if needed)
 just backend-dev    # Run backend locally (without Docker)
 just migrate        # Run database migrations
 just makemigration "description"  # Create new migration
@@ -91,6 +93,7 @@ just backend-test   # Run tests
 
 **Frontend:**
 ```bash
+just dev frontend   # Run frontend locally with .env
 just frontend-dev   # Run frontend locally (without Docker)
 just frontend-build # Build for production
 just frontend-lint  # Run linting
@@ -200,7 +203,7 @@ The application runs several Docker services:
 ## Backend Database Configuration
 
 ### Local container (default)
-`just up` enables the `backend-local-db` Docker Compose profile whenever `BACKEND_DATABASE_URL` is empty, which spins up the `resume-genius-postgres` container (PostgreSQL 16 with pgvector). Update the `BACKEND_POSTGRES_*` values in `.env` if you want different credentials or ports, then apply migrations with `just migrate` once the stack is running.
+`just up` enables the `backend-local-db` Docker Compose profile whenever `BACKEND_DATABASE_URL` is empty, which spins up the `resume-genius-postgres` container (PostgreSQL 16 with pgvector). Set `BACKEND_DATABASE_URL` to the connection string your local tooling should use, and `BACKEND_DATABASE_URL_DOCKER` to the hostname that the backend container should reach (for the bundled database, use `postgresql://…@resume-genius-postgres:5432/resume_genius`). If you rely on the optional local Postgres container, tweak the `RESUME_GENIUS_POSTGRES_*` values in `.env` to control its bootstrap credentials, then run `just migrate` once the stack is running.
 
 ### Remote database (managed)
 1. Edit `infrastructure/terraform/environments/dev/terraform.tfvars` and update `backend_rds_master_username`, `backend_rds_database_name`, and (optionally) `backend_rds_secret_name` to match the credentials you want Terraform to create.

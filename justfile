@@ -68,24 +68,114 @@ docker-clean:
     @echo "{{BLUE}}New disk usage:{{NC}}"
     @docker system df
 
-# Start all services in development mode with hot reload
-up:
-    @echo "{{GREEN}}Starting services in development mode (LiteLLM remote)...{{NC}}"
-    @if [ -z "$${BACKEND_DATABASE_URL}" ]; then \
-        echo "{{BLUE}}No BACKEND_DATABASE_URL set - starting local Postgres via backend-local-db profile.{{NC}}"; \
-        {{docker_compose}} --profile backend-local-db up -d; \
-    else \
-        echo "{{BLUE}}BACKEND_DATABASE_URL detected - skipping local Postgres container.{{NC}}"; \
-        {{docker_compose}} up -d; \
+# Ensure the container runtime is running before Docker Compose commands execute
+ensure-runtime:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    echo "${YELLOW}Ensuring container runtime is ready...${NC}"
+
+    if command -v colima >/dev/null 2>&1; then
+        echo "${YELLOW}Checking Colima status...${NC}"
+        if colima status >/dev/null 2>&1; then
+            echo "${GREEN}Colima already running.${NC}"
+        else
+            memory="${COLIMA_MEMORY:-2}"
+            cpus="${COLIMA_CPUS:-4}"
+            echo "${YELLOW}Starting Colima with ${memory}GB RAM and ${cpus} CPUs...${NC}"
+            colima start --memory "${memory}" --cpu "${cpus}"
+        fi
+
+        echo "${YELLOW}Waiting for Docker to connect to Colima...${NC}"
+        for _ in $(seq 1 30); do
+            if docker info >/dev/null 2>&1; then
+                echo "${GREEN}Docker client connected via Colima.${NC}"
+                exit 0
+            fi
+            sleep 2
+        done
+
+        echo "${RED}Docker did not become ready after starting Colima.${NC}" >&2
+        exit 1
     fi
-    @echo "{{GREEN}}Services started!{{NC}}"
-    @echo "Frontend: http://localhost:3000"
-    @echo "Backend:  http://localhost:8000/docs"
-    @echo "Redis:    localhost:6380"
-    @echo "LiteLLM:  remote (run 'just up-litellm' for local proxy)"
+
+    if ! command -v docker >/dev/null 2>&1; then
+        echo "${RED}Docker CLI not found. Install Colima or Docker.${NC}" >&2
+        exit 1
+    fi
+
+    echo "${YELLOW}Checking Docker daemon status...${NC}"
+    if docker info >/dev/null 2>&1; then
+        echo "${GREEN}Docker daemon already running.${NC}"
+        exit 0
+    fi
+
+    echo "${YELLOW}Attempting to start Docker daemon...${NC}"
+    os="$(uname -s)"
+    case "$os" in
+        Darwin)
+            open -g -a Docker >/dev/null 2>&1 || true
+            ;;
+        Linux)
+            if command -v systemctl >/dev/null 2>&1; then
+                sudo systemctl start docker >/dev/null 2>&1 || true
+            fi
+            ;;
+        *)
+            echo "${RED}Unsupported OS (${os}). Start Docker manually.${NC}" >&2
+            ;;
+    esac
+
+    echo "${YELLOW}Waiting for Docker daemon to become ready...${NC}"
+    for _ in $(seq 1 30); do
+        if docker info >/dev/null 2>&1; then
+            echo "${GREEN}Docker daemon is running.${NC}"
+            exit 0
+        fi
+        sleep 2
+    done
+
+    echo "${RED}Docker daemon did not become ready. Start it manually and rerun the command.${NC}" >&2
+    exit 1
+
+# Start development services (optional 'redis' target limits to Redis only)
+up target="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    case "{{target}}" in
+        "")
+            just --quiet ensure-runtime
+            echo "{{GREEN}}Starting services in development mode (LiteLLM remote)...{{NC}}"
+            if [ -z "${BACKEND_DATABASE_URL:-}" ]; then
+                echo "{{BLUE}}No BACKEND_DATABASE_URL set - starting local Postgres via backend-local-db profile.{{NC}}"
+                {{docker_compose}} --profile backend-local-db up -d
+            else
+                echo "{{BLUE}}BACKEND_DATABASE_URL detected - skipping local Postgres container.{{NC}}"
+                {{docker_compose}} up -d
+            fi
+            echo "{{GREEN}}Services started!{{NC}}"
+            echo "Frontend: http://localhost:3000"
+            echo "Backend:  http://localhost:8000/docs"
+            echo "Redis:    localhost:6380"
+            echo "LiteLLM:  remote (run 'just up-litellm' for local proxy)"
+            ;;
+        "redis")
+            just --quiet ensure-runtime
+            echo "{{GREEN}}Starting Redis service only...{{NC}}"
+            {{docker_compose}} up -d resume-genius-redis
+            echo "{{GREEN}}Redis service started!{{NC}}"
+            echo "Redis:    localhost:6380"
+            ;;
+        *)
+            echo "${RED}Unknown target '{{target}}'. Use 'redis' or leave blank.${NC}" >&2
+            exit 1
+            ;;
+    esac
 
 # Start all services including local LiteLLM profile
 up-litellm:
+    @just ensure-runtime
     @echo "{{GREEN}}Starting services with local LiteLLM profile...{{NC}}"
     @if [ -z "$${BACKEND_DATABASE_URL}" ]; then \
         echo "{{BLUE}}No BACKEND_DATABASE_URL set - starting local Postgres alongside LiteLLM.{{NC}}"; \
@@ -138,10 +228,14 @@ build service="":
     #!/usr/bin/env bash
     if [ -z "{{service}}" ]; then
         echo "{{BLUE}}Building all services...{{NC}}"
-        {{docker_compose}} build
+        {{docker_compose}} build --no-cache
+        echo "{{BLUE}}Cleaning up old images...{{NC}}"
+        docker image prune -f
     else
         echo "{{BLUE}}Building {{service}}...{{NC}}"
-        {{docker_compose}} build {{service}}
+        {{docker_compose}} build --no-cache {{service}}
+        echo "{{BLUE}}Cleaning up old images...{{NC}}"
+        docker image prune -f
     fi
 
 # Show status of all services
@@ -253,6 +347,62 @@ rebuild-backend:
 # ============================================================================
 # Frontend Commands
 # ============================================================================
+
+# Unified local development runner (loads environment from .env via just)
+dev target:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    case "{{target}}" in
+        frontend)
+            echo "{{GREEN}}Starting frontend development server (local runtime)...{{NC}}"
+            cd apps/frontend
+            pnpm run dev
+            ;;
+        backend)
+            echo "{{GREEN}}Starting backend development server (local runtime)...{{NC}}"
+            redis_host="${BACKEND_REDIS_HOST_LOCAL:-localhost}"
+            redis_port="${BACKEND_REDIS_PORT_LOCAL:-6380}"
+
+            if ! command -v python3 >/dev/null 2>&1; then
+                echo "${RED}python3 is required to check Redis availability.${NC}" >&2
+                exit 1
+            fi
+
+            check_redis() {
+                python3 -c "import socket, sys; sock = socket.socket(); sock.settimeout(1); sys.exit(sock.connect_ex((sys.argv[1], int(sys.argv[2]))))" "$redis_host" "$redis_port"
+            }
+
+            if ! check_redis; then
+                echo "{{YELLOW}}Redis not detected at ${redis_host}:${redis_port}. Starting container...{{NC}}"
+                just --quiet ensure-runtime
+                if ! {{docker_compose}} up -d resume-genius-redis >/dev/null; then
+                    echo "${RED}Failed to start Redis container via docker compose.${NC}" >&2
+                    exit 1
+                fi
+                echo "{{BLUE}}Waiting for Redis to be ready...{{NC}}"
+                for attempt in {1..15}; do
+                    if check_redis; then
+                        echo "{{GREEN}}Redis is ready on ${redis_host}:${redis_port}.{{NC}}"
+                        break
+                    fi
+                    sleep 1
+                done
+                if ! check_redis; then
+                    echo "${RED}Redis failed to start on ${redis_host}:${redis_port}.${NC}" >&2
+                    exit 1
+                fi
+            else
+                echo "{{GREEN}}Redis already reachable on ${redis_host}:${redis_port}.{{NC}}"
+            fi
+            cd apps/backend
+            uv run python main.py
+            ;;
+        *)
+            echo "${RED}Unknown target '{{target}}'. Use 'frontend' or 'backend'.${NC}" >&2
+            exit 1
+            ;;
+    esac
 
 # Run frontend locally without Docker
 frontend-dev:
@@ -454,7 +604,9 @@ env-check:
     @[ -n "${LITELLM_POSTGRES_PASSWORD}" ] && echo "✓ LITELLM_POSTGRES_PASSWORD is set" || echo "✗ LITELLM_POSTGRES_PASSWORD is missing"
     @echo ""
     @echo "{{GREEN}}Backend Configuration:{{NC}}"
-    @[ -n "${BACKEND_POSTGRES_PASSWORD}" ] && echo "✓ BACKEND_POSTGRES_PASSWORD is set" || echo "✗ BACKEND_POSTGRES_PASSWORD is missing"
+    @[ -n "${BACKEND_DATABASE_URL}" ] && echo "✓ BACKEND_DATABASE_URL is set" || echo "✗ BACKEND_DATABASE_URL is missing"
+    @[ -n "${BACKEND_DATABASE_URL_DOCKER}" ] && echo "✓ BACKEND_DATABASE_URL_DOCKER is set" || echo "○ BACKEND_DATABASE_URL_DOCKER not set (containers will use BACKEND_DATABASE_URL)"
+    @[ -n "${BACKEND_DATABASE_SYNC_URL}" ] && echo "✓ BACKEND_DATABASE_SYNC_URL is set" || echo "○ BACKEND_DATABASE_SYNC_URL not set (using BACKEND_DATABASE_URL)"
     @[ -n "${BACKEND_JWT_SECRET_KEY}" ] && echo "✓ BACKEND_JWT_SECRET_KEY is set" || echo "✗ BACKEND_JWT_SECRET_KEY is missing"
     @echo ""
     @echo "{{GREEN}}LLM Provider API Keys:{{NC}}"
@@ -466,8 +618,11 @@ env-check:
     @echo ""
     @echo "{{BLUE}}Database URLs:{{NC}}"
     @echo "LiteLLM DB (Docker): postgresql://${LITELLM_POSTGRES_USER}:***@${LITELLM_POSTGRES_HOST_DOCKER}:${LITELLM_POSTGRES_PORT_DOCKER}/${LITELLM_POSTGRES_DB}"
-    @echo "Backend DB (Docker): postgresql://${BACKEND_POSTGRES_USER}:***@${BACKEND_POSTGRES_HOST_DOCKER}:${BACKEND_POSTGRES_PORT_DOCKER}/${BACKEND_POSTGRES_DB}"
-    @echo "Backend DB (Local):  postgresql://${BACKEND_POSTGRES_USER}:***@${BACKEND_POSTGRES_HOST_LOCAL}:${BACKEND_POSTGRES_PORT_LOCAL}/${BACKEND_POSTGRES_DB}"
+    @if [ -n "${BACKEND_DATABASE_URL}" ]; then \
+        echo "Backend DB URL: set"; \
+    else \
+        echo "Backend DB URL: not set"; \
+    fi
     @echo ""
     @echo "{{BLUE}}Service URLs:{{NC}}"
     @echo "LiteLLM (Docker): ${LITELLM_BASE_URL_DOCKER}"
@@ -534,6 +689,7 @@ help:
     @echo "{{GREEN}}Quick Start:{{NC}}"
     @echo "  just setup          - Initial project setup"
     @echo "  just up             - Start development services"
+    @echo "  just up redis       - Start only the Redis service"
     @echo "  just up-litellm     - Start development services with local LiteLLM"
     @echo "  just down           - Stop all services"
     @echo ""
@@ -545,6 +701,8 @@ help:
     @echo "  just ps             - Show service status"
     @echo ""
     @echo "{{GREEN}}Development:{{NC}}"
+    @echo "  just dev frontend   - Run frontend locally with .env"
+    @echo "  just dev backend    - Run backend locally with .env"
     @echo "  just backend-dev    - Run backend locally"
     @echo "  just frontend-dev   - Run frontend locally"
     @echo "  just migrate        - Run database migrations"

@@ -124,6 +124,44 @@ variable "rds_database_name" {
   default     = "litellm"
 }
 
+# Resume Genius backend development database configuration. This instance is intended to
+# be publicly reachable for local development without docker-compose tunnelling.
+variable "resume_genius_backend_rds_identifier" {
+  type        = string
+  description = "Identifier assigned to the public Resume Genius dev Postgres instance."
+  default     = "resume-genius-develop"
+}
+
+variable "resume_genius_backend_rds_master_username" {
+  type        = string
+  description = "Master username for the public Resume Genius dev database."
+  default     = "resume_genius"
+}
+
+variable "resume_genius_backend_rds_secret_name" {
+  type        = string
+  description = "Name of the Secrets Manager secret that stores the Resume Genius dev database credentials JSON."
+  default     = null
+}
+
+variable "resume_genius_backend_rds_master_password_length" {
+  type        = number
+  description = "Length of the generated master password for the Resume Genius dev database."
+  default     = 32
+}
+
+variable "resume_genius_backend_rds_database_name" {
+  type        = string
+  description = "Database name created on the public Resume Genius dev instance."
+  default     = "resume_genius"
+}
+
+variable "resume_genius_backend_rds_allowed_cidrs" {
+  type        = list(string)
+  description = "IPv4 CIDR blocks allowed to connect to the public Resume Genius dev database."
+  default     = ["0.0.0.0/0"]
+}
+
 # Specific Postgres engine version to run. Upgrades should be planned and tested because
 # they may introduce breaking changes or require downtime.
 variable "rds_engine_version" {
@@ -248,7 +286,7 @@ variable "additional_rds_allowed_security_group_ids" {
 variable "backend_rds_enabled" {
   type        = bool
   description = "Provision the backend PostgreSQL database."
-  default     = true
+  default     = false
 }
 
 variable "backend_rds_master_username" {
