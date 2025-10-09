@@ -36,6 +36,7 @@ def _create_redis_client(
         health_check_interval=redis_config.health_check_interval,
     )
 
+
 if TYPE_CHECKING:
     from openai import OpenAI, AsyncOpenAI
 else:

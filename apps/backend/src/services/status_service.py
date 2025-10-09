@@ -9,13 +9,12 @@ from typing import AsyncGenerator, Optional
 import redis.asyncio as redis
 from dependency_injector.wiring import Provide, inject
 from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from src.containers import Container, container
 from src.config.settings import StatusStreamBackend
 from src.core.queue_manager import QueueService
+from src.core.unit_of_work import UnitOfWork, UnitOfWorkFactory
 from src.models.db.status.status import ProcessingStatusTag
-from src.repositories.status_repository import StatusRepository
 
 logger = logging.getLogger(__name__)
 container.wire(modules=[__name__])
@@ -44,13 +43,10 @@ class StatusService:
     @inject
     def __init__(
         self,
-        session_factory: async_sessionmaker = Provide[Container.async_session_factory],
         redis_client: Optional[redis.Redis] = Provide[Container.redis_client],
         queue_service: QueueService = Provide[Container.queue_service],
         backend_preference: str = Provide[Container.config.status_stream.backend],
     ):
-        """Initialize status service with streaming backend preferences."""
-        self._session_factory = session_factory
         self.redis_client = redis_client
         self._queue_service = queue_service
 
@@ -173,12 +169,19 @@ class StatusService:
         return f"user:{user_id}:job:{job_id}:status-stream"
 
     async def get_processing_status(
-        self, user_id: uuid.UUID, job_id: uuid.UUID
+        self,
+        user_id: uuid.UUID,
+        job_id: uuid.UUID,
+        uow: UnitOfWork | None = None,
     ) -> ProcessingStatus:
         """Get current processing status for a job."""
-        async with self._session_factory() as session:
-            repository = StatusRepository(session)
-            statuses = await repository.get_statuses_for_job(user_id, job_id)
+        if uow:
+            statuses = await uow.status_repository.get_statuses_for_job(user_id, job_id)
+        else:
+            async with UnitOfWorkFactory() as uow:
+                statuses = await uow.status_repository.get_statuses_for_job(
+                    user_id, job_id
+                )
 
         status_map = {
             status.tag.value: status.recorded_at
@@ -208,6 +211,7 @@ class StatusService:
         job_id: uuid.UUID,
         tag: ProcessingStatusTag | str,
         timestamp: Optional[datetime] = None,
+        uow: UnitOfWork | None = None,
     ) -> None:
         """Persist a status update and publish it to the active streaming backend."""
         if not timestamp:
@@ -216,25 +220,32 @@ class StatusService:
         if isinstance(tag, str):
             tag = ProcessingStatusTag(tag)
 
-        async with self._session_factory() as session:
-            repository = StatusRepository(session)
-            try:
-                await repository.upsert_status(
-                    user_id=user_id,
-                    job_id=job_id,
-                    tag=tag,
-                    recorded_at=timestamp,
-                )
-                await session.commit()
-            except Exception:
-                await session.rollback()
-                logger.exception(
-                    "Failed to persist status update for user_id=%s job_id=%s tag=%s",
-                    user_id,
-                    job_id,
-                    tag,
-                )
-                raise
+        if uow:
+            await uow.status_repository.upsert_status(
+                user_id=user_id,
+                job_id=job_id,
+                tag=tag,
+                recorded_at=timestamp,
+            )
+        else:
+            async with UnitOfWorkFactory() as uow:
+                try:
+                    await uow.status_repository.upsert_status(
+                        user_id=user_id,
+                        job_id=job_id,
+                        tag=tag,
+                        recorded_at=timestamp,
+                    )
+                    await uow.commit()
+                except Exception:
+                    await uow.rollback()
+                    logger.exception(
+                        "Failed to persist status update for user_id=%s job_id=%s tag=%s",
+                        user_id,
+                        job_id,
+                        tag,
+                    )
+                    raise
 
         update = ProcessingStatusUpdate(timestamp=timestamp, tag=tag)
         payload = update.model_dump_json()

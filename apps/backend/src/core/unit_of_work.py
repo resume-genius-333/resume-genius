@@ -17,7 +17,9 @@ from src.repositories.job_repository import JobRepository
 from src.repositories.education_repository import EducationRepository
 from src.repositories.work_repository import WorkRepository
 from src.repositories.project_repository import ProjectRepository
+from src.repositories.selection_repository import SelectionRepository
 from src.repositories.skill_repository import SkillRepository
+from src.repositories.status_repository import StatusRepository
 from dependency_injector.wiring import Provide, inject
 from src.containers import Container, container
 
@@ -52,6 +54,8 @@ class UnitOfWorkFactory:
         self.work_repository: Optional[WorkRepository] = None
         self.project_repository: Optional[ProjectRepository] = None
         self.skill_repository: Optional[SkillRepository] = None
+        self.selection_repository: Optional[SelectionRepository] = None
+        self.status_repository: Optional[StatusRepository] = None
 
     async def __aenter__(self):
         """Enter async context manager - create session and repositories."""
@@ -79,6 +83,8 @@ class UnitOfWorkFactory:
         self.work_repository = WorkRepository(self._session)
         self.project_repository = ProjectRepository(self._session)
         self.skill_repository = SkillRepository(self._session)
+        self.selection_repository = SelectionRepository(self._session)
+        self.status_repository = StatusRepository(self._session)
 
         logger.debug("Unit of Work initialized with repositories")
         return UnitOfWork(
@@ -95,6 +101,8 @@ class UnitOfWorkFactory:
             self.work_repository,
             self.project_repository,
             self.skill_repository,
+            self.selection_repository,
+            self.status_repository,
         )
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -154,6 +162,8 @@ class UnitOfWork:
         work_repository: WorkRepository,
         project_repository: ProjectRepository,
         skill_repository: SkillRepository,
+        selection_repository: SelectionRepository,
+        status_repository: StatusRepository,
     ):
         self._session: AsyncSession = session
         self.auth_repository: AuthRepository = auth_repository
@@ -177,6 +187,8 @@ class UnitOfWork:
         self.work_repository: WorkRepository = work_repository
         self.project_repository: ProjectRepository = project_repository
         self.skill_repository: SkillRepository = skill_repository
+        self.selection_repository: SelectionRepository = selection_repository
+        self.status_repository: StatusRepository = status_repository
 
     async def commit(self) -> None:
         await self._session.commit()
